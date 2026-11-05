@@ -67,7 +67,7 @@
                 @else
                     <ul class="rows menu-items" data-sortable data-sort-url="{{ route('tenant.admin.menu.items.reorder', $category) }}">
                         @foreach ($category->items as $item)
-                            <li @class(['row-link', 'is-dim' => ! $item->is_visible]) data-sort-id="{{ $item->id }}" data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
+                            <li @class(['row-link', 'is-dim' => ! $item->is_visible, 'is-sold-out' => $item->is_sold_out]) data-sort-id="{{ $item->id }}" data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
                                 <span class="thumb">
                                     @if ($item->imageUrl())
                                         <img src="{{ $item->imageUrl() }}" alt="">
@@ -76,22 +76,24 @@
                                     @endif
                                 </span>
                                 <span class="row-name">
-                                    <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
-                                    @if ($item->tags->isNotEmpty())
-                                        <span class="tags-inline">
-                                            @foreach ($item->tags as $tag)
-                                                @include('modules.menu.tag')
-                                            @endforeach
-                                        </span>
-                                    @endif
+                                    <span class="row-title">
+                                        <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
+                                        @foreach ($item->tags as $tag)
+                                            @include('modules.menu.tag')
+                                        @endforeach
+                                        @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
+                                        @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
+                                    </span>
                                     <small>
-                                        @if ($item->price_dine_in !== null){{ __('menu.dine_in') }}: {{ vnd($item->price_dine_in) }}@endif
-                                        @if ($item->price_dine_in !== null && $item->price_takeaway !== null)<br>@endif
-                                        @if ($item->price_takeaway !== null){{ __('menu.takeaway') }}: {{ vnd($item->price_takeaway) }}@endif
+                                        @if ($menu === 'all')
+                                            @if ($item->price_dine_in !== null){{ __('menu.dine_in') }}: {{ vnd($item->price_dine_in) }}@endif
+                                            @if ($item->price_dine_in !== null && $item->price_takeaway !== null)<br>@endif
+                                            @if ($item->price_takeaway !== null){{ __('menu.takeaway') }}: {{ vnd($item->price_takeaway) }}@endif
+                                        @else
+                                            {{ vnd($item->{"price_$menu"}) }}
+                                        @endif
                                     </small>
                                 </span>
-                                @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
-                                @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
                                 <div class="row-tools">
                                     @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
                                     @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])

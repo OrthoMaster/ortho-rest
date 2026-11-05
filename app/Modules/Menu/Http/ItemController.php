@@ -30,6 +30,11 @@ class ItemController extends Controller
             ->orderBy('id')
             ->get();
 
+        // Ở tab Tại quán, Đặt mang đi: bỏ danh mục không có món của tab đó.
+        if ($menu !== 'all') {
+            $categories = $categories->filter(fn (MenuCategory $category) => $category->items->isNotEmpty());
+        }
+
         return view('modules.menu.index', compact('categories', 'menu'));
     }
 

@@ -209,6 +209,39 @@ class MenuTest extends TestCase
             ->assertSee(__('menu.mark_sold_out'));
     }
 
+    public function test_all_tab_shows_both_prices_with_labels(): void
+    {
+        $this->item($this->category(), ['price_dine_in' => 75000, 'price_takeaway' => 70000]);
+
+        $this->get($this->base)
+            ->assertSee(__('menu.dine_in').': 75.000 ₫')
+            ->assertSee(__('menu.takeaway').': 70.000 ₫');
+    }
+
+    public function test_menu_tabs_show_only_their_own_price(): void
+    {
+        $this->item($this->category(), ['price_dine_in' => 75000, 'price_takeaway' => 70000]);
+
+        $this->get("$this->base?menu=dine_in")->assertSee('75.000 ₫')->assertDontSee('70.000 ₫');
+        $this->get("$this->base?menu=takeaway")->assertSee('70.000 ₫')->assertDontSee('75.000 ₫');
+    }
+
+    public function test_tab_hides_categories_without_items_for_that_menu(): void
+    {
+        $this->item($this->category('Chỉ tại quán'), ['price_takeaway' => null]);
+        $this->category('Danh mục trống');
+
+        $this->get("$this->base?menu=takeaway")->assertDontSee('Chỉ tại quán')->assertDontSee('Danh mục trống');
+        $this->get($this->base)->assertSee('Chỉ tại quán')->assertSee('Danh mục trống');
+    }
+
+    public function test_sold_out_row_is_marked(): void
+    {
+        $this->item($this->category(), ['is_sold_out' => true]);
+
+        $this->get($this->base)->assertSee('is-sold-out', false);
+    }
+
     public function test_sold_out_and_visibility_toggle(): void
     {
         $item = $this->item($this->category());
