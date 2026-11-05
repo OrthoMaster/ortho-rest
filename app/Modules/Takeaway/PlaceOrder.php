@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\ModuleManager;
+use App\Modules\Takeaway\Models\DiscountCode;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ class PlaceOrder
 
     /**
      * @param  array<int, int>  $quantities  id món => số lượng
-     * @param  array{customer_name: string, customer_phone: string, pickup_at: mixed, notes?: ?string, locale?: string}  $data
+     * @param  array{customer_name: string, customer_phone: string, pickup_at: mixed, notes?: ?string, locale?: string, discount_mode?: ?string, discount_code?: ?string, discount_percent?: mixed, discount_amount?: mixed}  $data
      */
     public function handle(array $quantities, array $data, ?User $user = null): TakeawayOrder
     {
@@ -41,13 +42,18 @@ class PlaceOrder
                 throw ValidationException::withMessages(['items' => __('takeaway.item_unavailable')]);
             }
 
+            $subtotal = $items->sum(fn (MenuItem $item): int => $item->price_takeaway * $quantities[$item->getKey()]);
+            $discount = $this->discount($data, $subtotal);
+
             $order = TakeawayOrder::create([
                 'customer_id' => Customer::remember($data['customer_name'], $data['customer_phone'])->getKey(),
                 'created_by' => $user?->getKey(),
                 'number' => (int) TakeawayOrder::max('number') + 1,
                 'status' => OrderStatus::New,
                 'pickup_at' => $pickup,
-                'total' => $items->sum(fn (MenuItem $item): int => $item->price_takeaway * $quantities[$item->getKey()]),
+                'subtotal' => $subtotal,
+                ...$discount,
+                'total' => $subtotal - $discount['discount_amount'],
                 'notes' => $data['notes'] ?? null,
                 'locale' => $data['locale'] ?? 'vi',
             ]);
@@ -79,6 +85,33 @@ class PlaceOrder
 
             return $order;
         });
+    }
+
+    /** @return array{discount_type: ?DiscountType, discount_value: ?int, discount_code: ?string, discount_amount: int} */
+    private function discount(array $data, int $subtotal): array
+    {
+        [$type, $value, $code] = match ($data['discount_mode'] ?? 'none') {
+            'percent' => [DiscountType::Percent, (int) $data['discount_percent'], null],
+            'amount' => [DiscountType::Amount, (int) $data['discount_amount'], null],
+            'code' => $this->fromCode($data['discount_code'] ?? null),
+            default => [null, null, null],
+        };
+
+        return [
+            'discount_type' => $type,
+            'discount_value' => $value,
+            'discount_code' => $code,
+            'discount_amount' => $type?->amountOff($value, $subtotal) ?? 0,
+        ];
+    }
+
+    /** @return array{DiscountType, int, string} */
+    private function fromCode(?string $code): array
+    {
+        $discount = DiscountCode::usable($code)
+            ?? throw ValidationException::withMessages(['discount_code' => __('takeaway.code_invalid')]);
+
+        return [$discount->type, $discount->value, $discount->code];
     }
 
     private function assertPickupTime(CarbonImmutable $pickup): void

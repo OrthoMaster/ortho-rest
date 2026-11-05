@@ -4,6 +4,7 @@ namespace App\Modules\Takeaway\Models;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\OrderStatus;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,10 @@ class TakeawayOrder extends Model
         return [
             'pickup_at' => 'datetime',
             'status' => OrderStatus::class,
+            'subtotal' => 'integer',
+            'discount_type' => DiscountType::class,
+            'discount_value' => 'integer',
+            'discount_amount' => 'integer',
             'total' => 'integer',
         ];
     }

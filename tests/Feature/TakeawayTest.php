@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Takeaway\DiscountType;
+use App\Modules\Takeaway\Models\DiscountCode;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\OrderStatus;
 use Carbon\Carbon;
@@ -168,6 +171,150 @@ class TakeawayTest extends TestCase
             ->assertSee(__('menu.sold_out'))
             ->assertDontSee('Chỉ tại quán')
             ->assertDontSee('Đang ẩn món');
+    }
+
+    private function code(string $code, DiscountType $type, int $value, bool $active = true, ?Restaurant $restaurant = null): DiscountCode
+    {
+        return DiscountCode::create([
+            'restaurant_id' => ($restaurant ?? $this->restaurant)->id,
+            'code' => $code,
+            'type' => $type,
+            'value' => $value,
+            'is_active' => $active,
+        ]);
+    }
+
+    private function discounted(array $discount): TakeawayOrder
+    {
+        $this->post($this->base, $this->form([$this->pho->id => 2], $discount))->assertSessionHasNoErrors();
+
+        return TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
+    }
+
+    public function test_order_without_discount_keeps_subtotal_equal_to_total(): void
+    {
+        $order = $this->order();
+
+        $this->assertSame(140000, $order->subtotal);
+        $this->assertSame(0, $order->discount_amount);
+        $this->assertSame(140000, $order->total);
+    }
+
+    public function test_direct_percent_discount(): void
+    {
+        $order = $this->discounted(['discount_mode' => 'percent', 'discount_percent' => 10]);
+
+        $this->assertSame(14000, $order->discount_amount);
+        $this->assertSame(126000, $order->total);
+        $this->assertSame(DiscountType::Percent, $order->discount_type);
+    }
+
+    public function test_direct_amount_discount_cannot_exceed_the_subtotal(): void
+    {
+        $this->assertSame(120000, $this->discounted(['discount_mode' => 'amount', 'discount_amount' => 20000])->total);
+        $this->assertSame(0, $this->discounted(['discount_mode' => 'amount', 'discount_amount' => 999999])->total);
+    }
+
+    public function test_code_discount_is_case_insensitive_and_recorded(): void
+    {
+        $this->code('GIAM10', DiscountType::Percent, 10);
+
+        $order = $this->discounted(['discount_mode' => 'code', 'discount_code' => ' giam10 ']);
+
+        $this->assertSame('GIAM10', $order->discount_code);
+        $this->assertSame(126000, $order->total);
+
+        $this->get("$this->base/{$order->id}")->assertSee('GIAM10')->assertSee('14.000 ₫')->assertSee('126.000 ₫');
+    }
+
+    public function test_order_keeps_its_discount_after_the_code_changes(): void
+    {
+        $code = $this->code('GIAM10', DiscountType::Percent, 10);
+        $order = $this->discounted(['discount_mode' => 'code', 'discount_code' => 'GIAM10']);
+
+        $this->delete("$this->base/discounts/{$code->id}");
+
+        $this->assertSame(126000, $order->fresh()->total);
+        $this->get("$this->base/{$order->id}")->assertOk()->assertSee('GIAM10');
+    }
+
+    public function test_wrong_inactive_and_foreign_codes_are_refused(): void
+    {
+        $this->code('TAT', DiscountType::Percent, 10, active: false);
+        $this->code('QUANKHAC', DiscountType::Percent, 10, restaurant: Restaurant::factory()->create());
+
+        foreach (['KHONGCO', 'TAT', 'QUANKHAC'] as $code) {
+            $this->post($this->base, $this->form([$this->pho->id => 1], ['discount_mode' => 'code', 'discount_code' => $code]))
+                ->assertSessionHasErrors('discount_code');
+
+            $this->getJson("$this->base/discounts/check?code=$code")->assertJson(['valid' => false]);
+        }
+
+        $this->assertSame(0, TakeawayOrder::forRestaurant($this->restaurant)->count());
+    }
+
+    public function test_discount_values_are_validated(): void
+    {
+        $items = [$this->pho->id => 1];
+
+        $this->post($this->base, $this->form($items, ['discount_mode' => 'percent', 'discount_percent' => 101]))->assertSessionHasErrors('discount_percent');
+        $this->post($this->base, $this->form($items, ['discount_mode' => 'percent']))->assertSessionHasErrors('discount_percent');
+        $this->post($this->base, $this->form($items, ['discount_mode' => 'amount']))->assertSessionHasErrors('discount_amount');
+        $this->post($this->base, $this->form($items, ['discount_mode' => 'code']))->assertSessionHasErrors('discount_code');
+    }
+
+    public function test_values_of_other_modes_are_ignored(): void
+    {
+        $order = $this->discounted(['discount_mode' => 'none', 'discount_percent' => 50]);
+
+        $this->assertSame(140000, $order->total);
+    }
+
+    public function test_check_endpoint_describes_a_valid_code(): void
+    {
+        $this->code('BOT20K', DiscountType::Amount, 20000);
+
+        $this->getJson("$this->base/discounts/check?code=bot20k")
+            ->assertJson(['valid' => true, 'type' => 'amount', 'value' => 20000]);
+    }
+
+    public function test_discount_code_management(): void
+    {
+        $this->get("$this->base/discounts")->assertOk();
+        $this->get("$this->base/discounts/create")->assertOk();
+
+        $this->post("$this->base/discounts", ['code' => 'giam-10', 'type' => 'percent', 'value' => 10, 'is_active' => 1])
+            ->assertSessionHasNoErrors();
+
+        $code = DiscountCode::forRestaurant($this->restaurant)->sole();
+        $this->assertSame('GIAM-10', $code->code);
+
+        $this->post("$this->base/discounts", ['code' => 'GIAM-10', 'type' => 'percent', 'value' => 5])->assertSessionHasErrors('code');
+        $this->post("$this->base/discounts", ['code' => 'co dau', 'type' => 'percent', 'value' => 5])->assertSessionHasErrors('code');
+        $this->post("$this->base/discounts", ['code' => 'NHIEU', 'type' => 'percent', 'value' => 101])->assertSessionHasErrors('value');
+
+        $this->put("$this->base/discounts/{$code->id}", ['code' => 'GIAM-10', 'type' => 'amount', 'value' => 5000])->assertSessionHasNoErrors();
+
+        $fresh = $code->fresh();
+        $this->assertSame(DiscountType::Amount, $fresh->type);
+        $this->assertFalse($fresh->is_active);
+    }
+
+    public function test_staff_can_use_codes_but_not_manage_them(): void
+    {
+        $this->code('GIAM10', DiscountType::Percent, 10);
+        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+
+        $this->actingAs($staff)->getJson("$this->base/discounts/check?code=GIAM10")->assertJson(['valid' => true]);
+        $this->actingAs($staff)->get("$this->base/discounts")->assertForbidden();
+    }
+
+    public function test_another_restaurants_code_cannot_be_reached(): void
+    {
+        $other = $this->code('QUANKHAC', DiscountType::Percent, 10, restaurant: Restaurant::factory()->create());
+
+        $this->get("$this->base/discounts/{$other->id}/edit")->assertNotFound();
+        $this->delete("$this->base/discounts/{$other->id}")->assertNotFound();
     }
 
     public function test_day_list(): void

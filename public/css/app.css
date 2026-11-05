@@ -219,9 +219,13 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .category-description { color: var(--ink-soft); font-size: .9375rem; }
 .category-body { display: grid; gap: .5rem; padding: .35rem 1rem .85rem; }
 .is-collapsed:not(.is-searching) .category-body { display: none; }
-.menu-items li { padding-right: .25rem; }
-.menu-items .row-name { flex: 1 1 0; min-width: 0; margin-right: 0; }
-.row-meta { flex: 1 1 100%; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.rows.menu-items li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 .75rem; align-items: center; padding-right: .25rem; }
+.menu-items li > .thumb { grid-row: 1 / span 2; align-self: start; }
+.menu-items li > .row-name { grid-column: 2; }
+.menu-items li > .row-tools { grid-column: 3; grid-row: 1; }
+.menu-items li > .row-meta { grid-column: 2 / -1; margin-top: .3rem; }
+.menu-items .row-name { min-width: 0; margin-right: 0; }
+.row-meta { min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .row-tags { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
 .tag-slot { display: inline-flex; }
 .tag-more { display: none; }
@@ -466,6 +470,15 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .picker-body li.has-qty { background: var(--primary-soft); margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius); }
 .picker-body li.has-qty + li { border-top-color: transparent; }
 .picker-foot { flex: none; padding: .75rem 1rem; border-top: 1px solid var(--line); }
+
+.segmented { display: flex; gap: .25rem; padding: .2rem; background: var(--ground); border: 1px solid var(--line); border-radius: var(--radius); }
+.segmented label { flex: 1; cursor: pointer; }
+.segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segmented span { display: grid; place-items: center; min-height: 2.4rem; padding: 0 .4rem; font-size: .9375rem; text-align: center; border-radius: 6px; }
+.segmented input:checked + span { font-weight: 600; color: var(--on-secondary); background: var(--secondary); }
+.segmented input:focus-visible + span { outline: 3px solid var(--primary-ink); outline-offset: 1px; }
+.code-message { display: block; margin-top: .3rem; color: var(--ok-ink); font-size: .875rem; }
+.code-message.is-error { color: var(--bad-ink); }
 
 .pagination { display: flex; gap: 1rem; }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--ink-soft); background: var(--surface); border: 1px dashed var(--field-line); border-radius: var(--radius); }

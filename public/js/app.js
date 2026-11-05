@@ -608,13 +608,101 @@
 
             orderForm.querySelector('[data-order-empty]').hidden = picked.length > 0;
 
+            var off = discountOff(total);
+            var saving = orderForm.querySelector('[data-order-saving]');
+
+            saving.hidden = off === 0;
+            saving.textContent = off > 0 ? '−' + money(off) : '';
+
             orderForm.querySelectorAll('[data-order-total]').forEach(function (node) {
-                node.textContent = money(total);
+                node.textContent = money(total - off);
             });
             orderForm.querySelectorAll('[data-order-count]').forEach(function (node) {
                 node.textContent = orderForm.dataset.countLabel.replace(':count', count);
             });
         };
+
+        var discountSection = orderForm.querySelector('[data-discount]');
+        var modeInputs = Array.prototype.slice.call(discountSection.querySelectorAll('input[name=discount_mode]'));
+        var percentInput = orderForm.querySelector('[name=discount_percent]');
+        var amountInput = orderForm.querySelector('[name=discount_amount]');
+        var codeInput = orderForm.querySelector('[data-code-input]');
+        var codeMessage = orderForm.querySelector('[data-code-message]');
+        var appliedCode = null;
+
+        var currentMode = function () {
+            return modeInputs.filter(function (input) {
+                return input.checked;
+            })[0].value;
+        };
+
+        // Cùng cách tính với DiscountType::amountOff ở server.
+        function discountOff(subtotal) {
+            var mode = currentMode();
+            var off = 0;
+
+            if (mode === 'percent') {
+                off = Math.round(subtotal * Math.min(100, Number(percentInput.value) || 0) / 100);
+            } else if (mode === 'amount') {
+                off = Number(amountInput.value) || 0;
+            } else if (mode === 'code' && appliedCode) {
+                off = appliedCode.type === 'percent' ? Math.round(subtotal * appliedCode.value / 100) : appliedCode.value;
+            }
+
+            return Math.max(0, Math.min(off, subtotal));
+        }
+
+        var checkCode = function () {
+            var code = codeInput.value.trim();
+
+            appliedCode = null;
+            codeMessage.textContent = '';
+            codeMessage.classList.remove('is-error');
+
+            if (!code) {
+                renderOrder();
+
+                return;
+            }
+
+            fetch(orderForm.dataset.checkUrl + '?code=' + encodeURIComponent(code), { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (result) {
+                    appliedCode = result.valid ? result : null;
+                    codeMessage.textContent = result.valid ? result.label : result.message;
+                    codeMessage.classList.toggle('is-error', !result.valid);
+                    renderOrder();
+                });
+        };
+
+        var syncDiscountMode = function () {
+            var mode = currentMode();
+
+            discountSection.querySelectorAll('[data-discount-field]').forEach(function (field) {
+                field.hidden = field.dataset.discountField !== mode;
+            });
+            renderOrder();
+        };
+
+        modeInputs.forEach(function (input) {
+            input.addEventListener('change', syncDiscountMode);
+        });
+        percentInput.addEventListener('input', renderOrder);
+        amountInput.addEventListener('input', renderOrder);
+        orderForm.querySelector('[data-code-apply]').addEventListener('click', checkCode);
+        codeInput.addEventListener('input', function () {
+            appliedCode = null;
+            codeMessage.textContent = '';
+            renderOrder();
+        });
+        codeInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                checkCode();
+            }
+        });
 
         var changeQty = function (id, step) {
             var row = byId[id];
@@ -690,6 +778,10 @@
             filterPicker();
         });
 
-        renderOrder();
+        syncDiscountMode();
+
+        if (currentMode() === 'code' && codeInput.value) {
+            checkCode();
+        }
     }
 })();

@@ -8,7 +8,7 @@
     @if ($categories->isEmpty())
         <p class="empty">{{ __('takeaway.no_menu') }}</p>
     @else
-        <form method="post" action="{{ route('tenant.admin.takeaway.store') }}" class="stack order-form" data-guard data-order-form data-count-label="{{ __('takeaway.item_count') }}">
+        <form method="post" action="{{ route('tenant.admin.takeaway.store') }}" class="stack order-form" data-guard data-order-form data-count-label="{{ __('takeaway.item_count') }}" data-check-url="{{ route('tenant.admin.takeaway.discounts.check') }}">
             @csrf
             <section class="panel">
                 <div class="panel-head">
@@ -18,6 +18,30 @@
                 @error('items')<small class="error">{{ $message }}</small>@enderror
                 <p class="row-note" data-order-empty>{{ __('takeaway.picked_empty') }}</p>
                 <ul class="rows order-lines" data-order-lines></ul>
+            </section>
+
+            <section class="panel" data-discount>
+                <h2>{{ __('takeaway.discount') }}</h2>
+                @php($mode = old('discount_mode', 'none'))
+                <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
+                    @foreach (['none', 'code', 'percent', 'amount'] as $option)
+                        <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
+                    @endforeach
+                </div>
+                <div data-discount-field="code" hidden>
+                    <div class="inline-form">
+                        <input name="discount_code" value="{{ old('discount_code') }}" placeholder="{{ __('takeaway.code_example') }}" aria-label="{{ __('takeaway.code') }}" autocomplete="off" data-code-input>
+                        <button class="btn btn-quiet" type="button" data-code-apply>{{ __('takeaway.code_apply') }}</button>
+                    </div>
+                    <small class="code-message" data-code-message></small>
+                    @error('discount_code')<small class="error">{{ $message }}</small>@enderror
+                </div>
+                <div data-discount-field="percent" hidden>
+                    @include('partials.field', ['name' => 'discount_percent', 'type' => 'number', 'label' => __('takeaway.discount_percent'), 'required' => false])
+                </div>
+                <div data-discount-field="amount" hidden>
+                    @include('partials.field', ['name' => 'discount_amount', 'type' => 'number', 'label' => __('takeaway.discount_amount'), 'required' => false])
+                </div>
             </section>
 
             <section class="panel stack">
@@ -32,6 +56,7 @@
             <div class="order-bar">
                 <span>
                     <small data-order-count></small>
+                    <small data-order-saving hidden></small>
                     <strong data-order-total></strong>
                 </span>
                 <button class="btn" type="submit">{{ __('takeaway.save') }}</button>

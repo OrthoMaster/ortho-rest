@@ -60,6 +60,10 @@ class OrderController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array'],
             'items.*' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'discount_mode' => ['nullable', Rule::in(['none', 'code', 'percent', 'amount'])],
+            'discount_code' => ['nullable', 'required_if:discount_mode,code', 'string', 'max:40'],
+            'discount_percent' => ['nullable', 'required_if:discount_mode,percent', 'integer', 'min:1', 'max:100'],
+            'discount_amount' => ['nullable', 'required_if:discount_mode,amount', 'integer', 'min:1', 'max:999999999'],
         ]);
 
         $data['customer_phone'] = Phone::normalize($data['customer_phone']);

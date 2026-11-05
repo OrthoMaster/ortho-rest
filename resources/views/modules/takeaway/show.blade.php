@@ -45,6 +45,16 @@
                     <span>{{ vnd($item->lineTotal()) }}</span>
                 </li>
             @endforeach
+            @if ($order->discount_amount > 0)
+                <li>
+                    <span class="row-name">{{ __('takeaway.subtotal') }}</span>
+                    <span>{{ vnd($order->subtotal) }}</span>
+                </li>
+                <li>
+                    <span class="row-name">{{ __('takeaway.discount') }}<small>{{ collect([$order->discount_code, $order->discount_type->label($order->discount_value)])->filter()->join(', ') }}</small></span>
+                    <span>−{{ vnd($order->discount_amount) }}</span>
+                </li>
+            @endif
             <li>
                 <span class="row-name">{{ __('takeaway.total') }}</span>
                 <strong>{{ vnd($order->total) }}</strong>
