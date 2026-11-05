@@ -16,6 +16,8 @@
 
     --ok-bg: #d6f0e2;
     --ok-ink: #1f6146;
+    --warn-bg: #fdf0c8;
+    --warn-ink: #75570a;
     --bad-bg: #fbdfe0;
     --bad-ink: #a12b34;
     --radius: 8px;
@@ -72,7 +74,7 @@ a { color: var(--primary-ink); }
 .field small { color: var(--ink-soft); font-size: .8125rem; }
 .field small.error { color: var(--bad-ink); }
 
-input:not([type=checkbox]) {
+input:not([type=checkbox]), select, textarea {
     width: 100%;
     padding: .6rem .7rem;
     font: inherit;
@@ -81,6 +83,7 @@ input:not([type=checkbox]) {
     border: 1px solid var(--field-line);
     border-radius: var(--radius);
 }
+textarea { resize: vertical; }
 input[aria-invalid] { border-color: var(--bad-ink); }
 input[type=file] { padding: .45rem; cursor: pointer; }
 input[type=color] { width: 5rem; height: 2.75rem; padding: .2rem; cursor: pointer; }
@@ -202,6 +205,7 @@ input[type=color] { width: 5rem; height: 2.75rem; padding: .2rem; cursor: pointe
 
 .badge { display: inline-block; padding: .1rem .5rem; font-size: .8125rem; font-weight: 500; color: var(--ink-soft); background: var(--ground); border-radius: var(--radius); }
 .badge-ok { color: var(--ok-ink); background: var(--ok-bg); }
+.badge-warn { color: var(--warn-ink); background: var(--warn-bg); }
 .badge-bad { color: var(--bad-ink); background: var(--bad-bg); }
 
 .tags { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
@@ -239,6 +243,63 @@ th, td { padding: .65rem .85rem; text-align: left; white-space: nowrap; }
 th { font-size: .875rem; font-weight: 600; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 tbody tr + tr td { border-top: 1px solid var(--line); }
 
+h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-soft); }
+
+.btn-sm { padding: .3rem .65rem; font-size: .875rem; }
+.icon-btn { width: 1.9rem; height: 1.9rem; font: inherit; color: var(--primary-ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.icon-btn:hover { background: var(--primary-soft); }
+.input-short { max-width: 7.5rem; }
+.input-date { max-width: 11rem; }
+
+.subnav { display: flex; gap: .25rem; overflow-x: auto; border-bottom: 1px solid var(--line); }
+.subnav a { padding: .5rem .85rem; color: var(--ink-soft); text-decoration: none; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.subnav a:hover { color: var(--ink); }
+.subnav a.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--secondary); }
+
+.inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; }
+.inline-form input:not([type=checkbox]):not(.input-short):not(.input-date), .inline-form select { flex: 1 1 11rem; width: auto; min-width: 0; }
+.inline-form .input-short { flex: 0 0 7.5rem; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+.filters .inline-form { flex-wrap: nowrap; }
+.filters .inline-form select { flex: 0 1 auto; width: auto; }
+.filters { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; }
+.date-nav { display: flex; align-items: center; gap: .4rem; }
+.date-nav .btn { padding: .45rem .8rem; }
+.date-nav input { width: 10.5rem; }
+
+.category-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.category-edit { flex: 1; min-width: 0; display: grid; gap: .6rem; }
+.category-edit summary { display: flex; align-items: center; gap: .5rem; cursor: pointer; width: fit-content; }
+.category-edit summary small { color: var(--primary-ink); text-decoration: underline; }
+.category-edit[open] form { margin-top: .6rem; }
+.row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .6rem; }
+.row-name small { display: block; font-weight: 400; color: var(--ink-soft); }
+.row-name a { color: inherit; }
+.rows li.is-dim .row-name, .rows li.is-dim .thumb { opacity: .55; }
+.area-form { flex: 1 1 100%; }
+
+.thumb { flex: none; display: block; width: 3rem; height: 3rem; overflow: hidden; background: var(--primary-soft); border-radius: var(--radius); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-lg { width: 6rem; height: 6rem; }
+.current-image { display: flex; align-items: center; gap: 1rem; }
+
+.booking-list { display: grid; margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.booking-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: .75rem 1rem; }
+.booking-list li + li { border-top: 1px solid var(--line); }
+.booking-time { min-width: 3.25rem; font-size: 1.125rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+.booking-main { flex: 1 1 12rem; display: grid; min-width: 0; }
+.booking-main > a { font-weight: 600; color: var(--ink); text-decoration: none; }
+.booking-main small { color: var(--ink-soft); }
+.status-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+
+.details { display: grid; grid-template-columns: minmax(7rem, max-content) 1fr; gap: .45rem 1.25rem; margin: 0; }
+.details dt { color: var(--ink-soft); }
+.details dd { margin: 0; overflow-wrap: anywhere; }
+
+.hours { display: grid; gap: .5rem; }
+.hours-row { display: grid; grid-template-columns: 8rem 8rem 8rem; align-items: center; gap: .6rem; }
+.hours-row .error { grid-column: 1 / -1; color: var(--bad-ink); font-size: .8125rem; }
+
 .pagination { display: flex; gap: 1rem; }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--ink-soft); background: var(--surface); border: 1px dashed var(--field-line); border-radius: var(--radius); }
 
@@ -251,4 +312,8 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     .sidebar-foot { margin: 0 0 0 auto; padding: 0; text-align: right; }
     .sidebar-foot span { display: none; }
     .content { padding: 1.25rem 1rem 2rem; }
+    .filters .inline-form { flex-wrap: wrap; }
+    .filters .inline-form select { flex: 1 1 100%; }
+    .hours-row { grid-template-columns: 1fr 1fr; }
+    .hours-row .check { grid-column: 1 / -1; }
 }

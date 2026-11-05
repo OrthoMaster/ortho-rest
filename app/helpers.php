@@ -18,6 +18,13 @@ if (! function_exists('has_module')) {
     }
 }
 
+if (! function_exists('vnd')) {
+    function vnd(int $amount): string
+    {
+        return number_format($amount, 0, ',', '.').' ₫';
+    }
+}
+
 if (! function_exists('tenant_route')) {
     /**
      * Sinh link của nhà hàng, đúng kiểu URL: domain riêng nếu quán có domain đã

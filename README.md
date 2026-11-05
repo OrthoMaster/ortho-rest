@@ -52,7 +52,8 @@ php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy se
 | Đường dẫn | Nội dung |
 | --- | --- |
 | `app/Tenancy/` | Nhà hàng hiện tại, Global Scope, trait `BelongsToRestaurant` |
-| `app/Modules/` | `ModuleManager`, Installer và route của từng module |
+| `app/Modules/` | `ModuleManager`, và model, controller, route, Installer của từng module |
+| `resources/views/modules/` | Màn hình của từng module |
 | `config/modules.php` | Danh sách module, phụ thuộc, mục menu |
 | `config/liresto.php` | Domain chính, slug không được dùng |
 | `routes/web.php` | Domain riêng, domain chính, super admin |

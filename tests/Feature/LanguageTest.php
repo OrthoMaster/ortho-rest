@@ -14,7 +14,7 @@ class LanguageTest extends TestCase
         $missing = [];
 
         foreach ($files as $file) {
-            preg_match_all("/__\('((?:ui|modules|auth|passwords|pagination)\.[a-z0-9_.]*[a-z0-9_])'/", $file->getContents(), $matches);
+            preg_match_all("/__\('((?:ui|modules|menu|reservation|takeaway|auth|passwords|pagination)\.[a-z0-9_.]*[a-z0-9])'/", $file->getContents(), $matches);
 
             foreach ($matches[1] as $key) {
                 if (! Lang::has($key, 'vi', false)) {

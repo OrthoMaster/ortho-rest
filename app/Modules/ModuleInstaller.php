@@ -12,7 +12,7 @@ use App\Models\RestaurantModule;
 abstract class ModuleInstaller
 {
     /** @return array<string, mixed> */
-    abstract protected function defaultSettings(): array;
+    abstract public function defaultSettings(): array;
 
     public function install(Restaurant $restaurant, RestaurantModule $state): void
     {

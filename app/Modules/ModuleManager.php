@@ -125,6 +125,25 @@ class ModuleManager
         return $modules;
     }
 
+    /** @return array<string, mixed> cài đặt đã lưu, thiếu thì lấy mặc định của module */
+    public function settings(Restaurant $restaurant, string $module): array
+    {
+        $installer = $this->definition($module)['installer'] ?? null;
+
+        return array_replace(
+            $installer ? app($installer)->defaultSettings() : [],
+            RestaurantModule::forRestaurant($restaurant)->where('module', $module)->value('settings') ?? [],
+        );
+    }
+
+    /** @param array<string, mixed> $settings */
+    public function updateSettings(Restaurant $restaurant, string $module, array $settings): void
+    {
+        $state = RestaurantModule::forRestaurant($restaurant)->where('module', $module)->firstOrFail();
+
+        $state->update(['settings' => array_replace($state->settings ?? [], $settings)]);
+    }
+
     public function forget(Restaurant $restaurant): void
     {
         unset($this->loaded[$restaurant->getKey()]);

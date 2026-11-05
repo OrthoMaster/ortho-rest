@@ -16,6 +16,9 @@ abstract class TestCase extends BaseTestCase
 
     protected function enableModules(Restaurant $restaurant, string ...$modules): void
     {
+        // Bật module là thao tác của super admin, không nằm trong quán nào.
+        app(TenantContext::class)->forget();
+
         foreach ($modules as $module) {
             app(ModuleManager::class)->enable($restaurant, $module);
         }
