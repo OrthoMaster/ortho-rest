@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Liresto">
+  <rect width="64" height="64" rx="14" fill="#2b6a9e"/>
+  <path d="M21 13v33a5 5 0 0 0 5 5h21" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="42" cy="29" r="10" fill="#a8d0f0"/>
+</svg>

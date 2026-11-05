@@ -4,7 +4,12 @@ return [
     'confirmed' => ':Attribute nhập lại không khớp.',
     'current_password' => 'Mật khẩu hiện tại không đúng.',
     'email' => ':Attribute không đúng định dạng email.',
-    'max' => ['string' => ':Attribute không được dài quá :max ký tự.'],
+    'image' => ':Attribute phải là ảnh.',
+    'max' => [
+        'file' => ':Attribute không được lớn hơn :max KB.',
+        'string' => ':Attribute không được dài quá :max ký tự.',
+    ],
+    'mimes' => ':Attribute phải là file PNG, JPG hoặc WEBP.',
     'min' => ['string' => ':Attribute phải có ít nhất :min ký tự.'],
     'not_in' => ':Attribute này không dùng được.',
     'password' => [
@@ -18,6 +23,7 @@ return [
     'required' => 'Vui lòng nhập :attribute.',
     'string' => ':Attribute phải là chuỗi ký tự.',
     'unique' => ':Attribute này đã được dùng.',
+    'uploaded' => ':Attribute tải lên không thành công. Hãy thử file nhỏ hơn.',
 
     'custom' => [
         'slug' => ['regex' => 'Slug chỉ gồm chữ thường không dấu, số và dấu gạch ngang.'],
@@ -30,6 +36,7 @@ return [
         'current_password' => 'mật khẩu hiện tại',
         'domain' => 'domain',
         'email' => 'email',
+        'logo' => 'logo',
         'name' => 'tên',
         'owner_email' => 'email chủ quán',
         'owner_name' => 'tên chủ quán',

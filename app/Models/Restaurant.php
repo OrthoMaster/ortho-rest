@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\RestaurantStatus;
 use App\Enums\UserRole;
 use App\Modules\ModuleManager;
+use App\Tenancy\RestaurantLogo;
 use App\Tenancy\RestaurantScope;
 use App\Tenancy\RestaurantTheme;
 use Database\Factories\RestaurantFactory;
@@ -57,6 +58,11 @@ class Restaurant extends Model
     public function isLocked(): bool
     {
         return $this->status === RestaurantStatus::Locked;
+    }
+
+    public function logoUrl(): ?string
+    {
+        return RestaurantLogo::url($this);
     }
 
     public function themeCss(): string

@@ -5,7 +5,7 @@
 @section('body')
 <main class="plain-main">
     @unless (tenant())
-        <a class="wordmark" href="{{ url('/') }}">{{ __('ui.app') }}</a>
+        <a class="plain-brand" href="{{ url('/') }}">@include('partials.liresto-logo')</a>
     @endunless
     <div class="plain-box">
         @yield('content')

@@ -10,10 +10,7 @@
 @endif
 <div class="shell">
     <aside class="sidebar">
-        <div class="sidebar-head">
-            <span class="wordmark">{{ __('ui.app') }}</span>
-            @yield('sidebar_title')
-        </div>
+        <div class="sidebar-head">@yield('sidebar_head')</div>
         <nav>@yield('nav')</nav>
         <form class="sidebar-foot" method="post" action="{{ route('logout') }}">
             @csrf

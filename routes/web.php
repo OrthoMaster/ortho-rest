@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Super\ImpersonationController;
 use App\Http\Controllers\Super\RestaurantController;
 use App\Http\Controllers\Super\RestaurantDomainController;
+use App\Http\Controllers\Super\RestaurantLogoController;
 use App\Http\Controllers\Super\RestaurantModuleController;
 use App\Http\Controllers\Super\RestaurantThemeController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,9 @@ Route::middleware('main.domain')->group(function () {
 
         Route::put('restaurants/{restaurant}/theme', [RestaurantThemeController::class, 'update'])->name('theme.update');
         Route::delete('restaurants/{restaurant}/theme', [RestaurantThemeController::class, 'destroy'])->name('theme.destroy');
+
+        Route::post('restaurants/{restaurant}/logo', [RestaurantLogoController::class, 'update'])->name('logo.update');
+        Route::delete('restaurants/{restaurant}/logo', [RestaurantLogoController::class, 'destroy'])->name('logo.destroy');
 
         Route::post('restaurants/{restaurant}/domains', [RestaurantDomainController::class, 'store'])->name('domains.store');
         Route::post('restaurants/{restaurant}/domains/{domain}/verify', [RestaurantDomainController::class, 'verify'])

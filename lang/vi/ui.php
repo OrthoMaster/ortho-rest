@@ -79,6 +79,23 @@ return [
         'password_saved' => 'Đã đổi mật khẩu.',
     ],
 
+    'restaurant' => [
+        'title' => 'Thông tin nhà hàng',
+    ],
+
+    'logo' => [
+        'title' => 'Logo',
+        'alt' => 'Logo :name',
+        'upload' => 'Chọn logo',
+        'replace' => 'Thay logo',
+        'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB. Nên dùng ảnh vuông.',
+        'save' => 'Lưu logo',
+        'saved' => 'Đã lưu logo.',
+        'remove' => 'Xoá logo',
+        'remove_confirm' => 'Xoá logo của nhà hàng này?',
+        'removed' => 'Đã xoá logo.',
+    ],
+
     'impersonation' => [
         'banner' => 'Bạn đang đăng nhập thay :name',
         'leave' => 'Thoát về super admin',

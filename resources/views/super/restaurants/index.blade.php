@@ -30,7 +30,10 @@
                     @foreach ($restaurants as $restaurant)
                         @php($domain = $restaurant->domains->whereNotNull('verified_at')->first())
                         <tr>
-                            <td><a href="{{ route('super.restaurants.show', $restaurant) }}">{{ $restaurant->name }}</a></td>
+                            <td class="name-cell">
+                                @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'sm'])
+                                <a href="{{ route('super.restaurants.show', $restaurant) }}">{{ $restaurant->name }}</a>
+                            </td>
                             <td>{{ $domain?->domain ?? '/'.$restaurant->slug }}</td>
                             <td>{{ $restaurant->users->first()?->email ?? __('ui.super.no_owner_label') }}</td>
                             <td>

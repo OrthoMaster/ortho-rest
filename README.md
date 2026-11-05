@@ -61,6 +61,9 @@ php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy se
 | `lang/vi/` | Mọi chữ giao diện |
 | `public/css/app.css` | CSS và bảng màu Liresto, không cần build |
 | `app/Tenancy/RestaurantTheme.php` | Đổi màu quán thành biến CSS |
+| `app/Tenancy/RestaurantLogo.php` | Lưu, thay, xoá logo quán |
+| `public/images/` | Logo Liresto và icon logo tạm |
+| `public/uploads/` | File quán tải lên, không nằm trong git. Khi deploy phải giữ lại thư mục này |
 
 ## Quy tắc khi thêm code
 

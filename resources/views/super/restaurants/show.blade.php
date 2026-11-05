@@ -40,6 +40,15 @@
     </section>
 
     <section class="panel">
+        <h2>{{ __('ui.logo.title') }}</h2>
+        @include('partials.logo-form', [
+            'restaurant' => $restaurant,
+            'updateUrl' => route('super.logo.update', $restaurant),
+            'destroyUrl' => route('super.logo.destroy', $restaurant),
+        ])
+    </section>
+
+    <section class="panel">
         <h2>{{ __('ui.super.theme') }}</h2>
         <p class="row-note">{{ __('ui.super.theme_hint') }}</p>
         <form method="post" action="{{ route('super.theme.update', $restaurant) }}" class="stack">

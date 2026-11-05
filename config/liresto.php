@@ -15,11 +15,14 @@ return [
     'reserved_slugs' => [
         'admin', 'api', 'css', 'en', 'favicon', 'forgot-password', 'images', 'impersonate',
         'internal', 'ja', 'js', 'ko', 'login', 'logout', 'profile', 'reset-password',
-        'robots', 'sitemap', 'storage', 'super', 'up', 'vi', 'zh',
+        'robots', 'sitemap', 'storage', 'super', 'up', 'uploads', 'vi', 'zh',
     ],
 
     'slug_pattern' => '[a-z0-9]+(?:-[a-z0-9]+)*',
 
     'module_cache_seconds' => 3600,
+
+    // Đĩa lưu file quán tải lên. Đổi sang s3 khi có Bizfly Simple Storage.
+    'uploads_disk' => env('UPLOADS_DISK', 'public'),
 
 ];

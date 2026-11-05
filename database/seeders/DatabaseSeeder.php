@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
 
         $this->user('super@liresto.test', 'Super admin', superAdmin: true);
 
-        $demo = Restaurant::updateOrCreate(['slug' => 'quan-demo'], [
+        $demo = Restaurant::firstOrCreate(['slug' => 'quan-demo'], [
             'name' => 'Quán Demo',
             'theme' => ['primary' => '#b5e3c8', 'secondary' => '#ffd8b8'],
         ]);
@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // *.localhost tự trỏ về máy mình trên Chrome, Edge, Firefox: khỏi sửa file hosts.
-        $custom = Restaurant::updateOrCreate(['slug' => 'bun-cha-ha-noi'], [
+        $custom = Restaurant::firstOrCreate(['slug' => 'bun-cha-ha-noi'], [
             'name' => 'Bún Chả Hà Nội',
             'theme' => ['primary' => '#8c2f1b', 'secondary' => '#f2c14e'],
         ]);
