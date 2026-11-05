@@ -4,7 +4,7 @@
     <input type="hidden" name="pickup_time" value="{{ $value }}" data-time-value>
     <div class="time-picker">
         @foreach (['hour' => __('takeaway.hour'), 'minute' => __('takeaway.minute')] as $unit => $unitLabel)
-            <div class="time-unit" data-time-unit="{{ $unit }}">
+            <div class="spin-group time-unit" data-time-unit="{{ $unit }}">
                 <button type="button" data-time-step="-1" aria-label="{{ __('takeaway.decrease_time', ['unit' => $unitLabel]) }}">−</button>
                 <input type="text" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="{{ $unitLabel }}">
                 <button type="button" data-time-step="1" aria-label="{{ __('takeaway.increase_time', ['unit' => $unitLabel]) }}">+</button>

@@ -13,6 +13,7 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Nút chỉ có icon phải có nền hoặc viền thấy rõ vùng chạm, tối thiểu 44px trên điện thoại (class `row-btn`).
 - Đổi thứ tự bằng kéo thả, không dùng nút lên xuống: thêm `data-sortable`, `data-sort-url`, `data-sort-id` và `partials/drag-handle`. Trên điện thoại giữ lâu vào dòng cũng kéo được.
 - Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
+- Nút + và − của ô số dùng chung class `spin-group`, giống ô Giờ nhận.
 - Chỗ tải ảnh dùng `partials/image-upload`.
 - Chọn ngày dùng lịch `partials/date-picker`, hiện thứ và không hiện năm. Giờ và phút là hai ô riêng, phút bước 10.
 - Trang con (ví dụ Sửa món là con của Menu) luôn có nút icon quay lại trang cha ở header: `partials/page-title`.

@@ -447,7 +447,7 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
 
 .stepper { flex: none; display: inline-flex; align-items: center; gap: .15rem; }
-.stepper .row-btn, .number-stepper .row-btn { font-size: 1.375rem; line-height: 1; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.stepper .row-btn { font-size: 1.375rem; line-height: 1; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .stepper-count { min-width: 1.9rem; text-align: center; font-weight: 700; }
 .is-zero .stepper .row-btn[data-step="-1"], .is-zero .stepper-count { display: none; }
 .order-lines li { flex-wrap: nowrap; }
@@ -477,9 +477,7 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .segmented span { display: grid; place-items: center; min-height: 2.4rem; padding: 0 .4rem; font-size: .9375rem; text-align: center; border-radius: 6px; }
 .segmented input:checked + span { font-weight: 600; color: var(--on-secondary); background: var(--secondary); }
 .segmented input:focus-visible + span { outline: 3px solid var(--primary-ink); outline-offset: 1px; }
-.number-stepper { display: flex; align-items: center; justify-content: center; gap: .5rem; }
-.number-field { display: inline-flex; align-items: center; gap: .3rem; padding: 0 .7rem; background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); }
-.number-field:focus-within { outline: 3px solid var(--primary-ink); outline-offset: 1px; }
+.number-field { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: .3rem; padding: 0 .5rem; }
 .number-field input { width: 5rem; padding: .55rem 0; font-weight: 700; text-align: right; background: none; border: 0; outline: none; appearance: textfield; -moz-appearance: textfield; }
 .number-field input::-webkit-outer-spin-button, .number-field input::-webkit-inner-spin-button { appearance: none; margin: 0; }
 .number-field span { color: var(--ink-soft); white-space: nowrap; }
@@ -490,11 +488,12 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .picker-trigger svg { flex: none; width: 1.25rem; height: 1.25rem; color: var(--primary-ink); }
 
 .time-picker { display: flex; align-items: center; gap: .4rem; }
-.time-unit { flex: 1; min-width: 0; display: flex; align-items: stretch; height: 3rem; background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); overflow: hidden; }
-.time-unit:focus-within { border-color: var(--primary-ink); box-shadow: 0 0 0 2px var(--primary-ink); }
-.time-unit button { flex: none; width: 2.75rem; padding: 0; font: inherit; font-size: 1.375rem; line-height: 1; color: var(--ink); background: var(--ground); border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.time-unit button:hover { background: var(--primary-soft); }
-.time-unit button:focus-visible { outline: none; background: var(--primary-soft); }
+.spin-group { min-width: 0; display: flex; align-items: stretch; height: 3rem; background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); overflow: hidden; }
+.spin-group:focus-within { border-color: var(--primary-ink); box-shadow: 0 0 0 2px var(--primary-ink); }
+.spin-group button { flex: none; width: 2.75rem; padding: 0; font: inherit; font-size: 1.375rem; line-height: 1; color: var(--ink); background: var(--ground); border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.spin-group button:hover { background: var(--primary-soft); }
+.spin-group button:focus-visible { outline: none; background: var(--primary-soft); }
+.time-unit { flex: 1; }
 .time-unit input { flex: 1; min-width: 0; width: 100%; padding: 0; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; background: none; border: 0; border-radius: 0; outline: none; }
 .time-separator { flex: none; font-size: 1.25rem; font-weight: 700; color: var(--ink-soft); }
 .field small.time-warning { color: var(--bad-ink); font-weight: 500; }
