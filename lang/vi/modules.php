@@ -5,7 +5,7 @@ return [
     'website' => 'Website',
     'menu' => 'Menu',
     'reservation' => 'Đặt bàn',
-    'takeaway' => 'Takeaway',
+    'takeaway' => 'Đặt mang đi',
     'staff' => 'Nhân viên',
     'schedule' => 'Lịch làm',
     'leave' => 'Nghỉ phép',

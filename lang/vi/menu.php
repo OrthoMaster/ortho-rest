@@ -3,7 +3,7 @@
 return [
     'all' => 'Tất cả',
     'dine_in' => 'Tại quán',
-    'takeaway' => 'Takeaway',
+    'takeaway' => 'Đặt mang đi',
     'empty' => 'Chưa có danh mục nào. Thêm danh mục đầu tiên ở cuối trang, ví dụ Món chính.',
     'add_item' => 'Thêm món',
     'search' => 'Tìm món, gõ không dấu cũng được',
@@ -27,7 +27,7 @@ return [
     'image' => 'Ảnh món',
     'remove_image' => 'Xoá ảnh này',
     'price_dine_in' => 'Giá tại quán (₫)',
-    'price_takeaway' => 'Giá takeaway (₫)',
+    'price_takeaway' => 'Giá mang đi (₫)',
     'price_hint' => 'Để trống giá nào thì món không có ở menu đó. Cần ít nhất một giá.',
     'visible' => 'Hiện trên menu',
     'hidden' => 'Đang ẩn',

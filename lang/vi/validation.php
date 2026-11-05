@@ -67,7 +67,7 @@ return [
         'pickup_closes' => 'giờ kết thúc nhận hàng',
         'pickup_opens' => 'giờ bắt đầu nhận hàng',
         'price_dine_in' => 'giá tại quán',
-        'price_takeaway' => 'giá takeaway',
+        'price_takeaway' => 'giá mang đi',
         'reserved_at' => 'thời gian',
         'owner_email' => 'email chủ quán',
         'owner_name' => 'tên chủ quán',
