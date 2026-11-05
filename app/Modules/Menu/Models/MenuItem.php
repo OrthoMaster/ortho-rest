@@ -6,6 +6,7 @@ use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
@@ -27,6 +28,17 @@ class MenuItem extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(MenuCategory::class, 'menu_category_id');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(MenuTag::class, 'menu_item_tag')->orderBy('menu_tags.id');
+    }
+
+    /** @param list<int> $ids */
+    public function syncTags(array $ids): void
+    {
+        $this->tags()->sync(array_fill_keys($ids, ['restaurant_id' => $this->restaurant_id]));
     }
 
     /** Món khách đặt mang đi được lúc này. */

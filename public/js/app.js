@@ -80,6 +80,7 @@
                 });
 
                 group.hidden = words.length > 0 && visible === 0;
+                group.classList.toggle('is-searching', words.length > 0);
                 group.searchExtras.forEach(function (extra) {
                     extra.hidden = words.length > 0;
                 });
@@ -91,5 +92,145 @@
 
         search.addEventListener('input', run);
         run();
+    }
+
+    // Đóng mở danh mục, nhớ trạng thái qua các lần tải lại trang.
+    var read = function (key) {
+        try {
+            return window.localStorage.getItem(key);
+        } catch (error) {
+            return null;
+        }
+    };
+    var write = function (key, value) {
+        try {
+            if (value) {
+                window.localStorage.setItem(key, value);
+            } else {
+                window.localStorage.removeItem(key);
+            }
+        } catch (error) {
+            // Trình duyệt chặn lưu trữ thì chỉ mất phần ghi nhớ.
+        }
+    };
+
+    document.querySelectorAll('[data-collapse-key]').forEach(function (group) {
+        var key = group.dataset.collapseKey;
+        var button = group.querySelector('.category-toggle');
+        var apply = function (collapsed) {
+            group.classList.toggle('is-collapsed', collapsed);
+            button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        };
+
+        apply(read(key) === '1');
+
+        button.addEventListener('click', function () {
+            var collapsed = !group.classList.contains('is-collapsed');
+            apply(collapsed);
+            write(key, collapsed ? '1' : '');
+        });
+    });
+
+    // Menu 3 chấm: chỉ mở một cái, bấm ra ngoài hoặc Esc thì đóng.
+    var kebabs = Array.prototype.slice.call(document.querySelectorAll('.kebab'));
+    var closeKebabs = function (except) {
+        kebabs.forEach(function (kebab) {
+            if (kebab !== except) {
+                kebab.open = false;
+            }
+        });
+    };
+
+    document.addEventListener('click', function (event) {
+        closeKebabs(event.target.closest ? event.target.closest('.kebab') : null);
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeKebabs(null);
+        }
+    });
+
+    // Hộp thoại.
+    document.querySelectorAll('[data-open-dialog]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            closeKebabs(null);
+            document.getElementById(button.dataset.openDialog).showModal();
+        });
+    });
+    document.querySelectorAll('[data-close-dialog]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            button.closest('dialog').close();
+        });
+    });
+
+    // Khung tải ảnh: xem trước, kéo thả, xoá.
+    document.querySelectorAll('[data-image-upload]').forEach(function (box) {
+        var field = box.parentElement;
+        var input = box.querySelector('input[type=file]');
+        var preview = box.querySelector('[data-preview]');
+        var removeButton = field.querySelector('[data-remove]');
+        var removeFlag = field.querySelector('[data-remove-flag]');
+        var show = function (url) {
+            preview.src = url || '';
+            preview.hidden = !url;
+            box.classList.toggle('has-image', Boolean(url));
+            box.querySelector('[data-empty]').hidden = Boolean(url);
+            box.querySelector('[data-change]').hidden = !url;
+
+            if (removeButton) {
+                removeButton.hidden = !url;
+            }
+        };
+
+        input.addEventListener('change', function () {
+            if (input.files[0]) {
+                show(URL.createObjectURL(input.files[0]));
+
+                if (removeFlag) {
+                    removeFlag.value = '0';
+                }
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(function (name) {
+            input.addEventListener(name, function () {
+                box.classList.add('is-dragging');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function (name) {
+            input.addEventListener(name, function () {
+                box.classList.remove('is-dragging');
+            });
+        });
+
+        if (removeButton) {
+            removeButton.addEventListener('click', function () {
+                input.value = '';
+                show(null);
+                removeFlag.value = '1';
+            });
+        }
+    });
+
+    // Chọn "Danh mục mới" trong form món.
+    var categorySelect = document.getElementById('f-menu_category_id');
+    var newCategory = document.querySelector('[data-new-category]');
+
+    if (categorySelect && newCategory) {
+        var newCategoryInput = newCategory.querySelector('input');
+        var syncCategory = function (focus) {
+            var isNew = categorySelect.value === 'new';
+            newCategory.hidden = !isNew;
+            newCategoryInput.required = isNew;
+
+            if (isNew && focus) {
+                newCategoryInput.focus();
+            }
+        };
+
+        categorySelect.addEventListener('change', function () {
+            syncCategory(true);
+        });
+        syncCategory(false);
     }
 })();

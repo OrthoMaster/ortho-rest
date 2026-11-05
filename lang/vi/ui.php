@@ -4,9 +4,18 @@ return [
     'app' => 'Liresto',
     'tagline' => 'Web và quản lý cho nhà hàng',
 
+    'image' => [
+        'choose' => 'Chọn ảnh',
+        'drop' => 'hoặc kéo ảnh thả vào đây',
+        'change' => 'Đổi ảnh',
+        'remove' => 'Xoá ảnh',
+        'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB.',
+    ],
+
     'common' => [
         'save' => 'Lưu thay đổi',
         'back_home' => 'Về trang chủ',
+        'close' => 'Đóng',
     ],
 
     'roles' => [
@@ -88,8 +97,6 @@ return [
     'logo' => [
         'title' => 'Logo',
         'alt' => 'Logo :name',
-        'upload' => 'Chọn logo',
-        'replace' => 'Thay logo',
         'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB. Nên dùng ảnh vuông.',
         'save' => 'Lưu logo',
         'saved' => 'Đã lưu logo.',

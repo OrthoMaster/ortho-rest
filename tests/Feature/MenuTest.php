@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Menu\Models\MenuTag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -97,6 +98,114 @@ class MenuTest extends TestCase
         $this->get($this->base)
             ->assertSee('data-search-input', false)
             ->assertSee('data-search-item="Phở bò Nước dùng trong"', false);
+    }
+
+    public function test_new_category_can_be_created_from_the_item_form(): void
+    {
+        $this->post("$this->base/items", [
+            'menu_category_id' => 'new',
+            'new_category_name' => 'Tráng miệng',
+            'name' => 'Chè',
+            'price_dine_in' => 30000,
+        ])->assertSessionHasNoErrors();
+
+        $category = MenuCategory::forRestaurant($this->restaurant)->sole();
+
+        $this->assertSame('Tráng miệng', $category->name);
+        $this->assertSame($category->id, MenuItem::forRestaurant($this->restaurant)->sole()->menu_category_id);
+    }
+
+    public function test_new_category_with_an_existing_name_is_reused(): void
+    {
+        $category = $this->category('Tráng miệng');
+
+        $this->post("$this->base/items", [
+            'menu_category_id' => 'new', 'new_category_name' => 'Tráng miệng', 'name' => 'Chè', 'price_dine_in' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(1, MenuCategory::forRestaurant($this->restaurant)->count());
+        $this->assertSame($category->id, MenuItem::forRestaurant($this->restaurant)->sole()->menu_category_id);
+    }
+
+    public function test_new_category_needs_a_name_and_form_works_with_no_categories(): void
+    {
+        $this->get("$this->base/items/create")->assertOk()->assertSee(__('menu.new_category_option'));
+
+        $this->post("$this->base/items", [
+            'menu_category_id' => 'new', 'name' => 'Chè', 'price_dine_in' => 1,
+        ])->assertSessionHasErrors('new_category_name');
+    }
+
+    public function test_default_tags_are_created_once_when_the_module_is_enabled(): void
+    {
+        $this->enableModules($this->restaurant, 'menu');
+
+        $this->assertSame(
+            ['Best-seller', 'Must-try', 'Món chay'],
+            MenuTag::forRestaurant($this->restaurant)->orderBy('id')->pluck('name')->all(),
+        );
+    }
+
+    public function test_item_tags_are_saved_shown_and_removed(): void
+    {
+        $category = $this->category();
+        $tag = MenuTag::forRestaurant($this->restaurant)->where('name', 'Must-try')->sole();
+
+        $form = ['menu_category_id' => $category->id, 'name' => 'Phở', 'price_dine_in' => 1];
+
+        $this->post("$this->base/items", [...$form, 'tags' => [$tag->id]])->assertSessionHasNoErrors();
+        $item = MenuItem::forRestaurant($this->restaurant)->sole();
+
+        $this->assertSame([$tag->id], $item->tags()->pluck('menu_tags.id')->all());
+        $this->assertDatabaseHas('menu_item_tag', ['menu_item_id' => $item->id, 'restaurant_id' => $this->restaurant->id]);
+        $this->get($this->base)->assertSee('Must-try');
+
+        $this->put("$this->base/items/{$item->id}", $form)->assertSessionHasNoErrors();
+        $this->assertSame(0, $item->tags()->count());
+    }
+
+    public function test_tag_can_be_renamed_with_image_only_when_it_has_an_image(): void
+    {
+        $tag = MenuTag::forRestaurant($this->restaurant)->where('name', 'Best-seller')->sole();
+        $png = UploadedFile::fake()->createWithContent('t.png', base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        ));
+
+        $this->put("$this->base/tags/{$tag->id}", ['name' => 'Recommend', 'image_only' => 1])->assertSessionHasNoErrors();
+        $this->assertFalse($tag->fresh()->image_only);
+
+        $this->put("$this->base/tags/{$tag->id}", ['name' => 'Recommend', 'image_only' => 1, 'image' => $png])->assertSessionHasNoErrors();
+        $fresh = MenuTag::forRestaurant($this->restaurant)->find($tag->id);
+
+        $this->assertSame('Recommend', $fresh->name);
+        $this->assertTrue($fresh->image_only);
+        Storage::disk('public')->assertExists($fresh->image_path);
+
+        $this->delete("$this->base/tags/{$tag->id}");
+        Storage::disk('public')->assertMissing($fresh->image_path);
+    }
+
+    public function test_tag_of_another_restaurant_cannot_be_used_or_reached(): void
+    {
+        $other = Restaurant::factory()->create();
+        $this->enableModules($other, 'menu');
+        $otherTag = MenuTag::forRestaurant($other)->first();
+
+        $this->post("$this->base/items", [
+            'menu_category_id' => $this->category()->id, 'name' => 'X', 'price_dine_in' => 1, 'tags' => [$otherTag->id],
+        ])->assertSessionHasErrors('tags.0');
+
+        $this->get("$this->base/tags/{$otherTag->id}/edit")->assertNotFound();
+    }
+
+    public function test_row_opens_the_item_and_actions_are_in_the_kebab(): void
+    {
+        $this->item($this->category());
+
+        $this->get($this->base)
+            ->assertSee('row-link', false)
+            ->assertSee('class="kebab"', false)
+            ->assertSee(__('menu.mark_sold_out'));
     }
 
     public function test_sold_out_and_visibility_toggle(): void

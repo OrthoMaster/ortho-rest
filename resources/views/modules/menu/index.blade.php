@@ -8,11 +8,7 @@
         <a class="btn" href="{{ route('tenant.admin.menu.items.create') }}">{{ __('menu.add_item') }}</a>
     </div>
 
-    @include('partials.subnav', ['links' => [
-        ['url' => route('tenant.admin.menu.index'), 'label' => __('menu.all'), 'active' => $menu === 'all'],
-        ['url' => route('tenant.admin.menu.index', ['menu' => 'dine_in']), 'label' => __('menu.dine_in'), 'active' => $menu === 'dine_in'],
-        ['url' => route('tenant.admin.menu.index', ['menu' => 'takeaway']), 'label' => __('menu.takeaway'), 'active' => $menu === 'takeaway'],
-    ]])
+    @include('modules.menu.subnav', ['current' => $menu])
 
     @if ($categories->isEmpty())
         <p class="empty">{{ __('menu.empty') }}</p>
@@ -24,91 +20,106 @@
     @endif
 
     @foreach ($categories as $category)
-        <section class="panel" data-search-group="{{ $category->name }}">
+        <section class="panel menu-category" data-search-group="{{ $category->name }}" data-collapse-key="menu-category-{{ $category->id }}">
             <div class="category-head">
-                <details class="category-edit">
-                    <summary>
-                        <h2>{{ $category->name }}</h2>
-                        @unless ($category->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
-                        <small>{{ __('menu.category_edit') }}</small>
-                    </summary>
-                    <form method="post" action="{{ route('tenant.admin.menu.categories.update', $category) }}" class="inline-form">
-                        @csrf
-                        @method('put')
-                        <input name="name" value="{{ $category->name }}" aria-label="{{ __('menu.category_name') }}" required>
-                        <label class="check"><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ __('menu.visible') }}</label>
-                        <button class="btn btn-quiet" type="submit">{{ __('ui.common.save') }}</button>
-                    </form>
-                    <form method="post" action="{{ route('tenant.admin.menu.categories.destroy', $category) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('menu.category_delete_confirm', ['name' => $category->name]) }}">
-                        @csrf
-                        @method('delete')
-                        <button class="link link-danger" type="submit">{{ __('menu.category_delete') }}</button>
-                    </form>
-                </details>
-                <div class="row-actions">
-                    @foreach (['up' => '↑', 'down' => '↓'] as $direction => $arrow)
+                <h2 class="category-title">
+                    <button class="category-toggle" type="button" aria-expanded="true" aria-controls="category-{{ $category->id }}" aria-label="{{ __('menu.toggle_category', ['name' => $category->name]) }}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                        <span class="category-name">{{ $category->name }}</span>
+                        <span class="category-count">{{ __('menu.item_count', ['count' => $category->items->count()]) }}</span>
+                    </button>
+                </h2>
+                @unless ($category->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
+                @component('partials.kebab', ['label' => __('menu.category_actions', ['name' => $category->name])])
+                    <button type="button" data-open-dialog="category-dialog-{{ $category->id }}">{{ __('menu.category_edit') }}</button>
+                    @foreach (['up', 'down'] as $direction)
                         <form method="post" action="{{ route('tenant.admin.menu.categories.move', $category) }}">
                             @csrf
                             <input type="hidden" name="direction" value="{{ $direction }}">
-                            <button class="icon-btn" type="submit" aria-label="{{ __('menu.move_'.$direction) }}">{{ $arrow }}</button>
+                            <button type="submit">{{ __('menu.move_'.$direction) }}</button>
                         </form>
                     @endforeach
-                </div>
+                @endcomponent
             </div>
 
-            @if ($category->items->isEmpty())
-                <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
-            @else
-                <ul class="rows">
-                    @foreach ($category->items as $item)
-                        <li @class(['is-dim' => ! $item->is_visible]) data-search-item="{{ $item->name }} {{ $item->description }}">
-                            <span class="thumb">
-                                @if ($item->imageUrl())<img src="{{ $item->imageUrl() }}" alt="">@endif
-                            </span>
-                            <span class="row-name">
-                                <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
-                                <small>
-                                    @if ($item->price_dine_in !== null){{ __('menu.dine_in') }}: {{ vnd($item->price_dine_in) }}@endif
-                                    @if ($item->price_dine_in !== null && $item->price_takeaway !== null)<br>@endif
-                                    @if ($item->price_takeaway !== null){{ __('menu.takeaway') }}: {{ vnd($item->price_takeaway) }}@endif
-                                </small>
-                            </span>
-                            @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
-                            @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
-                            <div class="row-actions">
-                                <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                    @csrf
-                                    <input type="hidden" name="field" value="is_sold_out">
-                                    <button class="link" type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
-                                </form>
-                                <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                    @csrf
-                                    <input type="hidden" name="field" value="is_visible">
-                                    <button class="link" type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
-                                </form>
-                                @foreach (['up' => '↑', 'down' => '↓'] as $direction => $arrow)
-                                    <form method="post" action="{{ route('tenant.admin.menu.items.move', $item) }}">
+            <dialog id="category-dialog-{{ $category->id }}">
+                <form method="post" action="{{ route('tenant.admin.menu.categories.update', $category) }}" class="stack">
+                    @csrf
+                    @method('put')
+                    <h2>{{ __('menu.category_edit') }}</h2>
+                    <div class="field">
+                        <label for="category-name-{{ $category->id }}">{{ __('menu.category_name') }}</label>
+                        <input id="category-name-{{ $category->id }}" name="name" value="{{ $category->name }}" required>
+                    </div>
+                    <label class="check"><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ __('menu.visible') }}</label>
+                    <div class="dialog-foot">
+                        <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
+                        <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.close') }}</button>
+                    </div>
+                </form>
+                <form method="post" action="{{ route('tenant.admin.menu.categories.destroy', $category) }}" class="dialog-delete" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('menu.category_delete_confirm', ['name' => $category->name]) }}">
+                    @csrf
+                    @method('delete')
+                    <button class="link link-danger" type="submit">{{ __('menu.category_delete') }}</button>
+                </form>
+            </dialog>
+
+            <div class="category-body" id="category-{{ $category->id }}">
+                @if ($category->items->isEmpty())
+                    <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
+                @else
+                    <ul class="rows menu-items">
+                        @foreach ($category->items as $item)
+                            <li @class(['row-link', 'is-dim' => ! $item->is_visible]) data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
+                                <span class="thumb">
+                                    @if ($item->imageUrl())
+                                        <img src="{{ $item->imageUrl() }}" alt="">
+                                    @else
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 3.5 3 3-2.5L20 17"/></svg>
+                                    @endif
+                                </span>
+                                <span class="row-name">
+                                    <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
+                                    @if ($item->tags->isNotEmpty())
+                                        <span class="tags-inline">
+                                            @foreach ($item->tags as $tag)
+                                                @include('modules.menu.tag')
+                                            @endforeach
+                                        </span>
+                                    @endif
+                                    <small>
+                                        @if ($item->price_dine_in !== null){{ __('menu.dine_in') }}: {{ vnd($item->price_dine_in) }}@endif
+                                        @if ($item->price_dine_in !== null && $item->price_takeaway !== null)<br>@endif
+                                        @if ($item->price_takeaway !== null){{ __('menu.takeaway') }}: {{ vnd($item->price_takeaway) }}@endif
+                                    </small>
+                                </span>
+                                @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
+                                @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
+                                @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
+                                    <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
                                         @csrf
-                                        <input type="hidden" name="direction" value="{{ $direction }}">
-                                        <button class="icon-btn" type="submit" aria-label="{{ __('menu.move_'.$direction) }}">{{ $arrow }}</button>
+                                        <input type="hidden" name="field" value="is_sold_out">
+                                        <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
                                     </form>
-                                @endforeach
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-            <p data-search-hide><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
+                                    <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                        @csrf
+                                        <input type="hidden" name="field" value="is_visible">
+                                        <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
+                                    </form>
+                                    @foreach (['up', 'down'] as $direction)
+                                        <form method="post" action="{{ route('tenant.admin.menu.items.move', $item) }}">
+                                            @csrf
+                                            <input type="hidden" name="direction" value="{{ $direction }}">
+                                            <button type="submit">{{ __('menu.move_'.$direction) }}</button>
+                                        </form>
+                                    @endforeach
+                                @endcomponent
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                <p data-search-hide><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
+            </div>
         </section>
     @endforeach
-
-    <section class="panel">
-        <h2>{{ __('menu.add_category') }}</h2>
-        <form method="post" action="{{ route('tenant.admin.menu.categories.store') }}" class="inline-form">
-            @csrf
-            <input name="name" placeholder="{{ __('menu.category_example') }}" aria-label="{{ __('menu.category_name') }}" required>
-            <button class="btn btn-quiet" type="submit">{{ __('menu.add_category') }}</button>
-        </form>
-        @error('name')<small class="error">{{ $message }}</small>@enderror
-    </section>
 @endsection

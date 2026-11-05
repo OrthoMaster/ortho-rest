@@ -19,6 +19,7 @@ return [
     'in' => ':Attribute không hợp lệ.',
     'enum' => ':Attribute không hợp lệ.',
     'integer' => ':Attribute phải là số nguyên.',
+    'required_if' => 'Vui lòng nhập :attribute.',
     'required_without' => 'Cần nhập ít nhất một giá.',
     'mimes' => ':Attribute phải là file PNG, JPG hoặc WEBP.',
     'min' => [
@@ -53,6 +54,7 @@ return [
         'email' => 'email',
         'logo' => 'logo',
         'name' => 'tên',
+        'new_category_name' => 'tên danh mục mới',
         'area_id' => 'khu vực',
         'capacity' => 'sức chứa',
         'customer_email' => 'email',

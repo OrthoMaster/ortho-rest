@@ -8,6 +8,10 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - `User` và `RestaurantDomain` cố ý không dùng trait. Trong một quán, lấy user qua `$restaurant->users()`.
 - Link của quán sinh bằng `tenant_route()`.
 - Chữ giao diện qua `__()` và `lang/vi`, không viết cứng trong Blade.
+- Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.
+- Dòng có nhiều thao tác thì gom vào nút 3 chấm dọc ở cuối dòng (`partials/kebab`).
+- Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
+- Chỗ tải ảnh dùng `partials/image-upload`.
 - Màu chỉ dùng biến CSS trong `public/css/app.css`, không viết mã màu trong Blade. Màu Liresto là pastel xanh; trang của quán tự đổi theo màu quán.
 - Route mới ở cấp một phải thêm tên vào `reserved_slugs` trong `config/liresto.php`.
 - Đã đẩy lên `main` thì không sửa migration cũ, tạo migration mới.

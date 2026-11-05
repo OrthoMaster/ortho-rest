@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Modules\Menu\Installer as MenuInstaller;
 use App\Modules\Reservation\Installer as ReservationInstaller;
 use App\Modules\Takeaway\Installer as TakeawayInstaller;
 use App\Modules\Website\Installer as WebsiteInstaller;
@@ -37,6 +38,7 @@ return [
         'name' => 'modules.menu',
         'depends' => [],
         'phase' => 1,
+        'installer' => MenuInstaller::class,
         'routes' => 'Menu/routes.php',
         'menu' => ['route' => 'menu.index', 'roles' => $managers],
     ],

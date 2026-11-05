@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Menu\Models\MenuTag;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\ReservationBooking;
@@ -84,6 +85,10 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        $tags = MenuTag::pluck('id', 'name');
+        MenuItem::where('name', 'Phở bò tái')->first()->syncTags([$tags['Best-seller']]);
+        MenuItem::where('name', 'Bún chả')->first()->syncTags([$tags['Must-try']]);
 
         $inside = Area::first();
         Area::create(['name' => 'Ngoài sân', 'capacity' => 20]);
