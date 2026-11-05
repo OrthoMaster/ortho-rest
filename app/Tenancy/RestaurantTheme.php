@@ -13,7 +13,7 @@ final class RestaurantTheme
     // Trùng với :root trong public/css/app.css.
     public const PRIMARY = '#a8d0f0';
 
-    public const SECONDARY = '#fbe7a8';
+    public const SECONDARY = '#2b6a9e';
 
     private const INK = '#1f3a52';
 

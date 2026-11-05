@@ -67,6 +67,7 @@ class RestaurantThemeTest extends TestCase
 
         $this->assertStringContainsString('--primary: '.RestaurantTheme::PRIMARY, $css);
         $this->assertStringContainsString('--secondary: '.RestaurantTheme::SECONDARY, $css);
+        $this->assertStringContainsString('--on-secondary: '.RestaurantTheme::textOn(RestaurantTheme::SECONDARY), $css);
     }
 
     #[TestWith(['#8c2f1b'])]
