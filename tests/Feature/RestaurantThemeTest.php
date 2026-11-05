@@ -71,6 +71,10 @@ class RestaurantThemeTest extends TestCase
             ->assertSee('<title>Phở &amp; Cơm - Menu</title>', false);
 
         $this->get("/{$restaurant->slug}")->assertSee('<title>Phở &amp; Cơm</title>', false);
+    }
+
+    public function test_platform_pages_keep_their_own_title(): void
+    {
         $this->get('/login')->assertSee('<title>Đăng nhập</title>', false);
     }
 
