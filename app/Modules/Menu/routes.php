@@ -12,8 +12,9 @@ Route::middleware(['module:menu', 'role:owner,manager'])
         Route::get('/', [ItemController::class, 'index'])->name('index');
 
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
-        Route::post('categories/{category}/move', [CategoryController::class, 'move'])->name('categories.move');
+        Route::post('categories/{category}/items/reorder', [ItemController::class, 'reorder'])->name('items.reorder');
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
         Route::get('tags', [TagController::class, 'index'])->name('tags.index');
@@ -27,6 +28,5 @@ Route::middleware(['module:menu', 'role:owner,manager'])
         Route::get('items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
         Route::put('items/{item}', [ItemController::class, 'update'])->name('items.update');
         Route::post('items/{item}/toggle', [ItemController::class, 'toggle'])->name('items.toggle');
-        Route::post('items/{item}/move', [ItemController::class, 'move'])->name('items.move');
         Route::delete('items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
     });

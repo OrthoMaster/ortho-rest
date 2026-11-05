@@ -9,6 +9,7 @@ use App\Modules\Menu\Models\MenuTag;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -87,15 +88,13 @@ class ItemController extends Controller
         return back();
     }
 
-    public function move(Request $request, MenuItem $item): RedirectResponse
+    public function reorder(Request $request, MenuCategory $category): Response
     {
-        SortOrder::move(
-            MenuItem::where('menu_category_id', $item->menu_category_id),
-            $item,
-            $request->input('direction') === 'up' ? -1 : 1,
-        );
+        $ids = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer']])['ids'];
 
-        return back();
+        SortOrder::reorder(MenuItem::where('menu_category_id', $category->getKey()), array_map('intval', $ids));
+
+        return response()->noContent();
     }
 
     public function destroy(MenuItem $item): RedirectResponse

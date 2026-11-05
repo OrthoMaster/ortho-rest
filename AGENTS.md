@@ -10,6 +10,8 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Chữ giao diện qua `__()` và `lang/vi`, không viết cứng trong Blade.
 - Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.
 - Dòng có nhiều thao tác thì gom vào nút 3 chấm dọc ở cuối dòng (`partials/kebab`).
+- Nút chỉ có icon phải có nền hoặc viền thấy rõ vùng chạm, tối thiểu 44px trên điện thoại (class `row-btn`).
+- Đổi thứ tự bằng kéo thả, không dùng nút lên xuống: thêm `data-sortable`, `data-sort-url`, `data-sort-id` và `partials/drag-handle`. Trên điện thoại giữ lâu vào dòng cũng kéo được.
 - Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
 - Chỗ tải ảnh dùng `partials/image-upload`.
 - Màu chỉ dùng biến CSS trong `public/css/app.css`, không viết mã màu trong Blade. Màu Liresto là pastel xanh; trang của quán tự đổi theo màu quán.

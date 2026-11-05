@@ -2,6 +2,7 @@
 
 return [
     'app' => 'Liresto',
+    'drag_hint' => 'Kéo để đổi vị trí, hoặc dùng phím mũi tên lên xuống',
     'tagline' => 'Web và quản lý cho nhà hàng',
 
     'image' => [

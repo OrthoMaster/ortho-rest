@@ -233,4 +233,255 @@
         });
         syncCategory(false);
     }
+
+    // Kéo thả đổi thứ tự: nút kéo dùng được cả chuột và cảm ứng, giữ lâu vào dòng
+    // chỉ dành cho cảm ứng. Mũi tên lên xuống trên nút kéo cho người dùng bàn phím.
+    var LONG_PRESS_MS = 350;
+    var LONG_PRESS_SLOP = 10;
+    var EDGE = 80;
+    var drag = null;
+
+    var childrenOf = function (list) {
+        return Array.prototype.filter.call(list.children, function (child) {
+            return child.hasAttribute('data-sort-id') && !child.hidden;
+        });
+    };
+
+    var orderOf = function (list) {
+        return childrenOf(list).map(function (child) {
+            return child.dataset.sortId;
+        });
+    };
+
+    var save = function (list) {
+        fetch(list.dataset.sortUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+            },
+            body: JSON.stringify({ ids: orderOf(list).map(Number) }),
+        }).then(function (response) {
+            if (!response.ok) {
+                window.location.reload();
+            }
+        }).catch(function () {
+            window.location.reload();
+        });
+    };
+
+    var placeDragged = function () {
+        drag.item.style.transform = '';
+        var top = drag.item.getBoundingClientRect().top;
+        drag.item.style.transform = 'translateY(' + (drag.y - drag.grab - top) + 'px)';
+    };
+
+    var moveDragged = function () {
+        var before = null;
+
+        childrenOf(drag.list).some(function (child) {
+            if (child === drag.item) {
+                return false;
+            }
+
+            var rect = child.getBoundingClientRect();
+
+            if (drag.y < rect.top + rect.height / 2) {
+                before = child;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        if (before !== drag.item.nextElementSibling) {
+            drag.list.insertBefore(drag.item, before);
+        }
+
+        placeDragged();
+    };
+
+    var scrollTick = function () {
+        if (!drag) {
+            return;
+        }
+
+        var speed = 0;
+
+        if (drag.y < EDGE) {
+            speed = -10;
+        } else if (drag.y > window.innerHeight - EDGE) {
+            speed = 10;
+        }
+
+        if (speed !== 0) {
+            window.scrollBy(0, speed);
+            moveDragged();
+        }
+
+        window.requestAnimationFrame(scrollTick);
+    };
+
+    var startDrag = function (list, item, y) {
+        var rect;
+
+        list.classList.add('is-sorting');
+        rect = item.getBoundingClientRect();
+
+        drag = {
+            list: list,
+            item: item,
+            y: y,
+            grab: Math.min(Math.max(y - rect.top, 0), rect.height),
+            before: orderOf(list).join(),
+        };
+
+        item.classList.add('is-dragging');
+        document.body.classList.add('drag-active');
+        closeKebabs(null);
+        placeDragged();
+        window.requestAnimationFrame(scrollTick);
+    };
+
+    var endDrag = function () {
+        var finished = drag;
+
+        drag = null;
+        finished.item.classList.remove('is-dragging');
+        finished.item.style.transform = '';
+        finished.list.classList.remove('is-sorting');
+        document.body.classList.remove('drag-active');
+
+        if (orderOf(finished.list).join() !== finished.before) {
+            save(finished.list);
+        }
+
+        // Thả tay xong trình duyệt có thể phát sinh một cú bấm vào link của dòng.
+        var swallow = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        document.addEventListener('click', swallow, true);
+        window.setTimeout(function () {
+            document.removeEventListener('click', swallow, true);
+        }, 350);
+    };
+
+    document.addEventListener('pointermove', function (event) {
+        if (drag) {
+            drag.y = event.clientY;
+            moveDragged();
+        }
+    });
+    document.addEventListener('pointerup', function () {
+        if (drag) {
+            endDrag();
+        }
+    });
+    document.addEventListener('pointercancel', function () {
+        if (drag) {
+            endDrag();
+        }
+    });
+    // Đang kéo thì ngón tay không được cuộn trang.
+    document.addEventListener('touchmove', function (event) {
+        if (drag) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+
+    document.querySelectorAll('[data-sortable]').forEach(function (list) {
+        list.addEventListener('pointerdown', function (event) {
+            var item = event.target.closest('[data-sort-id]');
+
+            if (!item || item.parentElement !== list || drag || document.querySelector('.is-searching')) {
+                return;
+            }
+
+            if (event.target.closest('.drag-handle')) {
+                if (event.pointerType === 'mouse' && event.button !== 0) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.target.closest('.drag-handle').setPointerCapture(event.pointerId);
+                startDrag(list, item, event.clientY);
+
+                return;
+            }
+
+            var pressArea = list.dataset.sortPress;
+
+            if (event.pointerType !== 'touch' || event.target.closest('.kebab, dialog') || (pressArea && !event.target.closest(pressArea))) {
+                return;
+            }
+
+            var startX = event.clientX;
+            var startY = event.clientY;
+            var timer;
+            var stop = function () {
+                window.clearTimeout(timer);
+                item.classList.remove('is-pressing');
+                document.removeEventListener('pointermove', onMove);
+                document.removeEventListener('pointerup', stop);
+                document.removeEventListener('pointercancel', stop);
+                document.removeEventListener('contextmenu', blockMenu);
+            };
+            var onMove = function (moveEvent) {
+                if (Math.abs(moveEvent.clientX - startX) > LONG_PRESS_SLOP || Math.abs(moveEvent.clientY - startY) > LONG_PRESS_SLOP) {
+                    stop();
+                }
+            };
+            var blockMenu = function (menuEvent) {
+                menuEvent.preventDefault();
+            };
+
+            item.classList.add('is-pressing');
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', stop);
+            document.addEventListener('pointercancel', stop);
+            document.addEventListener('contextmenu', blockMenu);
+
+            timer = window.setTimeout(function () {
+                stop();
+                document.addEventListener('contextmenu', blockMenu, { once: true });
+
+                if (navigator.vibrate) {
+                    navigator.vibrate(15);
+                }
+
+                startDrag(list, item, startY);
+            }, LONG_PRESS_MS);
+        });
+
+        list.addEventListener('keydown', function (event) {
+            var handle = event.target.closest && event.target.closest('.drag-handle');
+
+            if (!handle || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+                return;
+            }
+
+            var item = handle.closest('[data-sort-id]');
+
+            if (item.parentElement !== list) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            var siblings = childrenOf(list);
+            var index = siblings.indexOf(item);
+            var target = siblings[index + (event.key === 'ArrowUp' ? -1 : 1)];
+
+            if (target) {
+                list.insertBefore(item, event.key === 'ArrowUp' ? target : target.nextElementSibling);
+                handle.focus();
+                save(list);
+            }
+        });
+    });
 })();

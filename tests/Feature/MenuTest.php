@@ -205,6 +205,7 @@ class MenuTest extends TestCase
         $this->get($this->base)
             ->assertSee('row-link', false)
             ->assertSee('class="kebab"', false)
+            ->assertSee('drag-handle', false)
             ->assertSee(__('menu.mark_sold_out'));
     }
 
@@ -222,16 +223,58 @@ class MenuTest extends TestCase
         $this->post("$this->base/items/{$item->id}/toggle", ['field' => 'name'])->assertSessionHasErrors('field');
     }
 
-    public function test_moving_changes_order(): void
+    public function test_items_can_be_reordered(): void
     {
         $category = $this->category();
         $first = $this->item($category, ['name' => 'A', 'sort_order' => 1]);
         $second = $this->item($category, ['name' => 'B', 'sort_order' => 2]);
 
-        $this->post("$this->base/items/{$second->id}/move", ['direction' => 'up']);
+        $this->postJson("$this->base/categories/{$category->id}/items/reorder", ['ids' => [$second->id, $first->id]])
+            ->assertNoContent();
 
         $this->actingInTenant($this->restaurant);
         $this->assertSame(['B', 'A'], $category->items()->pluck('name')->all());
+    }
+
+    public function test_reordering_a_filtered_tab_keeps_the_hidden_items_in_place(): void
+    {
+        $category = $this->category();
+        $a = $this->item($category, ['name' => 'A', 'sort_order' => 1, 'price_takeaway' => 1]);
+        $this->item($category, ['name' => 'Chỉ tại quán', 'sort_order' => 2]);
+        $c = $this->item($category, ['name' => 'C', 'sort_order' => 3, 'price_takeaway' => 1]);
+
+        $this->postJson("$this->base/categories/{$category->id}/items/reorder", ['ids' => [$c->id, $a->id]])
+            ->assertNoContent();
+
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame(['C', 'Chỉ tại quán', 'A'], $category->items()->pluck('name')->all());
+    }
+
+    public function test_categories_can_be_reordered(): void
+    {
+        $first = $this->category('Một');
+        $second = $this->category('Hai');
+
+        $this->postJson("$this->base/categories/reorder", ['ids' => [$second->id, $first->id]])->assertNoContent();
+
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame(['Hai', 'Một'], MenuCategory::orderBy('sort_order')->pluck('name')->all());
+    }
+
+    public function test_reorder_refuses_rows_of_another_category_or_restaurant(): void
+    {
+        $category = $this->category();
+        $mine = $this->item($category);
+        $elsewhere = $this->item($this->category('Khác'));
+        $otherRestaurantItem = $this->item($this->category('Quán khác', Restaurant::factory()->create()));
+
+        foreach ([$elsewhere->id, $otherRestaurantItem->id] as $id) {
+            $this->postJson("$this->base/categories/{$category->id}/items/reorder", ['ids' => [$mine->id, $id]])
+                ->assertUnprocessable();
+        }
+
+        $this->postJson("$this->base/categories/{$category->id}/items/reorder", ['ids' => [$mine->id, $mine->id]])
+            ->assertUnprocessable();
     }
 
     public function test_image_is_stored_and_deleted_with_the_item(): void

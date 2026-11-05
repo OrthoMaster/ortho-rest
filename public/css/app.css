@@ -156,10 +156,36 @@ dialog::backdrop { background: rgb(23 40 56 / .45); }
 
 .kebab { position: relative; z-index: 2; flex: none; }
 .kebab[open] { z-index: 6; }
-.kebab summary { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; color: var(--ink-soft); border-radius: var(--radius); cursor: pointer; list-style: none; }
+.kebab summary { list-style: none; }
 .kebab summary::-webkit-details-marker { display: none; }
-.kebab summary:hover, .kebab[open] summary { color: var(--ink); background: var(--primary-soft); }
-.kebab summary svg { width: 1.25rem; height: 1.25rem; }
+
+.row-tools { position: relative; z-index: 2; flex: none; display: flex; align-items: center; gap: .35rem; }
+.row-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--field-line);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+.row-btn:hover, .kebab[open] .row-btn { background: var(--primary-soft); border-color: var(--primary-ink); }
+.row-btn svg { width: 1.25rem; height: 1.25rem; }
+.drag-handle { cursor: grab; touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.is-searching .drag-handle { display: none; }
+
+[data-sort-id] { -webkit-touch-callout: none; }
+.category-list { display: grid; gap: 1.25rem; }
+.category-list.is-sorting .category-body { display: none; }
+.category-list.is-sorting .category-head { border-radius: 7px; }
+.is-dragging { position: relative; z-index: 10; background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(23 40 56 / .22); }
+.is-pressing { background: var(--primary-soft); }
+body.drag-active { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+body.drag-active .drag-handle { cursor: grabbing; }
 .kebab-menu { position: absolute; top: calc(100% + .25rem); right: 0; display: grid; min-width: 11rem; padding: .3rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(23 40 56 / .14); }
 .kebab-menu button { width: 100%; min-height: 2.5rem; padding: 0 .7rem; font: inherit; font-size: .9375rem; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 6px; cursor: pointer; }
 .kebab-menu button:hover { background: var(--primary-soft); }
@@ -345,8 +371,6 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
 h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-soft); }
 
 .btn-sm { padding: .3rem .65rem; font-size: .875rem; }
-.icon-btn { width: 1.9rem; height: 1.9rem; font: inherit; color: var(--primary-ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
-.icon-btn:hover { background: var(--primary-soft); }
 .input-short { max-width: 7.5rem; }
 .input-date { max-width: 11rem; }
 
@@ -460,7 +484,7 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
     .date-nav input { width: 100%; }
 
     .btn-sm { padding: .5rem .75rem; }
-    .icon-btn { width: 2.5rem; height: 2.5rem; }
+    .row-btn { width: 2.75rem; height: 2.75rem; }
     .link { min-height: 2.25rem; }
 
     .booking-list .status-actions { flex: 1 1 100%; }

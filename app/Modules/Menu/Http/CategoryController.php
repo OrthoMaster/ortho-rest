@@ -7,6 +7,7 @@ use App\Modules\Menu\Models\MenuCategory;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
@@ -31,11 +32,13 @@ class CategoryController extends Controller
         return back()->with('status', __('menu.category_saved'));
     }
 
-    public function move(Request $request, MenuCategory $category): RedirectResponse
+    public function reorder(Request $request): Response
     {
-        SortOrder::move(MenuCategory::query(), $category, $request->input('direction') === 'up' ? -1 : 1);
+        $ids = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer']])['ids'];
 
-        return back();
+        SortOrder::reorder(MenuCategory::query(), array_map('intval', $ids));
+
+        return response()->noContent();
     }
 
     public function destroy(MenuCategory $category): RedirectResponse

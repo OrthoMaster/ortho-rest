@@ -19,8 +19,9 @@
         <p class="empty" data-search-empty hidden>{{ __('menu.search_empty') }}</p>
     @endif
 
+    <div class="category-list" data-sortable data-sort-url="{{ route('tenant.admin.menu.categories.reorder') }}" data-sort-press=".category-head">
     @foreach ($categories as $category)
-        <section class="panel menu-category" data-search-group="{{ $category->name }}" data-collapse-key="menu-category-{{ $category->id }}">
+        <section class="panel menu-category" data-sort-id="{{ $category->id }}" data-search-group="{{ $category->name }}" data-collapse-key="menu-category-{{ $category->id }}">
             <div class="category-head">
                 <h2 class="category-title">
                     <button class="category-toggle" type="button" aria-expanded="true" aria-controls="category-{{ $category->id }}" aria-label="{{ __('menu.toggle_category', ['name' => $category->name]) }}">
@@ -30,16 +31,12 @@
                     </button>
                 </h2>
                 @unless ($category->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
-                @component('partials.kebab', ['label' => __('menu.category_actions', ['name' => $category->name])])
-                    <button type="button" data-open-dialog="category-dialog-{{ $category->id }}">{{ __('menu.category_edit') }}</button>
-                    @foreach (['up', 'down'] as $direction)
-                        <form method="post" action="{{ route('tenant.admin.menu.categories.move', $category) }}">
-                            @csrf
-                            <input type="hidden" name="direction" value="{{ $direction }}">
-                            <button type="submit">{{ __('menu.move_'.$direction) }}</button>
-                        </form>
-                    @endforeach
-                @endcomponent
+                <div class="row-tools">
+                    @include('partials.drag-handle', ['label' => __('menu.drag_category', ['name' => $category->name])])
+                    @component('partials.kebab', ['label' => __('menu.category_actions', ['name' => $category->name])])
+                        <button type="button" data-open-dialog="category-dialog-{{ $category->id }}">{{ __('menu.category_edit') }}</button>
+                    @endcomponent
+                </div>
             </div>
 
             <dialog id="category-dialog-{{ $category->id }}">
@@ -68,9 +65,9 @@
                 @if ($category->items->isEmpty())
                     <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
                 @else
-                    <ul class="rows menu-items">
+                    <ul class="rows menu-items" data-sortable data-sort-url="{{ route('tenant.admin.menu.items.reorder', $category) }}">
                         @foreach ($category->items as $item)
-                            <li @class(['row-link', 'is-dim' => ! $item->is_visible]) data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
+                            <li @class(['row-link', 'is-dim' => ! $item->is_visible]) data-sort-id="{{ $item->id }}" data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
                                 <span class="thumb">
                                     @if ($item->imageUrl())
                                         <img src="{{ $item->imageUrl() }}" alt="">
@@ -95,25 +92,21 @@
                                 </span>
                                 @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
                                 @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
-                                @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
-                                    <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                        @csrf
-                                        <input type="hidden" name="field" value="is_sold_out">
-                                        <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
-                                    </form>
-                                    <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                        @csrf
-                                        <input type="hidden" name="field" value="is_visible">
-                                        <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
-                                    </form>
-                                    @foreach (['up', 'down'] as $direction)
-                                        <form method="post" action="{{ route('tenant.admin.menu.items.move', $item) }}">
+                                <div class="row-tools">
+                                    @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
+                                    @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
+                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
                                             @csrf
-                                            <input type="hidden" name="direction" value="{{ $direction }}">
-                                            <button type="submit">{{ __('menu.move_'.$direction) }}</button>
+                                            <input type="hidden" name="field" value="is_sold_out">
+                                            <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
                                         </form>
-                                    @endforeach
-                                @endcomponent
+                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                            @csrf
+                                            <input type="hidden" name="field" value="is_visible">
+                                            <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
+                                        </form>
+                                    @endcomponent
+                                </div>
                             </li>
                         @endforeach
                     </ul>
@@ -122,4 +115,5 @@
             </div>
         </section>
     @endforeach
+    </div>
 @endsection
