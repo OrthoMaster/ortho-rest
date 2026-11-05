@@ -41,8 +41,14 @@ Email quên mật khẩu không gửi thật ở local, link nằm trong `storag
 
 ## Lệnh hay dùng
 
+Test chỉ chạy trên MySQL, dùng tài khoản trong `.env`. Tạo database test một lần:
+
 ```bash
-php artisan test                        # chạy test, dùng SQLite trong RAM
+mysql -u root -p -e "CREATE DATABASE liresto_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+```
+
+```bash
+php artisan test                        # chạy test trên database liresto_test của MySQL
 php artisan migrate:fresh --seed        # xoá sạch DB, tạo lại dữ liệu thử
 php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy seed (production)
 ```

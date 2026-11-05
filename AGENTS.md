@@ -17,4 +17,4 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Màu chỉ dùng biến CSS trong `public/css/app.css`, không viết mã màu trong Blade. Màu Liresto là pastel xanh; trang của quán tự đổi theo màu quán.
 - Route mới ở cấp một phải thêm tên vào `reserved_slugs` trong `config/liresto.php`.
 - Đã đẩy lên `main` thì không sửa migration cũ, tạo migration mới.
-- Trước khi xong: `php artisan test` và `vendor/bin/pint --test`.
+- Trước khi xong: `php artisan test` (chỉ test trên MySQL, database `liresto_test`) và `vendor/bin/pint --test`. Chỉ đẩy lên khi cả hai đều qua.
