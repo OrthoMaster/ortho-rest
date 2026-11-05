@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', __('ui.app'))</title>
+    {{-- yieldContent đã escape sẵn, tên quán thì escape tại đây. --}}
+    @php($pageTitle = $__env->yieldContent('title', tenant()?->name ?? __('ui.app')))
+    <title>{!! tenant() && $pageTitle !== e(tenant()->name) ? e(tenant()->name).' - '.$pageTitle : $pageTitle !!}</title>
     <script>document.documentElement.classList.add('js')</script>
     <link rel="icon" href="{{ tenant() ? (tenant()->logoUrl() ?? asset('images/restaurant-icon.svg')) : asset('images/liresto-mark.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">

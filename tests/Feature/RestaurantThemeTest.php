@@ -61,6 +61,19 @@ class RestaurantThemeTest extends TestCase
         $this->get("/{$restaurant->slug}")->assertOk()->assertDontSee(self::STYLE, false);
     }
 
+    public function test_browser_title_starts_with_the_restaurant_name(): void
+    {
+        $restaurant = Restaurant::factory()->create(['name' => 'Phở & Cơm']);
+        $this->enableModules($restaurant, 'website', 'menu');
+        $owner = User::factory()->owner($restaurant)->create();
+
+        $this->actingAs($owner)->get("/{$restaurant->slug}/admin/menu")
+            ->assertSee('<title>Phở &amp; Cơm - Menu</title>', false);
+
+        $this->get("/{$restaurant->slug}")->assertSee('<title>Phở &amp; Cơm</title>', false);
+        $this->get('/login')->assertSee('<title>Đăng nhập</title>', false);
+    }
+
     public function test_default_constants_match_the_stylesheet(): void
     {
         $css = file_get_contents(public_path('css/app.css'));
