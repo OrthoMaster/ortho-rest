@@ -19,6 +19,8 @@ return [
         'dashboard' => 'Tổng quan',
         'profile' => 'Tài khoản',
         'logout' => 'Đăng xuất',
+        'open_menu' => 'Mở menu',
+        'close_menu' => 'Đóng menu',
         'restaurants' => 'Nhà hàng',
         'view_site' => 'Xem website',
     ],

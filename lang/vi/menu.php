@@ -6,6 +6,8 @@ return [
     'takeaway' => 'Takeaway',
     'empty' => 'Chưa có danh mục nào. Thêm danh mục đầu tiên ở cuối trang, ví dụ Món chính.',
     'add_item' => 'Thêm món',
+    'search' => 'Tìm món, gõ không dấu cũng được',
+    'search_empty' => 'Không có món nào khớp. Thử từ khác.',
     'add_item_here' => 'Thêm món vào danh mục này',
     'add_category' => 'Thêm danh mục',
     'category' => 'Danh mục',

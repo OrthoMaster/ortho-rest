@@ -18,6 +18,14 @@ if (! function_exists('has_module')) {
     }
 }
 
+if (! function_exists('versioned_asset')) {
+    /** Link file tĩnh kèm thời gian sửa, để trình duyệt tự lấy bản mới sau khi deploy. */
+    function versioned_asset(string $path): string
+    {
+        return asset($path).'?v='.filemtime(public_path($path));
+    }
+}
+
 if (! function_exists('vnd')) {
     function vnd(int $amount): string
     {

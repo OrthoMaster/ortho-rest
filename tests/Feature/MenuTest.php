@@ -90,6 +90,15 @@ class MenuTest extends TestCase
         $this->get("$this->base?menu=dine_in")->assertSee('Chỉ tại quán')->assertDontSee('Chỉ mang đi');
     }
 
+    public function test_page_has_search_data_for_the_browser(): void
+    {
+        $this->item($this->category(), ['name' => 'Phở bò', 'description' => 'Nước dùng trong']);
+
+        $this->get($this->base)
+            ->assertSee('data-search-input', false)
+            ->assertSee('data-search-item="Phở bò Nước dùng trong"', false);
+    }
+
     public function test_sold_out_and_visibility_toggle(): void
     {
         $item = $this->item($this->category());

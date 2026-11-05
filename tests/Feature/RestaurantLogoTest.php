@@ -151,6 +151,13 @@ class RestaurantLogoTest extends TestCase
             ->assertDontSee('liresto-mark.svg');
     }
 
+    public function test_mobile_menu_button_is_in_the_shell(): void
+    {
+        $this->actingAs($this->owner)->get($this->adminUrl())
+            ->assertSee('class="nav-toggle"', false)
+            ->assertSee('aria-controls="sidebar-panel"', false);
+    }
+
     public function test_platform_pages_show_the_liresto_logo(): void
     {
         $this->get('/login')->assertSee('images/liresto-mark.svg');

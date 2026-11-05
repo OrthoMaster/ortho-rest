@@ -16,10 +16,15 @@
 
     @if ($categories->isEmpty())
         <p class="empty">{{ __('menu.empty') }}</p>
+    @else
+        <div class="search">
+            <input type="search" data-search-input placeholder="{{ __('menu.search') }}" aria-label="{{ __('menu.search') }}" autocomplete="off">
+        </div>
+        <p class="empty" data-search-empty hidden>{{ __('menu.search_empty') }}</p>
     @endif
 
     @foreach ($categories as $category)
-        <section class="panel">
+        <section class="panel" data-search-group="{{ $category->name }}">
             <div class="category-head">
                 <details class="category-edit">
                     <summary>
@@ -52,11 +57,11 @@
             </div>
 
             @if ($category->items->isEmpty())
-                <p class="row-note">{{ __('menu.category_empty') }}</p>
+                <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
             @else
                 <ul class="rows">
                     @foreach ($category->items as $item)
-                        <li @class(['is-dim' => ! $item->is_visible])>
+                        <li @class(['is-dim' => ! $item->is_visible]) data-search-item="{{ $item->name }} {{ $item->description }}">
                             <span class="thumb">
                                 @if ($item->imageUrl())<img src="{{ $item->imageUrl() }}" alt="">@endif
                             </span>
@@ -93,7 +98,7 @@
                     @endforeach
                 </ul>
             @endif
-            <p><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
+            <p data-search-hide><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
         </section>
     @endforeach
 
