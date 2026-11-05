@@ -7,7 +7,7 @@
 
     @include('modules.takeaway.subnav')
 
-    <form method="post" action="{{ route('tenant.admin.takeaway.settings.update') }}" class="panel narrow stack">
+    <form method="post" action="{{ route('tenant.admin.takeaway.settings.update') }}" class="panel narrow stack" data-guard>
         @csrf
         @method('put')
         <label class="check"><input type="checkbox" name="accepting_orders" value="1" @checked($settings['accepting_orders'])> {{ __('takeaway.accepting_orders') }}</label>

@@ -45,7 +45,7 @@
     <section class="panel">
         <h2>{{ __('reservation.hours') }}</h2>
         @php($hours = $restaurant->opening_hours)
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.hours') }}" class="stack">
+        <form method="post" action="{{ route('tenant.admin.reservation.settings.hours') }}" class="stack" data-guard>
             @csrf
             @method('put')
             <div class="hours">
@@ -90,7 +90,7 @@
 
     <section class="panel">
         <h2>{{ __('reservation.booking_rules') }}</h2>
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.booking') }}" class="stack narrow">
+        <form method="post" action="{{ route('tenant.admin.reservation.settings.booking') }}" class="stack narrow" data-guard>
             @csrf
             @method('put')
             @include('partials.field', ['name' => 'turn_minutes', 'type' => 'number', 'label' => __('reservation.turn_minutes'), 'value' => $settings['turn_minutes']])

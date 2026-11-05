@@ -484,4 +484,72 @@
             }
         });
     });
+
+    // Có thay đổi chưa lưu thì hỏi trước khi rời trang.
+    var guarded = Array.prototype.slice.call(document.querySelectorAll('form[data-guard]'));
+
+    if (guarded.length) {
+        var snapshot = function (form) {
+            var parts = [];
+
+            new FormData(form).forEach(function (value, name) {
+                if (name !== '_token') {
+                    parts.push(name + '=' + (typeof value === 'string' ? value : value.name + ':' + value.size));
+                }
+            });
+
+            return parts.join('&');
+        };
+        var initial = guarded.map(snapshot);
+        var leaving = false;
+        var hasChanges = function () {
+            return !leaving && guarded.some(function (form, index) {
+                // Form vừa bị trả về vì lỗi nhập liệu: dữ liệu trên màn hình chưa được lưu.
+                return form.querySelector('.error') !== null || snapshot(form) !== initial[index];
+            });
+        };
+        var unsaved = document.getElementById('unsaved-dialog');
+        var target = null;
+
+        document.addEventListener('submit', function (event) {
+            if (!event.defaultPrevented) {
+                leaving = true;
+            }
+        });
+
+        window.addEventListener('beforeunload', function (event) {
+            if (hasChanges()) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+
+        // Bộ nhớ đệm khi bấm Back trình duyệt có thể đưa trang về đúng trạng thái cũ.
+        window.addEventListener('pageshow', function () {
+            leaving = false;
+        });
+
+        document.addEventListener('click', function (event) {
+            var link = event.target.closest ? event.target.closest('a[href]') : null;
+
+            if (!link || !unsaved || !hasChanges() || event.ctrlKey || event.metaKey || event.shiftKey || link.target === '_blank') {
+                return;
+            }
+
+            if (!/^https?:/.test(link.href) || link.getAttribute('href').charAt(0) === '#') {
+                return;
+            }
+
+            event.preventDefault();
+            target = link.href;
+            unsaved.showModal();
+        });
+
+        if (unsaved) {
+            unsaved.querySelector('[data-leave-page]').addEventListener('click', function () {
+                leaving = true;
+                window.location.href = target;
+            });
+        }
+    }
 })();

@@ -3,9 +3,9 @@
 @section('title', __('ui.super.create'))
 
 @section('content')
-    <h1>{{ __('ui.super.create') }}</h1>
+    @include('partials.page-title', ['title' => __('ui.super.create'), 'back' => back_url(route('super.restaurants.index'))])
 
-    <form method="post" action="{{ route('super.restaurants.store') }}" class="panel narrow stack">
+    <form method="post" action="{{ route('super.restaurants.store') }}" class="panel narrow stack" data-guard>
         @csrf
         @include('partials.field', ['name' => 'name', 'label' => __('ui.super.name')])
         @include('partials.field', ['name' => 'slug', 'label' => __('ui.super.slug'), 'required' => false, 'hint' => __('ui.super.slug_hint')])

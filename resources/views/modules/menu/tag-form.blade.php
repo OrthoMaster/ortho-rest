@@ -3,9 +3,9 @@
 @section('title', $tag->name)
 
 @section('content')
-    <h1>{{ $tag->name }}</h1>
+    @include('partials.page-title', ['title' => $tag->name, 'back' => route('tenant.admin.menu.tags.index')])
 
-    <form method="post" enctype="multipart/form-data" action="{{ route('tenant.admin.menu.tags.update', $tag) }}" class="panel narrow stack">
+    <form method="post" enctype="multipart/form-data" action="{{ route('tenant.admin.menu.tags.update', $tag) }}" class="panel narrow stack" data-guard>
         @csrf
         @method('put')
         @include('partials.field', ['name' => 'name', 'label' => __('menu.tag_name'), 'value' => $tag->name])

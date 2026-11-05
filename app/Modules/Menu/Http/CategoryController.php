@@ -24,10 +24,15 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
             'is_visible' => ['boolean'],
         ]);
 
-        $category->update(['name' => $data['name'], 'is_visible' => $request->boolean('is_visible')]);
+        $category->update([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'is_visible' => $request->boolean('is_visible'),
+        ]);
 
         return back()->with('status', __('menu.category_saved'));
     }

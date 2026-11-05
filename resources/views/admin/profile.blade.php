@@ -7,7 +7,7 @@
 
     <section class="panel narrow">
         <h2>{{ __('ui.profile.info') }}</h2>
-        <form method="post" action="{{ route('tenant.admin.profile.update') }}" class="stack">
+        <form method="post" action="{{ route('tenant.admin.profile.update') }}" class="stack" data-guard>
             @csrf
             @method('put')
             @include('partials.field', ['name' => 'name', 'label' => __('ui.profile.name'), 'value' => $user->name, 'autocomplete' => 'name'])
@@ -18,7 +18,7 @@
 
     <section class="panel narrow">
         <h2>{{ __('ui.profile.change_password') }}</h2>
-        <form method="post" action="{{ route('tenant.admin.profile.password') }}" class="stack">
+        <form method="post" action="{{ route('tenant.admin.profile.password') }}" class="stack" data-guard>
             @csrf
             @method('put')
             @include('partials.field', ['name' => 'current_password', 'type' => 'password', 'label' => __('ui.profile.current_password'), 'autocomplete' => 'current-password'])

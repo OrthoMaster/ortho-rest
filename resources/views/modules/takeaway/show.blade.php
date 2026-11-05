@@ -4,10 +4,9 @@
 
 @section('content')
     <div class="page-head">
-        <div>
-            <h1>{{ __('takeaway.number', ['number' => $order->number]) }}</h1>
+        @component('partials.page-title', ['title' => __('takeaway.number', ['number' => $order->number]), 'back' => route('tenant.admin.takeaway.index', ['date' => $order->pickup_at->toDateString()])])
             <span class="badge {{ $order->status->badge() }}">{{ $order->status->label() }}</span>
-        </div>
+        @endcomponent
     </div>
 
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror

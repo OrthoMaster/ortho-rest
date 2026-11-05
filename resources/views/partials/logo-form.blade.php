@@ -1,4 +1,4 @@
-<form method="post" action="{{ $updateUrl }}" enctype="multipart/form-data" class="stack narrow">
+<form method="post" action="{{ $updateUrl }}" enctype="multipart/form-data" class="stack narrow" data-guard>
     @csrf
     @include('partials.image-upload', ['name' => 'logo', 'label' => __('ui.logo.title'), 'url' => $restaurant->logoUrl(), 'square' => true, 'required' => true, 'hideLabel' => true, 'hint' => __('ui.logo.hint')])
     <button class="btn" type="submit">{{ __('ui.logo.save') }}</button>

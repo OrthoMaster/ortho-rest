@@ -235,6 +235,35 @@ class MenuTest extends TestCase
         $this->get($this->base)->assertSee('Chỉ tại quán')->assertSee('Danh mục trống');
     }
 
+    public function test_category_description_is_saved_and_shown(): void
+    {
+        $category = $this->category();
+
+        $this->put("$this->base/categories/{$category->id}", ['name' => 'Khai vị', 'description' => 'Món ăn trước bữa chính', 'is_visible' => 1])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Món ăn trước bữa chính', $category->fresh()->description);
+        $this->get($this->base)->assertSee('Món ăn trước bữa chính');
+
+        $this->put("$this->base/categories/{$category->id}", ['name' => 'Khai vị', 'is_visible' => 1])->assertSessionHasNoErrors();
+        $this->assertNull($category->fresh()->description);
+    }
+
+    public function test_child_pages_have_a_back_button_and_keep_the_tab(): void
+    {
+        $item = $this->item($this->category());
+        $back = 'aria-label="'.__('ui.common.back').'"';
+
+        $this->get("$this->base/items/create")->assertSee($back, false)->assertSee('data-guard', false);
+        $this->get("$this->base/items/{$item->id}/edit")->assertSee($back, false);
+        $this->get($this->base)->assertDontSee($back, false);
+
+        $tab = url("$this->base?menu=takeaway");
+
+        $this->from($tab)->get("$this->base/items/{$item->id}/edit")
+            ->assertSee('href="'.e($tab).'"', false);
+    }
+
     public function test_sold_out_row_is_marked(): void
     {
         $this->item($this->category(), ['is_sold_out' => true]);

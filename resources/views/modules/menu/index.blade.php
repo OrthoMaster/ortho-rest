@@ -48,6 +48,10 @@
                         <label for="category-name-{{ $category->id }}">{{ __('menu.category_name') }}</label>
                         <input id="category-name-{{ $category->id }}" name="name" value="{{ $category->name }}" required>
                     </div>
+                    <div class="field">
+                        <label for="category-description-{{ $category->id }}">{{ __('menu.description') }}</label>
+                        <textarea id="category-description-{{ $category->id }}" name="description" rows="3" maxlength="1000" placeholder="{{ __('menu.category_description_example') }}">{{ $category->description }}</textarea>
+                    </div>
                     <label class="check"><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ __('menu.visible') }}</label>
                     <div class="dialog-foot">
                         <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
@@ -62,6 +66,9 @@
             </dialog>
 
             <div class="category-body" id="category-{{ $category->id }}">
+                @if ($category->description)
+                    <p class="category-description">{{ $category->description }}</p>
+                @endif
                 @if ($category->items->isEmpty())
                     <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
                 @else

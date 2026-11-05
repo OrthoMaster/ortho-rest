@@ -4,10 +4,9 @@
 
 @section('content')
     <div class="page-head">
-        <div>
-            <h1>{{ $reservation->customer->name }}</h1>
+        @component('partials.page-title', ['title' => $reservation->customer->name, 'back' => route('tenant.admin.reservation.index', ['date' => $reservation->reserved_at->toDateString()])])
             <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>
-        </div>
+        @endcomponent
         @if ($reservation->status->holdsSeats())
             <a class="btn btn-quiet" href="{{ route('tenant.admin.reservation.edit', $reservation) }}">{{ __('reservation.edit') }}</a>
         @endif

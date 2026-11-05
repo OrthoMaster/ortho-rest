@@ -216,6 +216,7 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .category-toggle svg { flex: none; width: 1.1rem; height: 1.1rem; transition: transform .15s ease; }
 .is-collapsed:not(.is-searching) .category-toggle svg { transform: rotate(-90deg); }
 .category-count { flex: none; font-size: .8125rem; font-weight: 400; color: var(--ink-soft); }
+.category-description { color: var(--ink-soft); font-size: .9375rem; }
 .category-body { display: grid; gap: .5rem; padding: .35rem 1rem .85rem; }
 .is-collapsed:not(.is-searching) .category-body { display: none; }
 .menu-items li { flex-wrap: nowrap; padding-right: .25rem; }
@@ -323,6 +324,9 @@ body.drag-active .drag-handle { cursor: grabbing; }
 
 .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
 .page-head h1 { margin-bottom: .25rem; }
+.page-title { min-width: 0; display: flex; align-items: flex-start; gap: .75rem; }
+.page-title h1 { overflow-wrap: anywhere; }
+.page-title .row-btn { text-decoration: none; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 
 .panel .btn, .content > .stack .btn { justify-self: start; }

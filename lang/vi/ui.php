@@ -13,10 +13,18 @@ return [
         'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB.',
     ],
 
+    'unsaved' => [
+        'title' => 'Có thay đổi chưa lưu',
+        'body' => 'Nếu rời trang, các thay đổi vừa nhập sẽ mất.',
+        'stay' => 'Ở lại trang này',
+        'leave' => 'Bỏ thay đổi',
+    ],
+
     'common' => [
         'save' => 'Lưu thay đổi',
         'back_home' => 'Về trang chủ',
         'close' => 'Đóng',
+        'back' => 'Quay lại',
     ],
 
     'roles' => [

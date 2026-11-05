@@ -4,14 +4,13 @@
 
 @section('content')
     <div class="page-head">
-        <div>
-            <h1>{{ $restaurant->name }}</h1>
+        @component('partials.page-title', ['title' => $restaurant->name, 'back' => back_url(route('super.restaurants.index'))])
             @if ($restaurant->isLocked())
                 <span class="badge badge-bad">{{ __('ui.super.status_locked') }}</span>
             @else
                 <span class="badge badge-ok">{{ __('ui.super.status_active') }}</span>
             @endif
-        </div>
+        @endcomponent
         <div class="actions">
             @if ($restaurant->hasModule('website'))
                 <a class="btn btn-quiet" href="{{ tenant_route('public.home', restaurant: $restaurant) }}">{{ __('ui.super.view_site') }}</a>
@@ -30,7 +29,7 @@
         @if ($owner)
             <p>{{ __('ui.super.owner_line', ['name' => $owner->name, 'email' => $owner->email]) }}</p>
         @endif
-        <form method="post" action="{{ route('super.restaurants.update', $restaurant) }}" class="stack narrow">
+        <form method="post" action="{{ route('super.restaurants.update', $restaurant) }}" class="stack narrow" data-guard>
             @csrf
             @method('put')
             @include('partials.field', ['name' => 'name', 'label' => __('ui.super.name'), 'value' => $restaurant->name])
@@ -51,7 +50,7 @@
     <section class="panel">
         <h2>{{ __('ui.super.theme') }}</h2>
         <p class="row-note">{{ __('ui.super.theme_hint') }}</p>
-        <form method="post" action="{{ route('super.theme.update', $restaurant) }}" class="stack">
+        <form method="post" action="{{ route('super.theme.update', $restaurant) }}" class="stack" data-guard>
             @csrf
             @method('put')
             <div class="swatches">

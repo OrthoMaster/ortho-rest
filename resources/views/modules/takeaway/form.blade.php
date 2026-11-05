@@ -3,12 +3,12 @@
 @section('title', __('takeaway.add'))
 
 @section('content')
-    <h1>{{ __('takeaway.add') }}</h1>
+    @include('partials.page-title', ['title' => __('takeaway.add'), 'back' => back_url(route('tenant.admin.takeaway.index'))])
 
     @if ($categories->isEmpty())
         <p class="empty">{{ __('takeaway.no_menu') }}</p>
     @else
-        <form method="post" action="{{ route('tenant.admin.takeaway.store') }}" class="stack">
+        <form method="post" action="{{ route('tenant.admin.takeaway.store') }}" class="stack" data-guard>
             @csrf
             <section class="panel narrow stack">
                 @include('partials.field', ['name' => 'customer_name', 'label' => __('reservation.customer_name')])

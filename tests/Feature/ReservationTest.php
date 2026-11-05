@@ -209,6 +209,14 @@ class ReservationTest extends TestCase
         $this->assertSame('Anh Minh', Customer::forRestaurant($this->restaurant)->sole()->name);
     }
 
+    public function test_back_returns_to_the_day_of_the_booking(): void
+    {
+        $reservation = $this->book(['reserved_at' => '2026-12-05T19:00']);
+
+        $this->get("$this->base/{$reservation->id}")->assertSee('date=2026-12-05', false);
+        $this->get("$this->base/{$reservation->id}/edit")->assertSee('href="'.url("$this->base/{$reservation->id}").'"', false);
+    }
+
     public function test_day_list_and_filters(): void
     {
         $this->book(['customer_name' => 'Khách hôm nay']);

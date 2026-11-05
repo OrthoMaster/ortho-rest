@@ -33,4 +33,14 @@
         @yield('content')
     </main>
 </div>
+<dialog id="unsaved-dialog">
+    <div class="stack">
+        <h2>{{ __('ui.unsaved.title') }}</h2>
+        <p>{{ __('ui.unsaved.body') }}</p>
+        <div class="dialog-foot">
+            <button class="btn" type="button" data-close-dialog>{{ __('ui.unsaved.stay') }}</button>
+            <button class="btn btn-danger" type="button" data-leave-page>{{ __('ui.unsaved.leave') }}</button>
+        </div>
+    </div>
+</dialog>
 @endsection

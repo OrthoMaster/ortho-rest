@@ -26,6 +26,16 @@ if (! function_exists('versioned_asset')) {
     }
 }
 
+if (! function_exists('back_url')) {
+    /** Link về trang cha. Vừa đi từ trang cha thì giữ cả bộ lọc đang chọn trên URL. */
+    function back_url(string $parent): string
+    {
+        $previous = url()->previous();
+
+        return strtok($previous, '?') === strtok($parent, '?') ? $previous : $parent;
+    }
+}
+
 if (! function_exists('vnd')) {
     function vnd(int $amount): string
     {

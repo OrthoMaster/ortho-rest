@@ -37,6 +37,7 @@ return [
     'category_example' => 'Ví dụ: Món chính',
     'category_empty' => 'Danh mục này chưa có món.',
     'category_edit' => 'Sửa danh mục',
+    'category_description_example' => 'Ví dụ: Các món khai vị dùng chung cho cả bàn',
     'category_saved' => 'Đã lưu danh mục.',
     'category_delete' => 'Xoá danh mục',
     'category_delete_confirm' => 'Xoá danh mục :name?',

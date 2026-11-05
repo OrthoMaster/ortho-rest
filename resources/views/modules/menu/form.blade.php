@@ -3,11 +3,11 @@
 @section('title', $item->exists ? $item->name : __('menu.add_item'))
 
 @section('content')
-    <h1>{{ $item->exists ? $item->name : __('menu.add_item') }}</h1>
+    @include('partials.page-title', ['title' => $item->exists ? $item->name : __('menu.add_item'), 'back' => back_url(route('tenant.admin.menu.index'))])
 
     @php($selectedCategory = old('menu_category_id', $item->menu_category_id ?? ($categories->isEmpty() ? 'new' : '')))
 
-    <form method="post" enctype="multipart/form-data" class="panel narrow stack"
+    <form method="post" enctype="multipart/form-data" class="panel narrow stack" data-guard
           action="{{ $item->exists ? route('tenant.admin.menu.items.update', $item) : route('tenant.admin.menu.items.store') }}">
         @csrf
         @if ($item->exists) @method('put') @endif

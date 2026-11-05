@@ -3,12 +3,15 @@
 @section('title', $reservation->exists ? __('reservation.edit') : __('reservation.add'))
 
 @section('content')
-    <h1>{{ $reservation->exists ? __('reservation.edit') : __('reservation.add') }}</h1>
+    @include('partials.page-title', [
+        'title' => $reservation->exists ? __('reservation.edit') : __('reservation.add'),
+        'back' => $reservation->exists ? route('tenant.admin.reservation.show', $reservation) : back_url(route('tenant.admin.reservation.index')),
+    ])
 
     @if ($areas->isEmpty())
         <p class="empty">{{ __('reservation.need_area') }}</p>
     @else
-        <form method="post" class="panel narrow stack"
+        <form method="post" class="panel narrow stack" data-guard
               action="{{ $reservation->exists ? route('tenant.admin.reservation.update', $reservation) : route('tenant.admin.reservation.store') }}">
             @csrf
             @if ($reservation->exists) @method('put') @endif
