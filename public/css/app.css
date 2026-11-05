@@ -513,6 +513,7 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .calendar-foot { display: flex; align-items: center; gap: .4rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); }
 .calendar-foot .link { margin-left: auto; }
 
+.edit-line { display: block; font-weight: 400; }
 .code-message { display: block; margin-top: .3rem; color: var(--ok-ink); font-size: .875rem; }
 .code-message.is-error { color: var(--bad-ink); }
 

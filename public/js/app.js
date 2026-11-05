@@ -576,7 +576,8 @@
         });
 
         var renderOrder = function () {
-            var total = 0;
+            var fixedTotal = Number(orderForm.dataset.fixedTotal) || 0;
+            var total = fixedTotal;
             var count = 0;
 
             linesList.textContent = '';
@@ -606,7 +607,7 @@
                 count += qty;
             });
 
-            orderForm.querySelector('[data-order-empty]').hidden = picked.length > 0;
+            orderForm.querySelector('[data-order-empty]').hidden = picked.length > 0 || fixedTotal > 0;
 
             var off = discountOff(total);
             var saving = orderForm.querySelector('[data-order-saving]');
@@ -664,6 +665,15 @@
             codeMessage.classList.remove('is-error');
 
             if (!code) {
+                renderOrder();
+
+                return;
+            }
+
+            // Mã đang có trên đơn được giữ nguyên, kể cả khi đã tắt.
+            if (code.toUpperCase() === orderForm.dataset.keptCode) {
+                appliedCode = { type: orderForm.dataset.keptType, value: Number(orderForm.dataset.keptValue) };
+                codeMessage.textContent = orderForm.dataset.keptLabel;
                 renderOrder();
 
                 return;

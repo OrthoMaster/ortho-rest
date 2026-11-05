@@ -434,6 +434,192 @@ class TakeawayTest extends TestCase
         $this->assertSame(['manager'], app(ModuleManager::class)->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
     }
 
+    public function test_order_code_has_a_type_letter_and_three_digits(): void
+    {
+        $order = $this->order();
+
+        $this->assertSame('M001', $order->code());
+
+        $order->number = 1000;
+        $this->assertSame('M1000', $order->code());
+    }
+
+    public function test_numbers_restart_every_day(): void
+    {
+        $this->assertSame(1, $this->order()->number);
+        $this->assertSame(2, $this->order()->number);
+
+        $this->travelTo(Carbon::parse('2026-12-02 09:00'));
+
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-02']))->assertSessionHasNoErrors();
+
+        $order = TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
+
+        $this->assertSame('M001', $order->code());
+        $this->assertSame('2026-12-02', $order->order_date->toDateString());
+    }
+
+    public function test_code_is_shown_on_the_list_and_the_order(): void
+    {
+        $order = $this->order();
+
+        $this->get($this->base)->assertSee('Đơn M001');
+        $this->get("$this->base/{$order->id}")->assertSee('Đơn M001');
+    }
+
+    public function test_changing_items_keeps_old_prices_and_uses_current_price_for_new_items(): void
+    {
+        $order = $this->order();
+        $this->pho->newQuery()->withoutGlobalScopes()->whereKey($this->pho->id)->update(['price_takeaway' => 99000]);
+        $tra = $this->item($this->restaurant, 'Trà', 10000);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3, $tra->id => 1]))
+            ->assertSessionHasNoErrors();
+
+        $fresh = $order->fresh();
+
+        $this->assertSame(220000, $fresh->total);
+        $this->assertSame('M001', $fresh->code());
+    }
+
+    public function test_edit_is_recorded_with_who_and_what(): void
+    {
+        $order = $this->order();
+        $tra = $this->item($this->restaurant, 'Trà', 10000);
+
+        $this->put("$this->base/{$order->id}", $this->form([$tra->id => 1], ['pickup_time' => '13:00', 'notes' => 'Ít đá']))
+            ->assertSessionHasNoErrors();
+
+        $this->actingInTenant($this->restaurant);
+        $edit = $order->edits()->sole();
+
+        $this->assertSame($this->owner->id, $edit->user_id);
+        $this->assertContains('Bỏ Phở', $edit->changes);
+        $this->assertContains('Thêm 1 × Trà', $edit->changes);
+        $this->assertContains('Đổi ghi chú', $edit->changes);
+
+        $this->get($this->base)->assertSee(__('takeaway.edited'));
+        $this->get("$this->base/{$order->id}")->assertSee(__('takeaway.edit_history'))->assertSee('Bỏ Phở');
+    }
+
+    public function test_saving_without_changes_records_nothing(): void
+    {
+        $order = $this->order();
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 2]))->assertSessionHasNoErrors();
+
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame(0, $order->edits()->count());
+    }
+
+    public function test_status_does_not_change_when_editing(): void
+    {
+        $order = $this->order();
+        $this->post("$this->base/{$order->id}/status", ['status' => 'preparing']);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
+
+        $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
+    }
+
+    public function test_delivered_and_cancelled_orders_cannot_be_edited(): void
+    {
+        $order = $this->order();
+        $this->post("$this->base/{$order->id}/status", ['status' => 'cancelled']);
+
+        $this->get("$this->base/{$order->id}")->assertDontSee(__('takeaway.edit'));
+        $this->get("$this->base/{$order->id}/edit")->assertRedirect("$this->base/{$order->id}");
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasErrors('items');
+
+        $this->assertSame(140000, $order->fresh()->total);
+    }
+
+    public function test_item_now_sold_out_stays_on_the_order(): void
+    {
+        $order = $this->order();
+        $this->pho->newQuery()->withoutGlobalScopes()->whereKey($this->pho->id)->update(['is_sold_out' => true, 'is_visible' => false]);
+
+        $this->get("$this->base/{$order->id}/edit")->assertOk()->assertSee('name="items['.$this->pho->id.']" value="2"', false);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1]))->assertSessionHasNoErrors();
+
+        $this->assertSame(70000, $order->fresh()->total);
+    }
+
+    public function test_new_item_must_be_available(): void
+    {
+        $order = $this->order();
+        $soldOut = $this->item($this->restaurant, 'Hết', 10000, ['is_sold_out' => true]);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 2, $soldOut->id => 1]))->assertSessionHasErrors('items');
+    }
+
+    public function test_edit_keeps_a_code_that_was_turned_off_and_recalculates_it(): void
+    {
+        $code = $this->code('GIAM10', DiscountType::Percent, 10);
+        $order = $this->discounted(['discount_mode' => 'code', 'discount_code' => 'GIAM10']);
+        $code->update(['is_active' => false, 'value' => 50]);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 4], [
+            'discount_enabled' => 1, 'discount_mode' => 'code', 'discount_code' => 'GIAM10',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(252000, $order->fresh()->total);
+    }
+
+    public function test_staff_keeps_a_direct_discount_but_cannot_change_it(): void
+    {
+        $order = $this->discounted(['discount_mode' => 'percent', 'discount_percent' => 10]);
+        $staff = $this->asRole(UserRole::Staff);
+        $keep = ['discount_enabled' => 1, 'discount_mode' => 'percent', 'discount_percent' => 10];
+
+        $this->actingAs($staff)->get("$this->base/{$order->id}/edit")->assertSee('Đơn đang giảm 10%');
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], $keep))->assertSessionHasNoErrors();
+        $this->assertSame(189000, $order->fresh()->total);
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], [...$keep, 'discount_percent' => 50]))->assertForbidden();
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->assertSame(210000, $order->fresh()->total);
+    }
+
+    public function test_form_of_staff_sends_only_the_field_of_the_kept_discount(): void
+    {
+        $percent = $this->discounted(['discount_mode' => 'percent', 'discount_percent' => 10]);
+        $amount = $this->discounted(['discount_mode' => 'amount', 'discount_thousands' => 25]);
+        $this->actingAs($this->asRole(UserRole::Staff));
+
+        $this->get("$this->base/{$percent->id}/edit")
+            ->assertSee('name="discount_percent" value="10"', false)
+            ->assertDontSee('name="discount_thousands"', false);
+
+        $this->get("$this->base/{$amount->id}/edit")
+            ->assertSee('name="discount_thousands" value="25"', false)
+            ->assertDontSee('name="discount_percent"', false);
+    }
+
+    public function test_unchanged_pickup_of_an_earlier_time_can_be_saved(): void
+    {
+        $order = $this->order();
+        $this->travelTo(Carbon::parse('2026-12-01 18:00'));
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], ['pickup_time' => '13:00']))->assertSessionHasErrors('pickup_at');
+    }
+
+    public function test_order_of_another_restaurant_cannot_be_edited(): void
+    {
+        $other = Restaurant::factory()->create();
+        $this->enableModules($other, 'menu', 'takeaway');
+        $otherItem = $this->item($other, 'Bún', 50000);
+        $this->actingAs(User::factory()->owner($other)->create())->post("/{$other->slug}/admin/takeaway", $this->form([$otherItem->id => 1]));
+        $otherOrder = TakeawayOrder::forRestaurant($other)->sole();
+
+        $this->actingAs($this->owner)->get("$this->base/{$otherOrder->id}/edit")->assertNotFound();
+        $this->actingAs($this->owner)->put("$this->base/{$otherOrder->id}", $this->form([$this->pho->id => 1]))->assertNotFound();
+    }
+
     public function test_day_list(): void
     {
         $this->order();

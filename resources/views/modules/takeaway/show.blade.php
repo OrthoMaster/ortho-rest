@@ -1,12 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', __('takeaway.number', ['number' => $order->number]))
+@section('title', __('takeaway.number', ['code' => $order->code()]))
 
 @section('content')
     <div class="page-head">
-        @component('partials.page-title', ['title' => __('takeaway.number', ['number' => $order->number]), 'back' => route('tenant.admin.takeaway.index', ['date' => $order->pickup_at->toDateString()])])
+        @component('partials.page-title', ['title' => __('takeaway.number', ['code' => $order->code()]), 'back' => route('tenant.admin.takeaway.index', ['date' => $order->pickup_at->toDateString()])])
             <span class="badge {{ $order->status->badge() }}">{{ $order->status->label() }}</span>
         @endcomponent
+        @if ($order->isEditable())
+            <a class="btn btn-quiet" href="{{ route('tenant.admin.takeaway.edit', $order) }}">{{ __('takeaway.edit') }}</a>
+        @endif
     </div>
 
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
@@ -61,4 +64,22 @@
             </li>
         </ul>
     </section>
+
+    @if ($order->edits->isNotEmpty())
+        <section class="panel">
+            <h2>{{ __('takeaway.edit_history') }}</h2>
+            <ul class="rows">
+                @foreach ($order->edits as $edit)
+                    <li>
+                        <span class="row-name">
+                            @foreach ($edit->changes as $change)
+                                <span class="edit-line">{{ $change }}</span>
+                            @endforeach
+                            <small>{{ $edit->user?->name }}, {{ $edit->created_at->format('H:i d/m/Y') }}</small>
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
 @endsection

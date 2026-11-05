@@ -39,6 +39,7 @@ class OrderController extends Controller
             'date' => $date,
             'status' => $status,
             'orders' => TakeawayOrder::with(['customer', 'items'])
+                ->withCount('edits')
                 ->whereBetween('pickup_at', [$date, $date->endOfDay()])
                 ->when($status, fn ($query) => $query->where('status', $status))
                 ->orderBy('pickup_at')
@@ -48,23 +49,73 @@ class OrderController extends Controller
 
     public function create(): View
     {
+        return $this->form(new TakeawayOrder);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $this->validated($request);
+        $quantities = array_map('intval', $data['items']);
+
+        $order = $this->orders->handle($quantities, $data, $request->user());
+
+        return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', __('takeaway.saved'));
+    }
+
+    public function edit(TakeawayOrder $order): View|RedirectResponse
+    {
+        if (! $order->isEditable()) {
+            return redirect()->route('tenant.admin.takeaway.show', $order)->with('error', __('takeaway.not_editable'));
+        }
+
+        return $this->form($order->load(['customer', 'items']));
+    }
+
+    public function update(Request $request, TakeawayOrder $order): RedirectResponse
+    {
+        $data = $this->validated($request, $order);
+        $quantities = array_map('intval', $data['items']);
+
+        $this->orders->update($order, $quantities, $data, $request->user());
+
+        return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', __('takeaway.updated'));
+    }
+
+    private function form(TakeawayOrder $order): View
+    {
         $settings = $this->modules->settings(tenant(), 'takeaway');
         $default = now()->ceilMinutes(self::MINUTE_STEP);
+        $inOrder = $order->exists ? $order->items->whereNotNull('menu_item_id')->keyBy('menu_item_id') : collect();
+        $ids = $inOrder->keys()->all();
+
+        // Món đang có trong đơn luôn phải hiện, kể cả khi menu đã ẩn nó.
+        $categories = MenuCategory::with(['items' => fn ($query) => $query->where(fn ($query) => $query
+            ->where(fn ($query) => $query->whereNotNull('price_takeaway')->where('is_visible', true))
+            ->orWhereIn('id', $ids))])
+            ->orderBy('sort_order')
+            ->get()
+            ->each(function (MenuCategory $category) use ($ids): void {
+                if (! $category->is_visible) {
+                    $category->setRelation('items', $category->items->whereIn('id', $ids));
+                }
+            })
+            ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty());
 
         return view('modules.takeaway.form', [
-            'categories' => MenuCategory::where('is_visible', true)
-                ->with(['items' => fn ($query) => $query->whereNotNull('price_takeaway')->where('is_visible', true)])
-                ->orderBy('sort_order')
-                ->get()
-                ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty()),
-            'defaultDate' => $default->toDateString(),
-            'defaultTime' => $default->format('H:i'),
+            'order' => $order,
+            'categories' => $categories,
+            'inOrder' => $inOrder,
+            'detached' => $order->exists ? $order->items->whereNull('menu_item_id') : collect(),
+            'defaultDate' => $order->exists ? $order->pickup_at->toDateString() : $default->toDateString(),
+            'defaultTime' => $order->exists ? $order->pickup_at->format('H:i') : $default->format('H:i'),
+            'minDate' => $order->exists ? min($order->pickup_at->toDateString(), today()->toDateString()) : today()->toDateString(),
             'pickupOpens' => $settings['pickup_opens'],
             'pickupCloses' => $settings['pickup_closes'],
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    /** @return array<string, mixed> */
+    private function validated(Request $request, ?TakeawayOrder $order = null): array
     {
         if (! $request->boolean('discount_enabled')) {
             $request->merge(['discount_mode' => 'none']);
@@ -84,30 +135,38 @@ class OrderController extends Controller
             'discount_thousands' => ['nullable', 'required_if:discount_mode,amount', 'integer', 'min:1', 'max:999999'],
         ]);
 
-        abort_if(
-            in_array($data['discount_mode'] ?? 'none', ['percent', 'amount'], true)
-                && $request->user()->cannot('takeaway.direct-discount'),
-            403,
-        );
+        $this->authorizeDiscount($request, $data, $order);
 
         $data['pickup_at'] = CarbonImmutable::parse($data['pickup_date'].' '.$data['pickup_time']);
 
-        if ($data['pickup_at']->lt(now()->subMinutes(self::PAST_GRACE_MINUTES))) {
+        if (! ($order && $data['pickup_at']->equalTo($order->pickup_at))
+            && $data['pickup_at']->lt(now()->subMinutes(self::PAST_GRACE_MINUTES))) {
             throw ValidationException::withMessages(['pickup_at' => __('takeaway.pickup_past')]);
         }
 
         $data['customer_phone'] = Phone::normalize($data['customer_phone']);
         $data['discount_amount'] = ($data['discount_thousands'] ?? 0) * 1000;
-        $quantities = array_map('intval', $data['items']);
 
-        $order = $this->orders->handle($quantities, $data, $request->user());
+        return $data;
+    }
 
-        return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', __('takeaway.saved'));
+    /** Giảm trực tiếp cần quyền. Khi sửa đơn, giữ nguyên mức giảm cũ thì không cần. */
+    private function authorizeDiscount(Request $request, array $data, ?TakeawayOrder $order): void
+    {
+        $mode = $data['discount_mode'] ?? 'none';
+
+        if (! in_array($mode, ['percent', 'amount'], true) || $request->user()->can('takeaway.direct-discount')) {
+            return;
+        }
+
+        $value = $mode === 'percent' ? (int) $data['discount_percent'] : (int) $data['discount_thousands'] * 1000;
+
+        abort_unless($order && ! $order->discount_code && $order->discount_type?->value === $mode && $order->discount_value === $value, 403);
     }
 
     public function show(TakeawayOrder $order): View
     {
-        $order->load(['customer', 'items', 'creator']);
+        $order->load(['customer', 'items', 'creator', 'edits.user']);
 
         return view('modules.takeaway.show', compact('order'));
     }
@@ -118,6 +177,6 @@ class OrderController extends Controller
 
         $this->orders->changeStatus($order, $status);
 
-        return back()->with('status', __('takeaway.status_changed', ['number' => $order->number, 'status' => $status->label()]));
+        return back()->with('status', __('takeaway.status_changed', ['code' => $order->code(), 'status' => $status->label()]));
     }
 }

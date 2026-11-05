@@ -33,10 +33,11 @@
                 <li>
                     <a class="booking-time" href="{{ route('tenant.admin.takeaway.show', $order) }}">{{ $order->pickup_at->format('H:i') }}</a>
                     <div class="booking-main">
-                        <a href="{{ route('tenant.admin.takeaway.show', $order) }}">{{ __('takeaway.number', ['number' => $order->number]) }}, {{ $order->customer->name }}</a>
+                        <a href="{{ route('tenant.admin.takeaway.show', $order) }}">{{ __('takeaway.number', ['code' => $order->code()]) }}, {{ $order->customer->name }}</a>
                         <small>{{ $order->items->map(fn ($item) => $item->quantity.' × '.$item->name)->join(', ') }}</small>
                         <small>{{ vnd($order->total) }}</small>
                     </div>
+                    @if ($order->edits_count > 0)<span class="badge badge-warn">{{ __('takeaway.edited') }}</span>@endif
                     <span class="badge {{ $order->status->badge() }}">{{ $order->status->label() }}</span>
                     @include('modules.takeaway.status-actions')
                 </li>

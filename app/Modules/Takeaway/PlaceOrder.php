@@ -48,7 +48,8 @@ class PlaceOrder
             $order = TakeawayOrder::create([
                 'customer_id' => Customer::remember($data['customer_name'], $data['customer_phone'])->getKey(),
                 'created_by' => $user?->getKey(),
-                'number' => (int) TakeawayOrder::max('number') + 1,
+                'number' => (int) TakeawayOrder::whereDate('order_date', today())->max('number') + 1,
+                'order_date' => today(),
                 'status' => OrderStatus::New,
                 'pickup_at' => $pickup,
                 'subtotal' => $subtotal,
@@ -72,6 +73,115 @@ class PlaceOrder
         });
     }
 
+    /**
+     * Khách gọi sửa đơn. Món đã có giữ giá lúc đặt, món mới lấy giá hiện tại.
+     * Giảm giá giữ nguyên cách tính cũ và tính lại trên tạm tính mới.
+     *
+     * @param  array<int, int>  $quantities
+     * @param  array<string, mixed>  $data
+     */
+    public function update(TakeawayOrder $order, array $quantities, array $data, ?User $user = null): TakeawayOrder
+    {
+        $quantities = array_filter($quantities, fn (int $quantity): bool => $quantity > 0);
+
+        $pickup = CarbonImmutable::parse($data['pickup_at']);
+
+        if (! $pickup->equalTo($order->pickup_at)) {
+            $this->assertPickupTime($pickup);
+        }
+
+        return DB::transaction(function () use ($order, $quantities, $data, $user, $pickup): TakeawayOrder {
+            $order = TakeawayOrder::whereKey($order->getKey())->lockForUpdate()->with(['items', 'customer'])->firstOrFail();
+
+            if (! $order->isEditable()) {
+                throw ValidationException::withMessages(['items' => __('takeaway.not_editable')]);
+            }
+
+            $existing = $order->items->whereNotNull('menu_item_id')->keyBy('menu_item_id');
+            $detached = $order->items->whereNull('menu_item_id');
+
+            if ($quantities === [] && $detached->isEmpty()) {
+                throw ValidationException::withMessages(['items' => __('takeaway.no_items')]);
+            }
+
+            $newIds = array_diff(array_keys($quantities), $existing->keys()->all());
+            $newItems = MenuItem::orderableForTakeaway()->whereKey($newIds)->get();
+
+            if ($newItems->count() !== count($newIds)) {
+                throw ValidationException::withMessages(['items' => __('takeaway.item_unavailable')]);
+            }
+
+            $changes = [];
+
+            foreach ($existing as $menuItemId => $line) {
+                $quantity = $quantities[$menuItemId] ?? 0;
+
+                if ($quantity === 0) {
+                    $changes[] = __('takeaway.change_removed', ['name' => $line->name]);
+                    $line->delete();
+                } elseif ($quantity !== $line->quantity) {
+                    $changes[] = __('takeaway.change_quantity', ['name' => $line->name, 'from' => $line->quantity, 'to' => $quantity]);
+                    $line->update(['quantity' => $quantity]);
+                }
+            }
+
+            foreach ($newItems as $item) {
+                $changes[] = __('takeaway.change_added', ['quantity' => $quantities[$item->getKey()], 'name' => $item->name]);
+
+                $order->items()->create([
+                    'restaurant_id' => $order->restaurant_id,
+                    'menu_item_id' => $item->getKey(),
+                    'name' => $item->name,
+                    'unit_price' => $item->price_takeaway,
+                    'quantity' => $quantities[$item->getKey()],
+                ]);
+            }
+
+            $customer = Customer::remember($data['customer_name'], $data['customer_phone']);
+            $subtotal = $order->items()->get()->sum(fn ($line): int => $line->lineTotal());
+            $discount = $this->discount($data, $subtotal, $order);
+            $total = $subtotal - $discount['discount_amount'];
+
+            if ($customer->getKey() !== $order->customer_id) {
+                $changes[] = __('takeaway.change_customer', ['from' => $order->customer->name, 'to' => $customer->name]);
+            }
+
+            if (! $pickup->equalTo($order->pickup_at)) {
+                $changes[] = __('takeaway.change_pickup', [
+                    'from' => $order->pickup_at->format('H:i d/m'),
+                    'to' => $pickup->format('H:i d/m'),
+                ]);
+            }
+
+            if (($data['notes'] ?? null) !== $order->notes) {
+                $changes[] = __('takeaway.change_notes');
+            }
+
+            if ($total !== $order->total) {
+                $changes[] = __('takeaway.change_total', ['from' => vnd($order->total), 'to' => vnd($total)]);
+            }
+
+            $order->update([
+                'customer_id' => $customer->getKey(),
+                'pickup_at' => $pickup,
+                'subtotal' => $subtotal,
+                ...$discount,
+                'total' => $total,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            if ($changes !== []) {
+                $order->edits()->create([
+                    'restaurant_id' => $order->restaurant_id,
+                    'user_id' => $user?->getKey(),
+                    'changes' => $changes,
+                ]);
+            }
+
+            return $order;
+        });
+    }
+
     public function changeStatus(TakeawayOrder $order, OrderStatus $status): TakeawayOrder
     {
         return DB::transaction(function () use ($order, $status): TakeawayOrder {
@@ -88,12 +198,12 @@ class PlaceOrder
     }
 
     /** @return array{discount_type: ?DiscountType, discount_value: ?int, discount_code: ?string, discount_amount: int} */
-    private function discount(array $data, int $subtotal): array
+    private function discount(array $data, int $subtotal, ?TakeawayOrder $order = null): array
     {
         [$type, $value, $code] = match ($data['discount_mode'] ?? 'none') {
             'percent' => [DiscountType::Percent, (int) $data['discount_percent'], null],
             'amount' => [DiscountType::Amount, (int) $data['discount_amount'], null],
-            'code' => $this->fromCode($data['discount_code'] ?? null),
+            'code' => $this->fromCode($data['discount_code'] ?? null, $order),
             default => [null, null, null],
         };
 
@@ -106,8 +216,13 @@ class PlaceOrder
     }
 
     /** @return array{DiscountType, int, string} */
-    private function fromCode(?string $code): array
+    private function fromCode(?string $code, ?TakeawayOrder $order = null): array
     {
+        // Mã đã áp dụng cho đơn vẫn giữ, kể cả khi sau đó mã bị tắt hoặc đổi mức giảm.
+        if ($order?->discount_code && strtoupper(trim((string) $code)) === $order->discount_code) {
+            return [$order->discount_type, $order->discount_value, $order->discount_code];
+        }
+
         $discount = DiscountCode::usable($code)
             ?? throw ValidationException::withMessages(['discount_code' => __('takeaway.code_invalid')]);
 

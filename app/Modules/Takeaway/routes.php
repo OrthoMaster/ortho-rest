@@ -27,5 +27,7 @@ Route::middleware('module:takeaway')
         });
 
         Route::get('{order}', [OrderController::class, 'show'])->whereNumber('order')->name('show');
+        Route::get('{order}/edit', [OrderController::class, 'edit'])->whereNumber('order')->name('edit');
+        Route::put('{order}', [OrderController::class, 'update'])->whereNumber('order')->name('update');
         Route::post('{order}/status', [OrderController::class, 'changeStatus'])->whereNumber('order')->name('status');
     });
