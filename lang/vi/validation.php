@@ -59,7 +59,7 @@ return [
         'value' => 'mức giảm',
         'discount_code' => 'mã giảm giá',
         'discount_percent' => 'phần trăm giảm',
-        'discount_amount' => 'số tiền giảm',
+        'discount_thousands' => 'số tiền giảm',
         'new_category_name' => 'tên danh mục mới',
         'area_id' => 'khu vực',
         'capacity' => 'sức chứa',

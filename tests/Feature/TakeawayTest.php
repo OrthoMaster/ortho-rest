@@ -186,7 +186,7 @@ class TakeawayTest extends TestCase
 
     private function discounted(array $discount): TakeawayOrder
     {
-        $this->post($this->base, $this->form([$this->pho->id => 2], $discount))->assertSessionHasNoErrors();
+        $this->post($this->base, $this->form([$this->pho->id => 2], ['discount_enabled' => 1, ...$discount]))->assertSessionHasNoErrors();
 
         return TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
     }
@@ -211,8 +211,8 @@ class TakeawayTest extends TestCase
 
     public function test_direct_amount_discount_cannot_exceed_the_subtotal(): void
     {
-        $this->assertSame(120000, $this->discounted(['discount_mode' => 'amount', 'discount_amount' => 20000])->total);
-        $this->assertSame(0, $this->discounted(['discount_mode' => 'amount', 'discount_amount' => 999999])->total);
+        $this->assertSame(120000, $this->discounted(['discount_mode' => 'amount', 'discount_thousands' => 20])->total);
+        $this->assertSame(0, $this->discounted(['discount_mode' => 'amount', 'discount_thousands' => 999])->total);
     }
 
     public function test_code_discount_is_case_insensitive_and_recorded(): void
@@ -244,7 +244,7 @@ class TakeawayTest extends TestCase
         $this->code('QUANKHAC', DiscountType::Percent, 10, restaurant: Restaurant::factory()->create());
 
         foreach (['KHONGCO', 'TAT', 'QUANKHAC'] as $code) {
-            $this->post($this->base, $this->form([$this->pho->id => 1], ['discount_mode' => 'code', 'discount_code' => $code]))
+            $this->post($this->base, $this->form([$this->pho->id => 1], ['discount_enabled' => 1, 'discount_mode' => 'code', 'discount_code' => $code]))
                 ->assertSessionHasErrors('discount_code');
 
             $this->getJson("$this->base/discounts/check?code=$code")->assertJson(['valid' => false]);
@@ -256,18 +256,35 @@ class TakeawayTest extends TestCase
     public function test_discount_values_are_validated(): void
     {
         $items = [$this->pho->id => 1];
+        $on = ['discount_enabled' => 1];
 
-        $this->post($this->base, $this->form($items, ['discount_mode' => 'percent', 'discount_percent' => 101]))->assertSessionHasErrors('discount_percent');
-        $this->post($this->base, $this->form($items, ['discount_mode' => 'percent']))->assertSessionHasErrors('discount_percent');
-        $this->post($this->base, $this->form($items, ['discount_mode' => 'amount']))->assertSessionHasErrors('discount_amount');
-        $this->post($this->base, $this->form($items, ['discount_mode' => 'code']))->assertSessionHasErrors('discount_code');
+        $this->post($this->base, $this->form($items, [...$on, 'discount_mode' => 'percent', 'discount_percent' => 101]))->assertSessionHasErrors('discount_percent');
+        $this->post($this->base, $this->form($items, [...$on, 'discount_mode' => 'percent']))->assertSessionHasErrors('discount_percent');
+        $this->post($this->base, $this->form($items, [...$on, 'discount_mode' => 'amount']))->assertSessionHasErrors('discount_thousands');
+        $this->post($this->base, $this->form($items, [...$on, 'discount_mode' => 'code']))->assertSessionHasErrors('discount_code');
     }
 
     public function test_values_of_other_modes_are_ignored(): void
     {
-        $order = $this->discounted(['discount_mode' => 'none', 'discount_percent' => 50]);
+        $order = $this->discounted(['discount_mode' => 'amount', 'discount_thousands' => 10, 'discount_percent' => 50]);
 
-        $this->assertSame(140000, $order->total);
+        $this->assertSame(130000, $order->total);
+    }
+
+    public function test_discount_is_ignored_when_the_toggle_is_off(): void
+    {
+        $this->post($this->base, $this->form([$this->pho->id => 2], [
+            'discount_mode' => 'code', 'discount_percent' => 5, 'discount_thousands' => 10,
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(140000, TakeawayOrder::forRestaurant($this->restaurant)->sole()->total);
+    }
+
+    public function test_form_has_the_discount_defaults(): void
+    {
+        $this->get("$this->base/create")
+            ->assertSee('name="discount_percent" value="5"', false)
+            ->assertSee('name="discount_thousands" value="10"', false);
     }
 
     public function test_check_endpoint_describes_a_valid_code(): void

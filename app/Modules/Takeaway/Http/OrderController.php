@@ -53,6 +53,10 @@ class OrderController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->boolean('discount_enabled')) {
+            $request->merge(['discount_mode' => 'none']);
+        }
+
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', Phone::RULE],
@@ -63,10 +67,11 @@ class OrderController extends Controller
             'discount_mode' => ['nullable', Rule::in(['none', 'code', 'percent', 'amount'])],
             'discount_code' => ['nullable', 'required_if:discount_mode,code', 'string', 'max:40'],
             'discount_percent' => ['nullable', 'required_if:discount_mode,percent', 'integer', 'min:1', 'max:100'],
-            'discount_amount' => ['nullable', 'required_if:discount_mode,amount', 'integer', 'min:1', 'max:999999999'],
+            'discount_thousands' => ['nullable', 'required_if:discount_mode,amount', 'integer', 'min:1', 'max:999999'],
         ]);
 
         $data['customer_phone'] = Phone::normalize($data['customer_phone']);
+        $data['discount_amount'] = ($data['discount_thousands'] ?? 0) * 1000;
         $quantities = array_map('intval', $data['items']);
 
         $order = $this->orders->handle($quantities, $data, $request->user());

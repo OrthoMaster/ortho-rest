@@ -20,30 +20,6 @@
                 <ul class="rows order-lines" data-order-lines></ul>
             </section>
 
-            <section class="panel" data-discount>
-                <h2>{{ __('takeaway.discount') }}</h2>
-                @php($mode = old('discount_mode', 'none'))
-                <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
-                    @foreach (['none', 'code', 'percent', 'amount'] as $option)
-                        <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
-                    @endforeach
-                </div>
-                <div data-discount-field="code" hidden>
-                    <div class="inline-form">
-                        <input name="discount_code" value="{{ old('discount_code') }}" placeholder="{{ __('takeaway.code_example') }}" aria-label="{{ __('takeaway.code') }}" autocomplete="off" data-code-input>
-                        <button class="btn btn-quiet" type="button" data-code-apply>{{ __('takeaway.code_apply') }}</button>
-                    </div>
-                    <small class="code-message" data-code-message></small>
-                    @error('discount_code')<small class="error">{{ $message }}</small>@enderror
-                </div>
-                <div data-discount-field="percent" hidden>
-                    @include('partials.field', ['name' => 'discount_percent', 'type' => 'number', 'label' => __('takeaway.discount_percent'), 'required' => false])
-                </div>
-                <div data-discount-field="amount" hidden>
-                    @include('partials.field', ['name' => 'discount_amount', 'type' => 'number', 'label' => __('takeaway.discount_amount'), 'required' => false])
-                </div>
-            </section>
-
             <section class="panel stack">
                 <div class="form-row">
                     @include('partials.field', ['name' => 'customer_name', 'label' => __('reservation.customer_name')])
@@ -51,6 +27,35 @@
                 </div>
                 @include('partials.field', ['name' => 'pickup_at', 'type' => 'datetime-local', 'label' => __('takeaway.pickup_at'), 'value' => now()->addMinutes(30)->format('Y-m-d\TH:i')])
                 @include('partials.textarea', ['name' => 'notes', 'label' => __('reservation.notes'), 'rows' => 2])
+            </section>
+
+            <section class="panel" data-discount>
+                <div class="panel-head">
+                    <h2 id="discount-title">{{ __('takeaway.discount') }}</h2>
+                    <input type="checkbox" name="discount_enabled" value="1" aria-labelledby="discount-title" data-discount-toggle @checked(old('discount_enabled'))>
+                </div>
+                <div class="stack" data-discount-body @unless (old('discount_enabled')) hidden @endunless>
+                    @php($mode = in_array(old('discount_mode'), ['code', 'percent', 'amount'], true) ? old('discount_mode') : 'code')
+                    <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
+                        @foreach (['code', 'percent', 'amount'] as $option)
+                            <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
+                        @endforeach
+                    </div>
+                    <div data-discount-field="code" hidden>
+                        <div class="inline-form">
+                            <input name="discount_code" value="{{ old('discount_code') }}" placeholder="{{ __('takeaway.code_example') }}" aria-label="{{ __('takeaway.code') }}" autocomplete="off" data-code-input>
+                            <button class="btn btn-quiet" type="button" data-code-apply>{{ __('takeaway.code_apply') }}</button>
+                        </div>
+                        <small class="code-message" data-code-message></small>
+                        @error('discount_code')<small class="error">{{ $message }}</small>@enderror
+                    </div>
+                    <div data-discount-field="percent" hidden>
+                        @include('modules.takeaway.number-stepper', ['name' => 'discount_percent', 'label' => __('takeaway.discount_percent'), 'default' => 5, 'max' => 100, 'suffix' => '%'])
+                    </div>
+                    <div data-discount-field="amount" hidden>
+                        @include('modules.takeaway.number-stepper', ['name' => 'discount_thousands', 'label' => __('takeaway.discount_amount'), 'default' => 10, 'max' => 999999, 'suffix' => __('takeaway.thousands_suffix')])
+                    </div>
+                </div>
             </section>
 
             <div class="order-bar">

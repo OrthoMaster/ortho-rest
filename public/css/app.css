@@ -447,7 +447,7 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
 
 .stepper { flex: none; display: inline-flex; align-items: center; gap: .15rem; }
-.stepper .row-btn { font-size: 1.25rem; line-height: 1; }
+.stepper .row-btn, .number-stepper .row-btn { font-size: 1.375rem; line-height: 1; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .stepper-count { min-width: 1.9rem; text-align: center; font-weight: 700; }
 .is-zero .stepper .row-btn[data-step="-1"], .is-zero .stepper-count { display: none; }
 .order-lines li { flex-wrap: nowrap; }
@@ -477,6 +477,12 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .segmented span { display: grid; place-items: center; min-height: 2.4rem; padding: 0 .4rem; font-size: .9375rem; text-align: center; border-radius: 6px; }
 .segmented input:checked + span { font-weight: 600; color: var(--on-secondary); background: var(--secondary); }
 .segmented input:focus-visible + span { outline: 3px solid var(--primary-ink); outline-offset: 1px; }
+.number-stepper { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.number-field { display: inline-flex; align-items: center; gap: .3rem; padding: 0 .7rem; background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); }
+.number-field:focus-within { outline: 3px solid var(--primary-ink); outline-offset: 1px; }
+.number-field input { width: 5rem; padding: .55rem 0; font-weight: 700; text-align: right; background: none; border: 0; outline: none; appearance: textfield; -moz-appearance: textfield; }
+.number-field input::-webkit-outer-spin-button, .number-field input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.number-field span { color: var(--ink-soft); white-space: nowrap; }
 .code-message { display: block; margin-top: .3rem; color: var(--ok-ink); font-size: .875rem; }
 .code-message.is-error { color: var(--bad-ink); }
 

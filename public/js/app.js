@@ -625,7 +625,8 @@
         var discountSection = orderForm.querySelector('[data-discount]');
         var modeInputs = Array.prototype.slice.call(discountSection.querySelectorAll('input[name=discount_mode]'));
         var percentInput = orderForm.querySelector('[name=discount_percent]');
-        var amountInput = orderForm.querySelector('[name=discount_amount]');
+        var amountInput = orderForm.querySelector('[name=discount_thousands]');
+        var discountToggle = orderForm.querySelector('[data-discount-toggle]');
         var codeInput = orderForm.querySelector('[data-code-input]');
         var codeMessage = orderForm.querySelector('[data-code-message]');
         var appliedCode = null;
@@ -638,13 +639,13 @@
 
         // Cùng cách tính với DiscountType::amountOff ở server.
         function discountOff(subtotal) {
-            var mode = currentMode();
+            var mode = discountToggle.checked ? currentMode() : 'none';
             var off = 0;
 
             if (mode === 'percent') {
                 off = Math.round(subtotal * Math.min(100, Number(percentInput.value) || 0) / 100);
             } else if (mode === 'amount') {
-                off = Number(amountInput.value) || 0;
+                off = (Number(amountInput.value) || 0) * 1000;
             } else if (mode === 'code' && appliedCode) {
                 off = appliedCode.type === 'percent' ? Math.round(subtotal * appliedCode.value / 100) : appliedCode.value;
             }
@@ -680,6 +681,8 @@
         var syncDiscountMode = function () {
             var mode = currentMode();
 
+            discountSection.querySelector('[data-discount-body]').hidden = !discountToggle.checked;
+
             discountSection.querySelectorAll('[data-discount-field]').forEach(function (field) {
                 field.hidden = field.dataset.discountField !== mode;
             });
@@ -688,6 +691,22 @@
 
         modeInputs.forEach(function (input) {
             input.addEventListener('change', syncDiscountMode);
+        });
+        discountToggle.addEventListener('change', syncDiscountMode);
+
+        discountSection.querySelectorAll('[data-number-stepper]').forEach(function (stepper) {
+            var input = stepper.querySelector('input');
+
+            stepper.addEventListener('click', function (event) {
+                var button = event.target.closest('[data-number-step]');
+
+                if (button) {
+                    var next = (Number(input.value) || 0) + Number(button.dataset.numberStep);
+
+                    input.value = Math.min(Number(input.max), Math.max(Number(input.min), next));
+                    renderOrder();
+                }
+            });
         });
         percentInput.addEventListener('input', renderOrder);
         amountInput.addEventListener('input', renderOrder);
@@ -780,7 +799,7 @@
 
         syncDiscountMode();
 
-        if (currentMode() === 'code' && codeInput.value) {
+        if (discountToggle.checked && currentMode() === 'code' && codeInput.value) {
             checkCode();
         }
     }
