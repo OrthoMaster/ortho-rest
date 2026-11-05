@@ -88,8 +88,6 @@
                                         @foreach ($item->tags as $tag)
                                             @include('modules.menu.tag')
                                         @endforeach
-                                        @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
-                                        @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
                                     </span>
                                     <small>
                                         @if ($menu === 'all')
@@ -101,20 +99,24 @@
                                         @endif
                                     </small>
                                 </span>
-                                <div class="row-tools">
-                                    @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
-                                    @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
-                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                            @csrf
-                                            <input type="hidden" name="field" value="is_sold_out">
-                                            <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
-                                        </form>
-                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                            @csrf
-                                            <input type="hidden" name="field" value="is_visible">
-                                            <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
-                                        </form>
-                                    @endcomponent
+                                <div class="row-side">
+                                    @if ($item->is_sold_out)<span class="badge badge-bad">{{ __('menu.sold_out') }}</span>@endif
+                                    @unless ($item->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
+                                    <div class="row-tools">
+                                        @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
+                                        @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
+                                            <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                                @csrf
+                                                <input type="hidden" name="field" value="is_sold_out">
+                                                <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
+                                            </form>
+                                            <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                                @csrf
+                                                <input type="hidden" name="field" value="is_visible">
+                                                <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
+                                            </form>
+                                        @endcomponent
+                                    </div>
                                 </div>
                             </li>
                         @endforeach

@@ -190,7 +190,7 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .kebab-menu button { width: 100%; min-height: 2.5rem; padding: 0 .7rem; font: inherit; font-size: .9375rem; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 6px; cursor: pointer; }
 .kebab-menu button:hover { background: var(--primary-soft); }
 
-.tag { display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .45rem; font-size: .75rem; font-weight: 600; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
+.tag { display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .45rem; font-size: .75rem; font-weight: 400; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
 .tag img { width: 1rem; height: 1rem; object-fit: contain; }
 .tag-image-only { padding: 0; background: none; }
 .tag-image-only img { width: 1.4rem; height: 1.4rem; }
@@ -221,6 +221,8 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .is-collapsed:not(.is-searching) .category-body { display: none; }
 .menu-items li { flex-wrap: nowrap; padding-right: .25rem; }
 .menu-items .row-name { flex: 1 1 0; min-width: 0; margin-right: 0; }
+.row-side { flex: none; display: flex; align-items: center; gap: .5rem; }
+.row-side .badge { font-weight: 700; }
 
 .btn {
     display: inline-block;
@@ -494,6 +496,7 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
     .date-nav form { flex: 1; }
     .date-nav input { width: 100%; }
 
+    .row-side { flex-direction: column-reverse; align-items: flex-end; gap: .3rem; }
     .btn-sm { padding: .5rem .75rem; }
     .row-btn { width: 2.75rem; height: 2.75rem; }
     .link { min-height: 2.25rem; }
