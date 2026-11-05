@@ -264,6 +264,26 @@ class MenuTest extends TestCase
             ->assertSee('href="'.e($tab).'"', false);
     }
 
+    public function test_rows_with_many_tags_show_a_more_pill_for_phones(): void
+    {
+        $item = $this->item($this->category());
+        $tags = MenuTag::forRestaurant($this->restaurant)->pluck('id')->all();
+        $item->syncTags($tags);
+
+        $this->get($this->base)->assertSee('tag-extra', false)->assertSee('+1');
+
+        $item->syncTags(array_slice($tags, 0, 2));
+
+        $this->get($this->base)->assertDontSee('tag-extra', false)->assertDontSee('tag-more', false);
+    }
+
+    public function test_hidden_item_shows_the_hidden_mark_on_its_image(): void
+    {
+        $this->item($this->category(), ['is_visible' => false]);
+
+        $this->get($this->base)->assertSee('thumb-hidden', false)->assertSee(__('menu.hidden'));
+    }
+
     public function test_sold_out_row_is_marked(): void
     {
         $this->item($this->category(), ['is_sold_out' => true]);

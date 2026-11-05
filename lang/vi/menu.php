@@ -16,6 +16,7 @@ return [
     'tags' => 'Nhãn',
     'tag_hint' => 'Nhãn hiện cạnh tên món. Đổi tên hoặc thêm hình theo cách quán hay gọi, ví dụ Recommend thay cho Best-seller.',
     'tags_empty' => 'Chưa có nhãn nào. Thêm nhãn đầu tiên ở dưới.',
+    'more_tags' => 'Còn :count nhãn nữa',
     'tag_name' => 'Tên nhãn',
     'tag_example' => 'Ví dụ: Món mới',
     'tag_add' => 'Thêm nhãn',
