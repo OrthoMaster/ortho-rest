@@ -100,7 +100,7 @@ class ShiftTest extends TestCase
         $shift = $this->shift();
         $this->shift(['name' => 'Tối', 'start_time' => '17:00', 'end_time' => '22:00']);
 
-        $this->get("$this->base/{$shift->id}/edit")->assertOk()->assertDontSee('weekdays[]', false);
+        $this->get("$this->base/{$shift->id}/edit")->assertOk()->assertDontSee('weekdays[]', false)->assertSee('data-minute-step="5"', false);
 
         $this->put("$this->base/{$shift->id}", $this->form(['name' => 'Sáng', 'start_time' => '09:00', 'end_time' => '13:00']))->assertSessionHasNoErrors();
         $this->assertSame('Sáng', $shift->fresh()->name);

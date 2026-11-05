@@ -14,8 +14,8 @@
 
         @include('partials.field', ['name' => 'name', 'label' => __('shifts.name'), 'value' => $shift->name, 'maxlength' => 50, 'hint' => __('shifts.name_hint_'.$type->value)])
 
-        @include('partials.time-picker', ['name' => 'start_time', 'label' => __('shifts.start_time'), 'value' => $shift->start_time])
-        @include('partials.time-picker', ['name' => 'end_time', 'label' => __('shifts.end_time'), 'value' => $shift->end_time, 'hint' => __('shifts.overnight_hint')])
+        @include('partials.time-picker', ['name' => 'start_time', 'label' => __('shifts.start_time'), 'value' => $shift->start_time, 'minuteStep' => 5])
+        @include('partials.time-picker', ['name' => 'end_time', 'label' => __('shifts.end_time'), 'value' => $shift->end_time, 'minuteStep' => 5, 'hint' => __('shifts.overnight_hint')])
 
         @unless ($editing)
             <div class="field">

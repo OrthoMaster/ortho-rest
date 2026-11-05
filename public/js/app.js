@@ -925,14 +925,13 @@
         text.textContent = label(value.value);
     });
 
-    // Chọn giờ: giờ và phút riêng, phút bước 10.
-    var MINUTE_STEP = 10;
-
+    // Chọn giờ: giờ và phút riêng, phút mặc định bước 10.
     document.querySelectorAll('[data-time-picker]').forEach(function (picker) {
         var value = picker.querySelector('[data-time-value]');
         var hourInput = picker.querySelector('[data-time-unit=hour] input');
         var minuteInput = picker.querySelector('[data-time-unit=minute] input');
         var warning = picker.querySelector('[data-time-warning]');
+        var minuteStep = Number(picker.dataset.minuteStep) || 10;
         var hasLimits = 'opens' in picker.dataset;
         var dateValue = hasLimits ? picker.closest('form').querySelector('[name=pickup_date]') : null;
         var today = dateValue ? dateValue.closest('[data-date-picker]').dataset.today : null;
@@ -966,8 +965,8 @@
         var stepMinute = function (direction) {
             var total = hour * 60 + minute;
             var aligned = direction > 0
-                ? Math.floor(total / MINUTE_STEP) * MINUTE_STEP + MINUTE_STEP
-                : Math.ceil(total / MINUTE_STEP) * MINUTE_STEP - MINUTE_STEP;
+                ? Math.floor(total / minuteStep) * minuteStep + minuteStep
+                : Math.ceil(total / minuteStep) * minuteStep - minuteStep;
             var wrapped = (aligned + 1440) % 1440;
 
             hour = Math.floor(wrapped / 60);
