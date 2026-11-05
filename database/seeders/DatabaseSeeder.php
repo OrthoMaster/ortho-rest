@@ -20,7 +20,10 @@ class DatabaseSeeder extends Seeder
 
         $this->user('super@liresto.test', 'Super admin', superAdmin: true);
 
-        $demo = Restaurant::updateOrCreate(['slug' => 'quan-demo'], ['name' => 'Quán Demo']);
+        $demo = Restaurant::updateOrCreate(['slug' => 'quan-demo'], [
+            'name' => 'Quán Demo',
+            'theme' => ['primary' => '#b5e3c8', 'secondary' => '#ffd8b8'],
+        ]);
         $this->user('owner@quan-demo.test', 'Chủ Quán Demo', $demo, UserRole::Owner);
         $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Manager);
         $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff);
@@ -30,7 +33,10 @@ class DatabaseSeeder extends Seeder
         }
 
         // *.localhost tự trỏ về máy mình trên Chrome, Edge, Firefox: khỏi sửa file hosts.
-        $custom = Restaurant::updateOrCreate(['slug' => 'bun-cha-ha-noi'], ['name' => 'Bún Chả Hà Nội']);
+        $custom = Restaurant::updateOrCreate(['slug' => 'bun-cha-ha-noi'], [
+            'name' => 'Bún Chả Hà Nội',
+            'theme' => ['primary' => '#8c2f1b', 'secondary' => '#f2c14e'],
+        ]);
         $this->user('owner@bun-cha.test', 'Chủ Bún Chả', $custom, UserRole::Owner);
         $modules->enable($custom, 'website');
 

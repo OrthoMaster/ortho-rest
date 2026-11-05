@@ -59,7 +59,8 @@ php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy se
 | `routes/tenant_public.php` | Web công khai, nạp cho cả slug và domain riêng |
 | `routes/tenant_admin.php` | Phần quản lý của quán |
 | `lang/vi/` | Mọi chữ giao diện |
-| `public/css/app.css` | CSS phần quản lý, không cần build |
+| `public/css/app.css` | CSS và bảng màu Liresto, không cần build |
+| `app/Tenancy/RestaurantTheme.php` | Đổi màu quán thành biến CSS |
 
 ## Quy tắc khi thêm code
 
@@ -68,4 +69,5 @@ php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy se
 - Link của quán sinh bằng `tenant_route('public.home')`, không dùng `route()` trực tiếp, để đúng cả slug lẫn domain riêng.
 - Chữ giao diện qua `__('ui....')`. Test `LanguageTest` báo lỗi nếu thiếu key trong `lang/vi`.
 - Route mới ở cấp một phải thêm tên vào `reserved_slugs` trong `config/liresto.php`.
+- Màu chỉ dùng biến CSS trong `public/css/app.css`. Màu Liresto là pastel xanh. Trang của quán tự đổi theo màu quán lưu ở cột `theme`, không phải sửa từng view.
 - Host của nền tảng khai trong `MAIN_DOMAINS`. Sau khi đổi trên server, chạy lại `php artisan route:cache` nếu đang dùng.

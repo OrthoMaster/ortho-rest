@@ -136,6 +136,15 @@ return [
         'domain_verified' => 'Đã xác minh domain.',
         'domain_removed' => 'Đã gỡ domain.',
 
+        'theme' => 'Màu của quán',
+        'theme_hint' => 'Màu này hiện trên website và phần quản lý của quán. Chữ trên nền màu tự đổi sáng hoặc tối để dễ đọc.',
+        'theme_primary' => 'Màu chính',
+        'theme_secondary' => 'Màu phụ',
+        'theme_save' => 'Lưu màu',
+        'theme_saved' => 'Đã lưu màu của quán.',
+        'theme_reset_action' => 'Dùng lại màu Liresto',
+        'theme_reset' => 'Quán đã về màu Liresto.',
+
         'modules' => 'Module',
         'module_always_on' => 'Luôn bật',
         'module_on' => 'Đang bật',

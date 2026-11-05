@@ -6,13 +6,14 @@ use App\Enums\RestaurantStatus;
 use App\Enums\UserRole;
 use App\Modules\ModuleManager;
 use App\Tenancy\RestaurantScope;
+use App\Tenancy\RestaurantTheme;
 use Database\Factories\RestaurantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'timezone'])]
+#[Fillable(['name', 'slug', 'timezone', 'theme'])]
 class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
@@ -20,7 +21,7 @@ class Restaurant extends Model
 
     protected function casts(): array
     {
-        return ['status' => RestaurantStatus::class];
+        return ['status' => RestaurantStatus::class, 'theme' => 'array'];
     }
 
     public function users(): HasMany
@@ -56,6 +57,11 @@ class Restaurant extends Model
     public function isLocked(): bool
     {
         return $this->status === RestaurantStatus::Locked;
+    }
+
+    public function themeCss(): string
+    {
+        return RestaurantTheme::css($this);
     }
 
     public function hasModule(string $module): bool

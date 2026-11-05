@@ -4,7 +4,9 @@
 
 @section('body')
 <main class="plain-main">
-    <a class="wordmark" href="{{ url('/') }}">{{ __('ui.app') }}</a>
+    @unless (tenant())
+        <a class="wordmark" href="{{ url('/') }}">{{ __('ui.app') }}</a>
+    @endunless
     <div class="plain-box">
         @yield('content')
     </div>

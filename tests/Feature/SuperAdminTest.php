@@ -108,6 +108,32 @@ class SuperAdminTest extends TestCase
         $this->assertNotNull($domain->fresh());
     }
 
+    public function test_set_and_reset_restaurant_colors(): void
+    {
+        $restaurant = Restaurant::factory()->create(['theme' => ['font' => 'giu-nguyen']]);
+        $url = "/super/restaurants/{$restaurant->id}/theme";
+
+        $this->actingAs($this->admin)->put($url, ['primary' => '#AABBCC', 'secondary' => '#ffeedd'])->assertSessionHasNoErrors();
+        $this->assertSame(
+            ['font' => 'giu-nguyen', 'primary' => '#aabbcc', 'secondary' => '#ffeedd'],
+            $restaurant->fresh()->theme,
+        );
+
+        $this->actingAs($this->admin)->delete($url);
+        $this->assertSame(['font' => 'giu-nguyen'], $restaurant->fresh()->theme);
+    }
+
+    public function test_colors_that_are_not_hex_are_refused(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+
+        foreach (['red', '#abc', '#aabbcc;} body{display:none', '</style>'] as $color) {
+            $this->actingAs($this->admin)
+                ->put("/super/restaurants/{$restaurant->id}/theme", ['primary' => $color, 'secondary' => '#ffeedd'])
+                ->assertSessionHasErrors('primary');
+        }
+    }
+
     public function test_lock_and_unlock(): void
     {
         $restaurant = Restaurant::factory()->create();

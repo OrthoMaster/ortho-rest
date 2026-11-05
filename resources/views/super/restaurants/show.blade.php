@@ -40,6 +40,27 @@
     </section>
 
     <section class="panel">
+        <h2>{{ __('ui.super.theme') }}</h2>
+        <p class="row-note">{{ __('ui.super.theme_hint') }}</p>
+        <form method="post" action="{{ route('super.theme.update', $restaurant) }}" class="stack">
+            @csrf
+            @method('put')
+            <div class="swatches">
+                @include('partials.field', ['name' => 'primary', 'type' => 'color', 'label' => __('ui.super.theme_primary'), 'value' => $restaurant->theme['primary'] ?? \App\Tenancy\RestaurantTheme::PRIMARY])
+                @include('partials.field', ['name' => 'secondary', 'type' => 'color', 'label' => __('ui.super.theme_secondary'), 'value' => $restaurant->theme['secondary'] ?? \App\Tenancy\RestaurantTheme::SECONDARY])
+            </div>
+            <button class="btn" type="submit">{{ __('ui.super.theme_save') }}</button>
+        </form>
+        @if ($restaurant->themeCss())
+            <form method="post" action="{{ route('super.theme.destroy', $restaurant) }}">
+                @csrf
+                @method('delete')
+                <button class="link" type="submit">{{ __('ui.super.theme_reset_action') }}</button>
+            </form>
+        @endif
+    </section>
+
+    <section class="panel">
         <h2>{{ __('ui.super.modules') }}</h2>
         <ul class="rows">
             @foreach ($modules->definitions() as $key => $definition)

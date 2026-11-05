@@ -22,6 +22,8 @@ return [
     'custom' => [
         'slug' => ['regex' => 'Slug chỉ gồm chữ thường không dấu, số và dấu gạch ngang.'],
         'domain' => ['regex' => 'Domain không hợp lệ, ví dụ đúng: nhahang.vn'],
+        'primary' => ['regex' => 'Màu chính không hợp lệ.'],
+        'secondary' => ['regex' => 'Màu phụ không hợp lệ.'],
     ],
 
     'attributes' => [
@@ -33,6 +35,8 @@ return [
         'owner_name' => 'tên chủ quán',
         'owner_password' => 'mật khẩu chủ quán',
         'password' => 'mật khẩu',
+        'primary' => 'màu chính',
+        'secondary' => 'màu phụ',
         'slug' => 'slug',
     ],
 ];
