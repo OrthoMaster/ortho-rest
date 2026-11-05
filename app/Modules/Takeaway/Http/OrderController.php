@@ -76,9 +76,12 @@ class OrderController extends Controller
         $data = $this->validated($request, $order);
         $quantities = array_map('intval', $data['items']);
 
-        $this->orders->update($order, $quantities, $data, $request->user());
+        $oldCode = $order->code();
+        $updated = $this->orders->update($order, $quantities, $data, $request->user());
 
-        return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', __('takeaway.updated'));
+        $message = $updated->code() === $oldCode ? __('takeaway.updated') : __('takeaway.updated_code', ['code' => $updated->code()]);
+
+        return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', $message);
     }
 
     private function form(TakeawayOrder $order): View

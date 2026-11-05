@@ -23,7 +23,11 @@ class SettingsController extends Controller
         $data = $request->validate([
             'pickup_opens' => ['required', 'date_format:H:i'],
             'pickup_closes' => ['required', 'date_format:H:i', 'after:pickup_opens'],
-        ]);
+            'order_code_prefix' => ['sometimes', 'required', 'regex:/^[A-Za-z]$/'],
+        ], ['order_code_prefix.regex' => __('takeaway.order_code_prefix_invalid')]);
+
+        $prefix = $data['order_code_prefix'] ?? null;
+        unset($data['order_code_prefix']);
 
         $settings = [...$data, 'accepting_orders' => $request->boolean('accepting_orders')];
 
@@ -33,6 +37,10 @@ class SettingsController extends Controller
                 (array) $request->input('direct_discount_roles', []),
                 [UserRole::Manager->value, UserRole::Staff->value],
             ));
+
+            if ($prefix !== null) {
+                $settings['order_code_prefix'] = strtoupper($prefix);
+            }
         }
 
         $this->modules->updateSettings(tenant(), 'takeaway', $settings);

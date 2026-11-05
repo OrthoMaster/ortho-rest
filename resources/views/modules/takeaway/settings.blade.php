@@ -16,6 +16,7 @@
             @include('partials.field', ['name' => 'pickup_closes', 'type' => 'time', 'label' => __('takeaway.pickup_closes'), 'value' => $settings['pickup_closes']])
         </div>
         @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+            @include('partials.field', ['name' => 'order_code_prefix', 'label' => __('takeaway.order_code_prefix'), 'value' => $settings['order_code_prefix'], 'maxlength' => 1, 'hint' => __('takeaway.order_code_prefix_hint')])
             <div class="field">
                 <span class="field-label">{{ __('takeaway.direct_discount_permission') }}</span>
                 <small>{{ __('takeaway.direct_discount_hint') }}</small>

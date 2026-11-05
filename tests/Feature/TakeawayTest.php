@@ -434,37 +434,97 @@ class TakeawayTest extends TestCase
         $this->assertSame(['manager'], app(ModuleManager::class)->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
     }
 
-    public function test_order_code_has_a_type_letter_and_three_digits(): void
+    private function pickup(string $date): TakeawayOrder
     {
-        $order = $this->order();
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_date' => $date]))->assertSessionHasNoErrors();
 
-        $this->assertSame('M001', $order->code());
-
-        $order->number = 1000;
-        $this->assertSame('M1000', $order->code());
+        return TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
     }
 
-    public function test_numbers_restart_every_day(): void
+    public function test_order_code_has_a_letter_three_digits_and_the_pickup_day(): void
     {
-        $this->assertSame(1, $this->order()->number);
-        $this->assertSame(2, $this->order()->number);
+        $order = $this->pickup('2026-12-06');
 
-        $this->travelTo(Carbon::parse('2026-12-02 09:00'));
+        $this->assertSame('M001_06', $order->code());
 
-        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-02']))->assertSessionHasNoErrors();
+        $order->number = 1000;
+        $this->assertSame('M1000_06', $order->code());
+    }
 
-        $order = TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
+    public function test_numbers_count_per_pickup_day_not_per_order_day(): void
+    {
+        $this->assertSame('M001_06', $this->pickup('2026-12-06')->code());
+        $this->assertSame('M001_07', $this->pickup('2026-12-07')->code());
+        $this->assertSame('M002_06', $this->pickup('2026-12-06')->code());
 
-        $this->assertSame('M001', $order->code());
-        $this->assertSame('2026-12-02', $order->order_date->toDateString());
+        $this->travelTo(Carbon::parse('2026-12-05 09:00'));
+
+        $this->assertSame('M003_06', $this->pickup('2026-12-06')->code());
+    }
+
+    public function test_moving_the_pickup_day_gives_a_new_number_in_that_day(): void
+    {
+        $order = $this->pickup('2026-12-06');
+        $this->pickup('2026-12-07');
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-07']))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __('takeaway.updated_code', ['code' => 'M002_07']));
+
+        $this->assertSame('M002_07', $order->fresh()->code());
+
+        $this->actingInTenant($this->restaurant);
+        $this->assertContains('Mã đơn: M001_06 → M002_07', $order->edits()->sole()->changes);
+    }
+
+    public function test_changing_only_the_pickup_time_keeps_the_code(): void
+    {
+        $order = $this->pickup('2026-12-06');
+
+        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-06', 'pickup_time' => '13:00']))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __('takeaway.updated'));
+
+        $this->assertSame('M001_06', $order->fresh()->code());
+    }
+
+    public function test_owner_sets_the_code_letter_for_new_orders_only(): void
+    {
+        $old = $this->pickup('2026-12-06');
+        $settings = ['pickup_opens' => '10:00', 'pickup_closes' => '21:00'];
+
+        $this->put("$this->base/settings", [...$settings, 'order_code_prefix' => 't'])->assertSessionHasNoErrors();
+
+        $this->assertSame('T002_06', $this->pickup('2026-12-06')->code());
+        $this->assertSame('M001_06', $old->fresh()->code());
+    }
+
+    public function test_code_letter_must_be_one_plain_letter(): void
+    {
+        $settings = ['pickup_opens' => '10:00', 'pickup_closes' => '21:00'];
+
+        foreach (['', 'AB', '1', 'Đ', '_'] as $prefix) {
+            $this->put("$this->base/settings", [...$settings, 'order_code_prefix' => $prefix])->assertSessionHasErrors('order_code_prefix');
+        }
+    }
+
+    public function test_only_the_owner_sets_the_code_letter(): void
+    {
+        $manager = $this->asRole(UserRole::Manager);
+
+        $this->actingAs($manager)->get("$this->base/settings")->assertDontSee('order_code_prefix', false);
+
+        $this->put("$this->base/settings", ['pickup_opens' => '10:00', 'pickup_closes' => '21:00', 'order_code_prefix' => 'Z'])->assertSessionHasNoErrors();
+
+        $this->assertSame('M', app(ModuleManager::class)->settings($this->restaurant, 'takeaway')['order_code_prefix']);
     }
 
     public function test_code_is_shown_on_the_list_and_the_order(): void
     {
         $order = $this->order();
 
-        $this->get($this->base)->assertSee('Đơn M001');
-        $this->get("$this->base/{$order->id}")->assertSee('Đơn M001');
+        $this->get($this->base)->assertSee('Đơn '.$order->code());
+        $this->get("$this->base/{$order->id}")->assertSee('Đơn '.$order->code());
     }
 
     public function test_changing_items_keeps_old_prices_and_uses_current_price_for_new_items(): void
@@ -479,7 +539,7 @@ class TakeawayTest extends TestCase
         $fresh = $order->fresh();
 
         $this->assertSame(220000, $fresh->total);
-        $this->assertSame('M001', $fresh->code());
+        $this->assertSame($order->code(), $fresh->code());
     }
 
     public function test_edit_is_recorded_with_who_and_what(): void

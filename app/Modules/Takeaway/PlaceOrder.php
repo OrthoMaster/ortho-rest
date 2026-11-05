@@ -48,8 +48,9 @@ class PlaceOrder
             $order = TakeawayOrder::create([
                 'customer_id' => Customer::remember($data['customer_name'], $data['customer_phone'])->getKey(),
                 'created_by' => $user?->getKey(),
-                'number' => (int) TakeawayOrder::whereDate('order_date', today())->max('number') + 1,
-                'order_date' => today(),
+                'number' => $this->nextNumber($pickup),
+                'code_prefix' => $this->modules->settings(tenant(), 'takeaway')['order_code_prefix'],
+                'pickup_date' => $pickup->toDateString(),
                 'status' => OrderStatus::New,
                 'pickup_at' => $pickup,
                 'subtotal' => $subtotal,
@@ -91,6 +92,9 @@ class PlaceOrder
         }
 
         return DB::transaction(function () use ($order, $quantities, $data, $user, $pickup): TakeawayOrder {
+            // Cùng thứ tự khoá với lúc tạo đơn, vì đổi ngày nhận cũng cấp số mới.
+            Restaurant::whereKey(tenant()->getKey())->lockForUpdate()->first();
+
             $order = TakeawayOrder::whereKey($order->getKey())->lockForUpdate()->with(['items', 'customer'])->firstOrFail();
 
             if (! $order->isEditable()) {
@@ -161,14 +165,23 @@ class PlaceOrder
                 $changes[] = __('takeaway.change_total', ['from' => vnd($order->total), 'to' => vnd($total)]);
             }
 
+            $oldCode = $order->code();
+            $movedDay = $pickup->toDateString() !== $order->pickup_date->toDateString();
+
             $order->update([
                 'customer_id' => $customer->getKey(),
+                'number' => $movedDay ? $this->nextNumber($pickup) : $order->number,
+                'pickup_date' => $pickup->toDateString(),
                 'pickup_at' => $pickup,
                 'subtotal' => $subtotal,
                 ...$discount,
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            if ($movedDay) {
+                $changes[] = __('takeaway.change_code', ['from' => $oldCode, 'to' => $order->code()]);
+            }
 
             if ($changes !== []) {
                 $order->edits()->create([
@@ -180,6 +193,12 @@ class PlaceOrder
 
             return $order;
         });
+    }
+
+    /** Gọi trong transaction đã khoá hàng của quán. */
+    private function nextNumber(CarbonImmutable $pickup): int
+    {
+        return (int) TakeawayOrder::where('pickup_date', $pickup->toDateString())->max('number') + 1;
     }
 
     public function changeStatus(TakeawayOrder $order, OrderStatus $status): TakeawayOrder
