@@ -1,58 +1,71 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Liresto
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Web và quản lý cho nhà hàng, nhiều quán trên một hệ thống. Laravel 13, MySQL.
 
-## About Laravel
+Cần PHP 8.4 trở lên (`composer.lock` dùng Symfony 8), Composer và MySQL 8. Không cần Node/npm.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Chạy ở local
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git pull
+composer setup          # cài vendor, tạo .env, tạo APP_KEY
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Sửa `DB_USERNAME`, `DB_PASSWORD` trong `.env` nếu MySQL của bạn không phải root không mật khẩu, rồi:
 
-## Contributing
+```bash
+mysql -u root -p -e "CREATE DATABASE liresto CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+php artisan migrate --seed
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Mở <http://127.0.0.1:8000>. Luôn dùng một địa chỉ (`127.0.0.1` hoặc `localhost`), vì cookie đăng nhập gắn theo địa chỉ.
 
-## Code of Conduct
+## Tài khoản chạy thử
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Mật khẩu đều là `password`.
 
-## Security Vulnerabilities
+| Email | Vai trò | Sau khi đăng nhập |
+| --- | --- | --- |
+| `super@liresto.test` | Super admin | `/super/restaurants` |
+| `owner@quan-demo.test` | Chủ quán | `/quan-demo/admin` |
+| `manager@quan-demo.test` | Quản lý | `/quan-demo/admin` |
+| `staff@quan-demo.test` | Nhân viên, không thấy Website và Menu | `/quan-demo/admin` |
+| `owner@bun-cha.test` | Chủ quán có domain riêng | `/bun-cha-ha-noi/admin` |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Web công khai: <http://127.0.0.1:8000/quan-demo>.
 
-## License
+Domain riêng: <http://bun-cha.localhost:8000>. Link cũ <http://127.0.0.1:8000/bun-cha-ha-noi> chuyển 301 sang đó. Chrome, Edge và Firefox tự trỏ `*.localhost` về máy mình. Safari thì thêm `127.0.0.1 bun-cha.localhost` vào file hosts.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Email quên mật khẩu không gửi thật ở local, link nằm trong `storage/logs/laravel.log`.
+
+## Lệnh hay dùng
+
+```bash
+php artisan test                        # chạy test, dùng SQLite trong RAM
+php artisan migrate:fresh --seed        # xoá sạch DB, tạo lại dữ liệu thử
+php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy seed (production)
+```
+
+## Cấu trúc
+
+| Đường dẫn | Nội dung |
+| --- | --- |
+| `app/Tenancy/` | Nhà hàng hiện tại, Global Scope, trait `BelongsToRestaurant` |
+| `app/Modules/` | `ModuleManager`, Installer và route của từng module |
+| `config/modules.php` | Danh sách module, phụ thuộc, mục menu |
+| `config/liresto.php` | Domain chính, slug không được dùng |
+| `routes/web.php` | Domain riêng, domain chính, super admin |
+| `routes/tenant_public.php` | Web công khai, nạp cho cả slug và domain riêng |
+| `routes/tenant_admin.php` | Phần quản lý của quán |
+| `lang/vi/` | Mọi chữ giao diện |
+| `public/css/app.css` | CSS phần quản lý, không cần build |
+
+## Quy tắc khi thêm code
+
+- Bảng mới của quán có `restaurant_id`, model dùng trait `BelongsToRestaurant`. Khi không có nhà hàng hiện tại, truy vấn trả về rỗng; đọc xuyên quán phải gọi rõ `forRestaurant()`.
+- `User` và `RestaurantDomain` cố ý không dùng trait vì phải đọc được trước khi biết nhà hàng. Trong một quán, lấy user qua `$restaurant->users()`.
+- Link của quán sinh bằng `tenant_route('public.home')`, không dùng `route()` trực tiếp, để đúng cả slug lẫn domain riêng.
+- Chữ giao diện qua `__('ui....')`. Test `LanguageTest` báo lỗi nếu thiếu key trong `lang/vi`.
+- Route mới ở cấp một phải thêm tên vào `reserved_slugs` trong `config/liresto.php`.
+- Host của nền tảng khai trong `MAIN_DOMAINS`. Sau khi đổi trên server, chạy lại `php artisan route:cache` nếu đang dùng.

@@ -1,0 +1,171 @@
+<?php
+
+return [
+    'app' => 'Liresto',
+    'tagline' => 'Web và quản lý cho nhà hàng',
+
+    'common' => [
+        'save' => 'Lưu thay đổi',
+        'back_home' => 'Về trang chủ',
+    ],
+
+    'roles' => [
+        'owner' => 'Chủ quán',
+        'manager' => 'Quản lý',
+        'staff' => 'Nhân viên',
+    ],
+
+    'nav' => [
+        'dashboard' => 'Tổng quan',
+        'profile' => 'Tài khoản',
+        'logout' => 'Đăng xuất',
+        'restaurants' => 'Nhà hàng',
+        'view_site' => 'Xem website',
+    ],
+
+    'platform' => [
+        'lead' => 'Mỗi quán một website riêng, cùng menu và đặt bàn ở một nơi.',
+        'login' => 'Đăng nhập quản lý',
+    ],
+
+    'login' => [
+        'title' => 'Đăng nhập',
+        'email' => 'Email',
+        'password' => 'Mật khẩu',
+        'remember' => 'Ghi nhớ trên máy này',
+        'submit' => 'Đăng nhập',
+        'forgot' => 'Quên mật khẩu?',
+        'locked' => 'Nhà hàng của bạn đang bị khoá. Hãy liên hệ Liresto để mở lại.',
+    ],
+
+    'password' => [
+        'forgot_title' => 'Quên mật khẩu',
+        'forgot_lead' => 'Nhập email tài khoản, chúng tôi sẽ gửi link đặt lại mật khẩu.',
+        'send_link' => 'Gửi link đặt lại',
+        'back_to_login' => 'Quay lại đăng nhập',
+        'reset_title' => 'Đặt mật khẩu mới',
+        'new' => 'Mật khẩu mới',
+        'confirm' => 'Nhập lại mật khẩu mới',
+        'reset_submit' => 'Đặt lại mật khẩu',
+        'mail_subject' => 'Đặt lại mật khẩu Liresto',
+        'mail_intro' => 'Bạn nhận được email này vì có yêu cầu đặt lại mật khẩu cho tài khoản của bạn.',
+        'mail_action' => 'Đặt lại mật khẩu',
+        'mail_expire' => 'Link có hiệu lực trong :count phút.',
+        'mail_ignore' => 'Nếu bạn không yêu cầu, hãy bỏ qua email này.',
+    ],
+
+    'dashboard' => [
+        'greeting' => 'Chào :name',
+        'role_at' => ':role tại :restaurant',
+        'public_url' => 'Địa chỉ website',
+        'site_off' => 'Website chưa bật. Liên hệ Liresto để bật module Website.',
+        'modules_title' => 'Chức năng đang bật',
+        'modules_empty' => 'Chưa bật chức năng nào. Liên hệ Liresto để bật.',
+    ],
+
+    'placeholder' => [
+        'lead' => 'Màn hình này sẽ có ở giai đoạn 1C.',
+    ],
+
+    'profile' => [
+        'title' => 'Tài khoản',
+        'info' => 'Thông tin cá nhân',
+        'name' => 'Họ tên',
+        'email' => 'Email',
+        'saved' => 'Đã lưu thông tin cá nhân.',
+        'change_password' => 'Đổi mật khẩu',
+        'current_password' => 'Mật khẩu hiện tại',
+        'password_submit' => 'Đổi mật khẩu',
+        'password_saved' => 'Đã đổi mật khẩu.',
+    ],
+
+    'impersonation' => [
+        'banner' => 'Bạn đang đăng nhập thay :name',
+        'leave' => 'Thoát về super admin',
+    ],
+
+    'super' => [
+        'title' => 'Nhà hàng',
+        'create' => 'Tạo nhà hàng',
+        'search' => 'Tìm theo tên hoặc slug',
+        'search_submit' => 'Tìm',
+        'empty' => 'Chưa có nhà hàng nào. Tạo nhà hàng đầu tiên để bắt đầu.',
+        'no_results' => 'Không có nhà hàng khớp với “:q”.',
+        'col_name' => 'Tên',
+        'col_url' => 'Địa chỉ',
+        'col_owner' => 'Chủ quán',
+        'col_status' => 'Trạng thái',
+        'status_active' => 'Hoạt động',
+        'status_locked' => 'Đang khoá',
+        'no_owner_label' => 'Chưa có',
+
+        'name' => 'Tên nhà hàng',
+        'slug' => 'Slug',
+        'slug_hint' => 'Để trống thì tự tạo từ tên.',
+        'owner_section' => 'Tài khoản chủ quán',
+        'owner_name' => 'Họ tên chủ quán',
+        'owner_email' => 'Email đăng nhập',
+        'owner_password' => 'Mật khẩu',
+        'create_submit' => 'Tạo nhà hàng',
+        'created' => 'Đã tạo nhà hàng và tài khoản chủ quán.',
+        'saved' => 'Đã lưu.',
+
+        'info' => 'Thông tin',
+        'owner_line' => 'Chủ quán: :name (:email)',
+        'impersonate' => 'Đăng nhập thay chủ quán',
+        'no_owner' => 'Nhà hàng này chưa có chủ quán.',
+        'view_site' => 'Mở website',
+
+        'lock' => 'Khoá nhà hàng',
+        'unlock' => 'Mở khoá',
+        'lock_confirm' => 'Khoá nhà hàng này? Website sẽ ngừng hiển thị và nhân viên không đăng nhập được.',
+        'locked' => 'Đã khoá nhà hàng.',
+        'unlocked' => 'Đã mở khoá nhà hàng.',
+
+        'domains' => 'Domain riêng',
+        'domains_empty' => 'Chưa gán domain. Web đang chạy ở domain chính.',
+        'domain' => 'Domain',
+        'domain_add' => 'Gán domain',
+        'domain_verified_label' => 'Đã xác minh',
+        'domain_pending_label' => 'Chưa xác minh',
+        'domain_verify' => 'Đánh dấu đã xác minh',
+        'domain_remove' => 'Gỡ',
+        'domain_remove_confirm' => 'Gỡ domain :domain khỏi nhà hàng này?',
+        'domain_hint' => 'Khi domain đã trỏ về server, đánh dấu đã xác minh. Từ lúc đó link cũ theo slug chuyển hướng 301 sang domain này.',
+        'domain_added' => 'Đã gán domain.',
+        'domain_verified' => 'Đã xác minh domain.',
+        'domain_removed' => 'Đã gỡ domain.',
+
+        'modules' => 'Module',
+        'module_always_on' => 'Luôn bật',
+        'module_on' => 'Đang bật',
+        'module_phase2' => 'Giai đoạn 2',
+        'module_needs_label' => 'Cần bật :modules',
+        'module_enable' => 'Bật',
+        'module_disable' => 'Tắt',
+        'module_disable_confirm' => 'Tắt :module?',
+        'module_disable_confirm_with' => 'Tắt :module? Các module sau cũng sẽ tắt: :modules.',
+        'module_enabled' => 'Đã bật :module.',
+        'module_needs' => 'Chưa bật được :module: cần bật :modules trước.',
+        'modules_disabled' => 'Đã tắt: :modules. Dữ liệu vẫn được giữ.',
+    ],
+
+    'errors' => [
+        '403_title' => 'Bạn không có quyền vào trang này',
+        '403_lead' => 'Tài khoản đang đăng nhập không được dùng chức năng này.',
+        '404_title' => 'Không tìm thấy trang',
+        '404_lead' => 'Địa chỉ này không tồn tại hoặc nhà hàng đã đổi địa chỉ.',
+        '419_title' => 'Phiên làm việc đã hết hạn',
+        '419_lead' => 'Tải lại trang rồi thử lại.',
+        '429_title' => 'Bạn thao tác quá nhanh',
+        '429_lead' => 'Đợi một phút rồi thử lại.',
+        '500_title' => 'Hệ thống đang gặp lỗi',
+        '500_lead' => 'Lỗi đã được ghi lại. Hãy thử lại sau ít phút.',
+    ],
+
+    'public' => [
+        'coming_soon' => 'Website của quán đang được chuẩn bị.',
+        'locked_title' => 'Nhà hàng đang tạm ngừng',
+        'locked_lead' => 'Trang này hiện chưa truy cập được.',
+    ],
+];
