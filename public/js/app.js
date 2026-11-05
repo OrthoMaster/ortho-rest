@@ -803,40 +803,209 @@
             filterPicker();
         });
 
-        // Hôm nay thì không chọn được giờ đã qua.
-        var pickup = orderForm.querySelector('[data-pickup]');
-        var pickupDate = pickup.querySelector('[name=pickup_date]');
-        var pickupTime = pickup.querySelector('[name=pickup_time]');
-        var syncPickupTimes = function () {
-            var isToday = pickupDate.value === pickup.dataset.today;
-
-            Array.prototype.forEach.call(pickupTime.options, function (option) {
-                option.disabled = isToday && option.value < pickup.dataset.now;
-            });
-
-            if (pickupTime.selectedOptions[0].disabled) {
-                var firstOpen = Array.prototype.filter.call(pickupTime.options, function (option) {
-                    return !option.disabled;
-                })[0];
-
-                if (firstOpen) {
-                    pickupTime.value = firstOpen.value;
-                }
-            }
-        };
-
-        var hasTimeLeftToday = Array.prototype.some.call(pickupTime.options, function (option) {
-            return option.value >= pickup.dataset.now;
-        });
-
-        pickupDate.querySelector('option[value="' + pickup.dataset.today + '"]').disabled = !hasTimeLeftToday;
-        pickupDate.addEventListener('change', syncPickupTimes);
-        syncPickupTimes();
-
         syncDiscountMode();
 
         if (discountToggle.checked && currentMode() === 'code' && codeInput.value) {
             checkCode();
         }
     }
+
+    // Chọn ngày bằng lịch.
+    var pad = function (number) {
+        return (number < 10 ? '0' : '') + number;
+    };
+    var toIso = function (date) {
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+    };
+    var fromIso = function (iso) {
+        var parts = iso.split('-').map(Number);
+
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    };
+
+    document.querySelectorAll('[data-date-picker]').forEach(function (picker) {
+        var value = picker.querySelector('[data-date-value]');
+        var text = picker.querySelector('[data-date-text]');
+        var dialog = picker.querySelector('[data-date-dialog]');
+        var days = picker.querySelector('[data-month-days]');
+        var title = picker.querySelector('[data-month-title]');
+        var weekdays = JSON.parse(picker.dataset.weekdays);
+        var today = fromIso(picker.dataset.today);
+        var min = picker.dataset.min;
+        var shown = fromIso(value.value);
+
+        var label = function (iso) {
+            var date = fromIso(iso);
+            var diff = Math.round((date - today) / 86400000);
+            var name = weekdays[(date.getDay() + 6) % 7] + ' ' + pad(date.getDate()) + '/' + pad(date.getMonth() + 1);
+
+            if (diff === 0) {
+                return picker.dataset.todayLabel + ', ' + name;
+            }
+
+            return diff === 1 ? picker.dataset.tomorrowLabel + ', ' + name : name;
+        };
+
+        var renderMonth = function () {
+            var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
+            var count = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
+            var blanks = (first.getDay() + 6) % 7;
+
+            title.textContent = picker.dataset.monthLabel
+                .replace(':month', shown.getMonth() + 1)
+                .replace(':year', shown.getFullYear());
+            picker.querySelector('[data-month-step="-1"]').disabled = toIso(first).slice(0, 7) <= min.slice(0, 7);
+
+            days.textContent = '';
+
+            for (var blank = 0; blank < blanks; blank++) {
+                days.appendChild(document.createElement('span'));
+            }
+
+            for (var day = 1; day <= count; day++) {
+                var iso = toIso(new Date(shown.getFullYear(), shown.getMonth(), day));
+                var button = document.createElement('button');
+
+                button.type = 'button';
+                button.textContent = day;
+                button.dataset.date = iso;
+                button.disabled = iso < min;
+                button.classList.toggle('is-today', iso === picker.dataset.today);
+                button.classList.toggle('is-selected', iso === value.value);
+                button.setAttribute('aria-label', label(iso));
+                days.appendChild(button);
+            }
+        };
+
+        var choose = function (iso) {
+            value.value = iso;
+            text.textContent = label(iso);
+            shown = fromIso(iso);
+            value.dispatchEvent(new Event('change', { bubbles: true }));
+            dialog.close();
+        };
+
+        picker.querySelector('[data-date-trigger]').addEventListener('click', function () {
+            shown = fromIso(value.value);
+            renderMonth();
+            dialog.showModal();
+        });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+
+                return;
+            }
+
+            var step = event.target.closest('[data-month-step]');
+            var day = event.target.closest('[data-date]');
+            var shortcut = event.target.closest('[data-date-shortcut]');
+
+            if (step) {
+                shown = new Date(shown.getFullYear(), shown.getMonth() + Number(step.dataset.monthStep), 1);
+                renderMonth();
+            } else if (day) {
+                choose(day.dataset.date);
+            } else if (shortcut) {
+                choose(toIso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(shortcut.dataset.dateShortcut))));
+            }
+        });
+
+        text.textContent = label(value.value);
+    });
+
+    // Chọn giờ: giờ và phút riêng, phút bước 10.
+    var MINUTE_STEP = 10;
+
+    document.querySelectorAll('[data-time-picker]').forEach(function (picker) {
+        var value = picker.querySelector('[data-time-value]');
+        var hourInput = picker.querySelector('[data-time-unit=hour] input');
+        var minuteInput = picker.querySelector('[data-time-unit=minute] input');
+        var warning = picker.querySelector('[data-time-warning]');
+        var dateValue = picker.closest('form').querySelector('[name=pickup_date]');
+        var today = dateValue.closest('[data-date-picker]').dataset.today;
+        var parts = value.value.split(':').map(Number);
+        var hour = parts[0];
+        var minute = parts[1];
+
+        var render = function () {
+            var time = pad(hour) + ':' + pad(minute);
+
+            hourInput.value = pad(hour);
+            minuteInput.value = pad(minute);
+            value.value = time;
+
+            var message = '';
+
+            if (dateValue.value === today && time < picker.dataset.now) {
+                message = picker.dataset.past;
+            } else if (time < picker.dataset.opens || time > picker.dataset.closes) {
+                message = picker.dataset.outside;
+            }
+
+            warning.textContent = message;
+            warning.hidden = message === '';
+        };
+
+        var stepMinute = function (direction) {
+            var total = hour * 60 + minute;
+            var aligned = direction > 0
+                ? Math.floor(total / MINUTE_STEP) * MINUTE_STEP + MINUTE_STEP
+                : Math.ceil(total / MINUTE_STEP) * MINUTE_STEP - MINUTE_STEP;
+            var wrapped = (aligned + 1440) % 1440;
+
+            hour = Math.floor(wrapped / 60);
+            minute = wrapped % 60;
+        };
+
+        picker.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-time-step]');
+
+            if (!button) {
+                return;
+            }
+
+            var direction = Number(button.dataset.timeStep);
+
+            if (button.closest('[data-time-unit=hour]')) {
+                hour = (hour + direction + 24) % 24;
+            } else {
+                stepMinute(direction);
+            }
+
+            render();
+        });
+
+        var typed = function (input, max, apply) {
+            input.addEventListener('focus', function () {
+                input.select();
+            });
+            input.addEventListener('change', function () {
+                var number = parseInt(input.value, 10);
+
+                if (!isNaN(number) && number >= 0 && number <= max) {
+                    apply(number);
+                }
+
+                render();
+            });
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    input.blur();
+                }
+            });
+        };
+
+        typed(hourInput, 23, function (number) {
+            hour = number;
+        });
+        typed(minuteInput, 59, function (number) {
+            minute = number;
+        });
+
+        dateValue.addEventListener('change', render);
+        render();
+    });
 })();

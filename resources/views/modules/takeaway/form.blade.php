@@ -21,16 +21,21 @@
             </section>
 
             <section class="panel stack">
+                <h2>{{ __('takeaway.customer') }}</h2>
                 <div class="form-row">
                     @include('partials.field', ['name' => 'customer_name', 'label' => __('reservation.customer_name')])
                     @include('partials.field', ['name' => 'customer_phone', 'type' => 'tel', 'label' => __('reservation.customer_phone')])
                 </div>
-                <div class="form-row pickup-row" data-pickup data-today="{{ today()->toDateString() }}" data-now="{{ now()->format('H:i') }}">
-                    @include('partials.select', ['name' => 'pickup_date', 'label' => __('takeaway.pickup_date'), 'value' => $defaultDate, 'options' => $pickupDays])
-                    @include('partials.select', ['name' => 'pickup_time', 'label' => __('takeaway.pickup_time'), 'value' => $defaultTime, 'options' => $pickupTimes])
+                @include('partials.textarea', ['name' => 'notes', 'label' => __('reservation.notes'), 'rows' => 2])
+            </section>
+
+            <section class="panel stack" data-pickup>
+                <h2>{{ __('takeaway.pickup') }}</h2>
+                <div class="pickup-grid">
+                    @include('partials.date-picker', ['name' => 'pickup_date', 'label' => __('takeaway.pickup_date'), 'value' => $defaultDate, 'min' => today()->toDateString()])
+                    @include('modules.takeaway.time-picker', ['value' => old('pickup_time', $defaultTime), 'opens' => $pickupOpens, 'closes' => $pickupCloses])
                 </div>
                 @error('pickup_at')<small class="error">{{ $message }}</small>@enderror
-                @include('partials.textarea', ['name' => 'notes', 'label' => __('reservation.notes'), 'rows' => 2])
             </section>
 
             <section class="panel" data-discount>

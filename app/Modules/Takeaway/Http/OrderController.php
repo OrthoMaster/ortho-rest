@@ -19,11 +19,7 @@ use Throwable;
 
 class OrderController extends Controller
 {
-    private const PICKUP_DAYS = 14;
-
-    private const SLOT_MINUTES = 15;
-
-    private const PREPARE_MINUTES = 30;
+    private const MINUTE_STEP = 10;
 
     private const PAST_GRACE_MINUTES = 15;
 
@@ -53,9 +49,7 @@ class OrderController extends Controller
     public function create(): View
     {
         $settings = $this->modules->settings(tenant(), 'takeaway');
-        $times = $this->pickupTimes($settings['pickup_opens'], $settings['pickup_closes']);
-        $earliest = now()->addMinutes(self::PREPARE_MINUTES)->format('H:i');
-        $todayTime = collect($times)->first(fn (string $time) => $time >= $earliest);
+        $default = now()->ceilMinutes(self::MINUTE_STEP);
 
         return view('modules.takeaway.form', [
             'categories' => MenuCategory::where('is_visible', true)
@@ -63,11 +57,10 @@ class OrderController extends Controller
                 ->orderBy('sort_order')
                 ->get()
                 ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty()),
-            'pickupDays' => $this->pickupDays(),
-            'pickupTimes' => array_combine($times, $times),
-            // Hôm nay hết khung giờ thì mặc định sang ngày mai.
-            'defaultDate' => ($todayTime ? today() : today()->addDay())->toDateString(),
-            'defaultTime' => $todayTime ?? $times[0],
+            'defaultDate' => $default->toDateString(),
+            'defaultTime' => $default->format('H:i'),
+            'pickupOpens' => $settings['pickup_opens'],
+            'pickupCloses' => $settings['pickup_closes'],
         ]);
     }
 
@@ -126,39 +119,5 @@ class OrderController extends Controller
         $this->orders->changeStatus($order, $status);
 
         return back()->with('status', __('takeaway.status_changed', ['number' => $order->number, 'status' => $status->label()]));
-    }
-
-    /** @return array<string, string> ngày => "Hôm nay, Thứ năm 05/11" */
-    private function pickupDays(): array
-    {
-        $days = [];
-
-        foreach (range(0, self::PICKUP_DAYS - 1) as $offset) {
-            $day = today()->addDays($offset);
-            $name = __('reservation.weekday.'.$day->dayOfWeekIso).' '.$day->format('d/m');
-
-            $days[$day->toDateString()] = match ($offset) {
-                0 => __('takeaway.today').', '.$name,
-                1 => __('takeaway.tomorrow').', '.$name,
-                default => $name,
-            };
-        }
-
-        return $days;
-    }
-
-    /** @return list<string> */
-    private function pickupTimes(string $opens, string $closes): array
-    {
-        $times = [];
-        $time = CarbonImmutable::createFromFormat('H:i', $opens);
-        $end = CarbonImmutable::createFromFormat('H:i', $closes);
-
-        while ($time->lte($end)) {
-            $times[] = $time->format('H:i');
-            $time = $time->addMinutes(self::SLOT_MINUTES);
-        }
-
-        return $times;
     }
 }

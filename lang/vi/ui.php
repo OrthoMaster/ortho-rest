@@ -13,6 +13,18 @@ return [
         'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB.',
     ],
 
+    'calendar' => [
+        'month' => 'Tháng :month, :year',
+        'today' => 'Hôm nay',
+        'tomorrow' => 'Ngày mai',
+        'previous' => 'Tháng trước',
+        'next' => 'Tháng sau',
+        'weekdays' => [
+            'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật',
+        ],
+        'weekdays_short' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    ],
+
     'unsaved' => [
         'title' => 'Có thay đổi chưa lưu',
         'body' => 'Nếu rời trang, các thay đổi vừa nhập sẽ mất.',

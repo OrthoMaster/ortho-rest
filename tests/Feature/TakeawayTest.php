@@ -336,29 +336,30 @@ class TakeawayTest extends TestCase
         $this->delete("$this->base/discounts/{$other->id}")->assertNotFound();
     }
 
-    public function test_pickup_date_shows_weekday_without_year_and_defaults_to_today(): void
+    public function test_pickup_defaults_to_today_and_the_current_time_rounded_to_ten_minutes(): void
     {
-        $this->get("$this->base/create")
-            ->assertSee('<option value="2026-12-01" selected>Hôm nay, Thứ ba 01/12</option>', false)
-            ->assertSee('Ngày mai, Thứ tư 02/12')
-            ->assertSee('<option value="10:00" selected>', false)
-            ->assertDontSee('2026</option>', false);
-    }
-
-    public function test_pickup_time_defaults_to_the_first_slot_after_preparing(): void
-    {
-        $this->travelTo(Carbon::parse('2026-12-01 12:05'));
-
-        $this->get("$this->base/create")->assertSee('<option value="12:45" selected>', false);
-    }
-
-    public function test_after_the_last_slot_the_default_moves_to_tomorrow(): void
-    {
-        $this->travelTo(Carbon::parse('2026-12-01 21:30'));
+        $this->travelTo(Carbon::parse('2026-12-01 12:04'));
 
         $this->get("$this->base/create")
-            ->assertSee('<option value="2026-12-02" selected>', false)
-            ->assertSee('<option value="10:00" selected>', false);
+            ->assertSee('name="pickup_date" value="2026-12-01"', false)
+            ->assertSee('name="pickup_time" value="12:10"', false)
+            ->assertSee('data-min="2026-12-01"', false);
+    }
+
+    public function test_pickup_default_stays_on_the_current_time_when_it_is_already_on_a_step(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 12:20:00'));
+
+        $this->get("$this->base/create")->assertSee('name="pickup_time" value="12:20"', false);
+    }
+
+    public function test_pickup_default_rolls_over_midnight(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 23:57'));
+
+        $this->get("$this->base/create")
+            ->assertSee('name="pickup_date" value="2026-12-02"', false)
+            ->assertSee('name="pickup_time" value="00:00"', false);
     }
 
     public function test_pickup_in_the_past_is_refused(): void
