@@ -44,23 +44,10 @@
 
     <section class="panel">
         <h2>{{ __('reservation.hours') }}</h2>
-        @php($hours = $restaurant->opening_hours)
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.hours') }}" class="stack" data-guard>
-            @csrf
-            @method('put')
-            <div class="hours">
-                @foreach (range(1, 7) as $day)
-                    @php($row = $hours === null ? ['opens' => '10:00', 'closes' => '22:00'] : ($hours[$day] ?? null))
-                    <div class="hours-row">
-                        <label class="check"><input type="checkbox" name="hours[{{ $day }}][open]" value="1" @checked($row !== null)> {{ __('reservation.weekday.'.$day) }}</label>
-                        <input type="time" name="hours[{{ $day }}][opens]" value="{{ $row['opens'] ?? '10:00' }}" aria-label="{{ __('reservation.opens') }}">
-                        <input type="time" name="hours[{{ $day }}][closes]" value="{{ $row['closes'] ?? '22:00' }}" aria-label="{{ __('reservation.closes') }}">
-                        @error("hours.$day.closes")<small class="error">{{ $message }}</small>@enderror
-                    </div>
-                @endforeach
-            </div>
-            <button class="btn" type="submit">{{ __('reservation.save_hours') }}</button>
-        </form>
+        <p class="row-note">{{ __('reservation.hours_moved') }}</p>
+        @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+            <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.shifts.index', \App\Enums\ShiftType::Opening) }}">{{ __('reservation.hours_open') }}</a>
+        @endif
     </section>
 
     <section class="panel">

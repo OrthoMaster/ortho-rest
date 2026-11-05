@@ -15,7 +15,7 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
 - Nút + và − của ô số dùng chung class `spin-group`, giống ô Giờ nhận.
 - Chỗ tải ảnh dùng `partials/image-upload`.
-- Chọn ngày dùng lịch `partials/date-picker`, hiện thứ và không hiện năm. Giờ và phút là hai ô riêng, phút bước 10.
+- Chọn ngày dùng lịch `partials/date-picker`, hiện thứ và không hiện năm. Giờ và phút là hai ô riêng, phút bước 10 (`partials/time-picker`).
 - Trang con (ví dụ Sửa món là con của Menu) luôn có nút icon quay lại trang cha ở header: `partials/page-title`.
 - Form chỉnh sửa thêm `data-guard`: có thay đổi chưa lưu thì hỏi lại trước khi rời trang.
 - Màu chỉ dùng biến CSS trong `public/css/app.css`, không viết mã màu trong Blade. Màu Liresto là pastel xanh; trang của quán tự đổi theo màu quán.

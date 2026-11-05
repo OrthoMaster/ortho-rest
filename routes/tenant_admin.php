@@ -5,6 +5,7 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RestaurantController;
+use App\Http\Controllers\Admin\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', DashboardController::class)->name('dashboard');
@@ -17,6 +18,15 @@ Route::middleware('role:owner')->prefix('restaurant')->name('restaurant.')->grou
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
+
+    Route::prefix('shifts')->name('shifts.')->group(function () {
+        Route::get('{type}', [ShiftController::class, 'index'])->whereIn('type', ['opening', 'work'])->name('index');
+        Route::get('{type}/create', [ShiftController::class, 'create'])->whereIn('type', ['opening', 'work'])->name('create');
+        Route::post('{type}', [ShiftController::class, 'store'])->whereIn('type', ['opening', 'work'])->name('store');
+        Route::get('{shift}/edit', [ShiftController::class, 'edit'])->whereNumber('shift')->name('edit');
+        Route::put('{shift}', [ShiftController::class, 'update'])->whereNumber('shift')->name('update');
+        Route::delete('{shift}', [ShiftController::class, 'destroy'])->whereNumber('shift')->name('destroy');
+    });
 });
 
 foreach (config('modules') as $module) {

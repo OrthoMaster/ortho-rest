@@ -5,6 +5,8 @@
 @section('content')
     <h1>{{ __('ui.restaurant.title') }}</h1>
 
+    @include('admin.restaurant.subnav')
+
     <section class="panel">
         <h2>{{ __('ui.logo.title') }}</h2>
         @include('partials.logo-form', [

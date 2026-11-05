@@ -10,6 +10,8 @@ use App\Modules\Reservation\ReservationSource;
 use App\Modules\Reservation\ReservationStatus;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,34 +20,57 @@ use Throwable;
 
 class ReservationController extends Controller
 {
+    private const ALL_PER_PAGE = 50;
+
     public function __construct(private ReservationBooking $booking) {}
 
     public function index(Request $request): View
     {
+        $status = ReservationStatus::tryFrom((string) $request->query('status'));
+        $areaId = $request->integer('area') ?: null;
+
+        $query = Reservation::with(['customer', 'area'])
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($areaId, fn ($query) => $query->where('area_id', $areaId));
+
+        $filters = [
+            'status' => $status,
+            'areaId' => $areaId,
+            'areas' => Area::orderBy('name')->get(),
+        ];
+
+        if ($request->boolean('all')) {
+            return view('modules.reservation.index', [...$filters, 'showAll' => true, 'reservations' => $this->allDays($query)]);
+        }
+
         try {
             $date = CarbonImmutable::parse((string) $request->query('date', 'today'))->startOfDay();
         } catch (Throwable) {
             $date = CarbonImmutable::today();
         }
 
-        $status = ReservationStatus::tryFrom((string) $request->query('status'));
-        $areaId = $request->integer('area') ?: null;
-
-        $reservations = Reservation::with(['customer', 'area'])
-            ->whereBetween('reserved_at', [$date, $date->endOfDay()])
-            ->when($status, fn ($query) => $query->where('status', $status))
-            ->when($areaId, fn ($query) => $query->where('area_id', $areaId))
-            ->orderBy('reserved_at')
-            ->get();
+        $reservations = $query->whereBetween('reserved_at', [$date, $date->endOfDay()])->orderBy('reserved_at')->get();
 
         return view('modules.reservation.index', [
+            ...$filters,
+            'showAll' => false,
             'date' => $date,
             'reservations' => $reservations,
-            'status' => $status,
-            'areaId' => $areaId,
-            'areas' => Area::orderBy('name')->get(),
             'guests' => $reservations->filter(fn ($reservation) => $reservation->status->holdsSeats())->sum('party_size'),
         ]);
+    }
+
+    /** Hôm nay và sắp tới lên đầu theo thứ tự thời gian, các ngày đã qua xuống sau, mới nhất trước. */
+    private function allDays(Builder $query): LengthAwarePaginator
+    {
+        $today = today();
+
+        return $query
+            ->orderByRaw('reserved_at < ?', [$today])
+            ->orderByRaw('CASE WHEN reserved_at >= ? THEN reserved_at END ASC', [$today])
+            ->orderByDesc('reserved_at')
+            ->paginate(self::ALL_PER_PAGE)
+            ->withQueryString();
     }
 
     public function create(): View

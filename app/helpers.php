@@ -2,6 +2,7 @@
 
 use App\Models\Restaurant;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Route;
 
 if (! function_exists('tenant')) {
@@ -40,6 +41,20 @@ if (! function_exists('vnd')) {
     function vnd(int $amount): string
     {
         return number_format($amount, 0, ',', '.').' ₫';
+    }
+}
+
+if (! function_exists('day_label')) {
+    /** Hôm nay, Thứ năm 05/11. Khác năm hiện tại thì thêm năm để không nhầm. */
+    function day_label(CarbonInterface $date): string
+    {
+        $label = __('ui.calendar.weekdays')[$date->dayOfWeekIso - 1].' '.$date->format($date->year === now()->year ? 'd/m' : 'd/m/Y');
+
+        return match (true) {
+            $date->isToday() => __('ui.calendar.today').', '.$label,
+            $date->isTomorrow() => __('ui.calendar.tomorrow').', '.$label,
+            default => $label,
+        };
     }
 }
 

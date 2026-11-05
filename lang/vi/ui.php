@@ -25,6 +25,13 @@ return [
         'weekdays_short' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
     ],
 
+    'time' => [
+        'hour' => 'Giờ',
+        'minute' => 'Phút',
+        'increase' => 'Tăng :unit',
+        'decrease' => 'Giảm :unit',
+    ],
+
     'unsaved' => [
         'title' => 'Có thay đổi chưa lưu',
         'body' => 'Nếu rời trang, các thay đổi vừa nhập sẽ mất.',

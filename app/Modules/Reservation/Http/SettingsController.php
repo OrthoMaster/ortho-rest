@@ -7,7 +7,6 @@ use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -31,38 +30,6 @@ class SettingsController extends Controller
             'turn_minutes' => ['required', 'integer', 'min:15', 'max:600'],
             'slot_interval_minutes' => ['required', 'integer', 'min:5', 'max:120'],
         ]));
-
-        return back()->with('status', __('reservation.settings_saved'));
-    }
-
-    public function updateHours(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'hours' => ['required', 'array'],
-            'hours.*.open' => ['boolean'],
-            'hours.*.opens' => ['nullable', 'date_format:H:i'],
-            'hours.*.closes' => ['nullable', 'date_format:H:i'],
-        ]);
-
-        $hours = [];
-
-        foreach (range(1, 7) as $day) {
-            $row = $data['hours'][$day] ?? [];
-
-            if (empty($row['open'])) {
-                $hours[$day] = null;
-
-                continue;
-            }
-
-            if (empty($row['opens']) || empty($row['closes']) || $row['opens'] >= $row['closes']) {
-                throw ValidationException::withMessages(["hours.$day.closes" => __('reservation.bad_hours')]);
-            }
-
-            $hours[$day] = ['opens' => $row['opens'], 'closes' => $row['closes']];
-        }
-
-        tenant()->update(['opening_hours' => $hours]);
 
         return back()->with('status', __('reservation.settings_saved'));
     }

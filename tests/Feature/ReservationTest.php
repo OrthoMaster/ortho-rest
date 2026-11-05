@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ShiftType;
 use App\Enums\UserRole;
 use App\Models\Customer;
 use App\Models\Restaurant;
+use App\Models\Shift;
 use App\Models\User;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
@@ -241,12 +243,49 @@ class ReservationTest extends TestCase
             fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'khach@mail.vn');
     }
 
+    private function booked(string $at): Reservation
+    {
+        $restaurant = ['restaurant_id' => $this->restaurant->id];
+
+        return Reservation::create([
+            ...$restaurant,
+            'customer_id' => Customer::create([...$restaurant, 'name' => 'Khách', 'phone' => '09'.random_int(10000000, 99999999)])->id,
+            'area_id' => Area::forRestaurant($this->restaurant)->first()->id,
+            'reserved_at' => $at,
+            'ends_at' => $at,
+            'party_size' => 2,
+            'status' => ReservationStatus::Confirmed,
+            'source' => ReservationSource::Phone,
+        ]);
+    }
+
+    public function test_list_uses_the_calendar_and_can_show_all_days_grouped(): void
+    {
+        $this->booked('2026-12-01 18:00');
+        $this->booked('2026-12-03 19:00');
+        $this->booked('2026-11-20 12:00');
+
+        $list = "/{$this->restaurant->slug}/admin/reservations";
+
+        $this->get($list)
+            ->assertSee('data-date-picker', false)
+            ->assertDontSee('type="date"', false)
+            ->assertSee(__('reservation.show_all'));
+
+        $this->get("$list?all=1")
+            ->assertOk()
+            ->assertSee(__('reservation.show_by_day'))
+            ->assertDontSee('data-date-picker', false)
+            ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Thứ năm 03/12', 'Thứ sáu 20/11']);
+    }
+
     public function test_online_rules(): void
     {
-        $this->restaurant->update([
-            'opening_hours' => array_fill(1, 7, ['opens' => '10:00', 'closes' => '22:00']),
-            'closed_dates' => [['date' => '2026-12-05', 'note' => 'Nghỉ']],
-        ]);
+        $this->restaurant->update(['closed_dates' => [['date' => '2026-12-05', 'note' => 'Nghỉ']]]);
+
+        foreach (range(1, 7) as $day) {
+            Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Opening, 'weekday' => $day, 'name' => 'Cả ngày', 'start_time' => '10:00', 'end_time' => '22:00']);
+        }
 
         $refused = [
             'quá gần' => ['reserved_at' => '2026-12-01T09:30'],
@@ -294,17 +333,6 @@ class ReservationTest extends TestCase
 
         $this->actingInTenant($this->restaurant);
         $this->assertSame('120', (string) app(ModuleManager::class)->settings($this->restaurant, 'reservation')['turn_minutes']);
-
-        $this->put("$settings/hours", ['hours' => [
-            1 => ['open' => 1, 'opens' => '09:00', 'closes' => '21:00'],
-        ]])->assertSessionHasNoErrors();
-
-        $hours = $this->restaurant->fresh()->opening_hours;
-        $this->assertSame('09:00', $hours[1]['opens']);
-        $this->assertNull($hours[2]);
-
-        $this->put("$settings/hours", ['hours' => [1 => ['open' => 1, 'opens' => '22:00', 'closes' => '21:00']]])
-            ->assertSessionHasErrors('hours.1.closes');
 
         $this->post("$settings/closed-dates", ['date' => '2027-02-10', 'note' => 'Tết'])->assertSessionHasNoErrors();
         $this->assertSame('2027-02-10', $this->restaurant->fresh()->closed_dates[0]['date']);

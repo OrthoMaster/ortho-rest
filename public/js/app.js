@@ -933,8 +933,9 @@
         var hourInput = picker.querySelector('[data-time-unit=hour] input');
         var minuteInput = picker.querySelector('[data-time-unit=minute] input');
         var warning = picker.querySelector('[data-time-warning]');
-        var dateValue = picker.closest('form').querySelector('[name=pickup_date]');
-        var today = dateValue.closest('[data-date-picker]').dataset.today;
+        var hasLimits = 'opens' in picker.dataset;
+        var dateValue = hasLimits ? picker.closest('form').querySelector('[name=pickup_date]') : null;
+        var today = dateValue ? dateValue.closest('[data-date-picker]').dataset.today : null;
         var parts = value.value.split(':').map(Number);
         var hour = parts[0];
         var minute = parts[1];
@@ -945,6 +946,10 @@
             hourInput.value = pad(hour);
             minuteInput.value = pad(minute);
             value.value = time;
+
+            if (!hasLimits) {
+                return;
+            }
 
             var message = '';
 
@@ -1015,7 +1020,10 @@
             minute = number;
         });
 
-        dateValue.addEventListener('change', render);
+        if (dateValue) {
+            dateValue.addEventListener('change', render);
+        }
+
         render();
     });
 })();

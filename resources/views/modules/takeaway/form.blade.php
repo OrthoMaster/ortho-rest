@@ -49,24 +49,31 @@
                 <h2>{{ __('takeaway.pickup') }}</h2>
                 <div class="pickup-grid">
                     @include('partials.date-picker', ['name' => 'pickup_date', 'label' => __('takeaway.pickup_date'), 'value' => $defaultDate, 'min' => $minDate])
-                    @include('modules.takeaway.time-picker', ['value' => old('pickup_time', $defaultTime), 'opens' => $pickupOpens, 'closes' => $pickupCloses])
+                    @include('partials.time-picker', [
+                        'name' => 'pickup_time', 'label' => __('takeaway.pickup_time'), 'value' => $defaultTime,
+                        'opens' => $pickupOpens, 'closes' => $pickupCloses,
+                        'outside' => __('takeaway.outside_pickup', ['opens' => $pickupOpens, 'closes' => $pickupCloses]),
+                        'past' => __('takeaway.pickup_past'),
+                    ])
                 </div>
                 @error('pickup_at')<small class="error">{{ $message }}</small>@enderror
             </section>
 
-            <section class="panel" data-discount>
+            {{-- Đơn đang có mã giảm giá vẫn giữ và sửa được dù đã ẩn lựa chọn Mã. --}}
+            @php($codesOn = config('liresto.discount_codes') || $order->discount_code)
+            <section class="panel" data-discount @unless ($codesOn || $order->discount_type || auth()->user()->can('takeaway.direct-discount')) hidden @endunless>
                 <div class="panel-head">
                     <h2 id="discount-title">{{ __('takeaway.discount') }}</h2>
                     @php($discountOn = old('discount_enabled', $order->discount_type !== null))
                     <input type="checkbox" name="discount_enabled" value="1" aria-labelledby="discount-title" data-discount-toggle @checked($discountOn)>
                 </div>
                 <div class="stack" data-discount-body @unless ($discountOn) hidden @endunless>
-                    @php($currentMode = $order->discount_code ? 'code' : ($order->discount_type?->value ?? 'code'))
+                    @php($currentMode = $order->discount_code ? 'code' : ($order->discount_type?->value ?? ($codesOn ? 'code' : 'percent')))
                     @php($keptDirect = $order->discount_type && ! $order->discount_code)
                     @can('takeaway.direct-discount')
                         @php($mode = in_array(old('discount_mode'), ['code', 'percent', 'amount'], true) ? old('discount_mode') : $currentMode)
                         <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
-                            @foreach (['code', 'percent', 'amount'] as $option)
+                            @foreach ($codesOn ? ['code', 'percent', 'amount'] : ['percent', 'amount'] as $option)
                                 <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
                             @endforeach
                         </div>

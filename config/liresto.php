@@ -22,6 +22,9 @@ return [
 
     'module_cache_seconds' => 3600,
 
+    // Mã giảm giá làm sau. Bật lại thì hiện tab và lựa chọn Mã khi tạo đơn.
+    'discount_codes' => false,
+
     // Đĩa lưu file quán tải lên. Đổi sang s3 khi có Bizfly Simple Storage.
     'uploads_disk' => env('UPLOADS_DISK', 'public'),
 

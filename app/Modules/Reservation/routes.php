@@ -18,7 +18,6 @@ Route::middleware('module:reservation')
         Route::middleware('role:owner,manager')->prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [SettingsController::class, 'edit'])->name('edit');
             Route::put('booking', [SettingsController::class, 'updateBooking'])->name('booking');
-            Route::put('hours', [SettingsController::class, 'updateHours'])->name('hours');
             Route::post('closed-dates', [SettingsController::class, 'storeClosedDate'])->name('closed-dates.store');
             Route::delete('closed-dates/{date}', [SettingsController::class, 'destroyClosedDate'])->name('closed-dates.destroy');
             Route::post('areas', [SettingsController::class, 'storeArea'])->name('areas.store');

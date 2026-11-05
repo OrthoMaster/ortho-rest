@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RestaurantStatus;
+use App\Enums\ShiftType;
 use App\Enums\UserRole;
 use App\Modules\ModuleManager;
 use App\Tenancy\RestaurantLogo;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'timezone', 'theme', 'opening_hours', 'closed_dates'])]
+#[Fillable(['name', 'slug', 'timezone', 'theme', 'closed_dates'])]
 class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
@@ -26,7 +27,6 @@ class Restaurant extends Model
         return [
             'status' => RestaurantStatus::class,
             'theme' => 'array',
-            'opening_hours' => 'array',
             'closed_dates' => 'array',
         ];
     }
@@ -61,23 +61,16 @@ class Restaurant extends Model
             ->value('domain');
     }
 
-    /** Quán chưa khai giờ mở cửa thì coi như mở cả ngày. */
+    /** Quán chưa khai ca mở cửa thì coi như mở cả ngày. Khoảng giờ phải nằm trọn trong một ca. */
     public function isOpenBetween(CarbonInterface $start, CarbonInterface $end): bool
     {
         if (collect($this->closed_dates)->contains('date', $start->toDateString())) {
             return false;
         }
 
-        if ($this->opening_hours === null) {
-            return true;
-        }
+        $shifts = Shift::forRestaurant($this)->where('type', ShiftType::Opening)->get();
 
-        $hours = $this->opening_hours[$start->dayOfWeekIso] ?? null;
-
-        return $hours !== null
-            && $start->isSameDay($end)
-            && $start->format('H:i') >= $hours['opens']
-            && $end->format('H:i') <= $hours['closes'];
+        return $shifts->isEmpty() || $shifts->contains(fn (Shift $shift): bool => $shift->covers($start, $end));
     }
 
     public function isLocked(): bool

@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ShiftType;
 use App\Enums\UserRole;
 use App\Models\Restaurant;
+use App\Models\Shift;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
@@ -62,9 +64,16 @@ class DatabaseSeeder extends Seeder
 
         app(TenantContext::class)->set($restaurant);
 
-        $restaurant->update([
-            'opening_hours' => array_fill(1, 7, ['opens' => '10:00', 'closes' => '22:00']),
-        ]);
+        foreach (range(1, 7) as $day) {
+            foreach ([
+                [ShiftType::Opening, 'Trưa', '10:00', '14:00'],
+                [ShiftType::Opening, 'Tối', '17:00', '22:00'],
+                [ShiftType::Work, 'Ca sáng', '09:00', '15:00'],
+                [ShiftType::Work, 'Ca tối', '16:00', '23:00'],
+            ] as [$type, $name, $start, $end]) {
+                Shift::create(['type' => $type, 'weekday' => $day, 'name' => $name, 'start_time' => $start, 'end_time' => $end]);
+            }
+        }
 
         $menu = [
             'Khai vị' => [['Gỏi cuốn tôm thịt', 45000, 40000], ['Chả giò', 55000, 50000]],

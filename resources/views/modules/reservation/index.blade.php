@@ -12,9 +12,20 @@
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
     <div class="filters">
-        @include('partials.date-nav', ['date' => $date])
+        <div class="date-tools">
+            @if ($showAll)
+                <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['all' => null, 'page' => null]) }}">{{ __('reservation.show_by_day') }}</a>
+            @else
+                @include('partials.date-nav', ['date' => $date])
+                <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['all' => 1, 'date' => null, 'page' => null]) }}">{{ __('reservation.show_all') }}</a>
+            @endif
+        </div>
         <form method="get" class="inline-form">
-            <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+            @if ($showAll)
+                <input type="hidden" name="all" value="1">
+            @else
+                <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+            @endif
             <select name="status" aria-label="{{ __('reservation.filter_status') }}" onchange="this.form.submit()">
                 <option value="">{{ __('reservation.all_statuses') }}</option>
                 @foreach (\App\Modules\Reservation\ReservationStatus::cases() as $case)
@@ -31,24 +42,23 @@
         </form>
     </div>
 
-    <p class="lead">{{ __('reservation.day_summary', ['count' => $reservations->count(), 'guests' => $guests]) }}</p>
+    @if ($showAll)
+        <p class="lead">{{ __('reservation.all_summary', ['count' => $reservations->total()]) }}</p>
+    @else
+        <p class="lead">{{ __('reservation.day_summary', ['count' => $reservations->count(), 'guests' => $guests]) }}</p>
+    @endif
 
     @if ($reservations->isEmpty())
         <p class="empty">{{ __('reservation.empty') }}</p>
+    @elseif ($showAll)
+        @foreach ($reservations->getCollection()->groupBy(fn ($reservation) => $reservation->reserved_at->toDateString()) as $day => $rows)
+            <section class="day-group">
+                <h2>{{ day_label(\Carbon\CarbonImmutable::parse($day)) }}</h2>
+                @include('modules.reservation.rows', ['rows' => $rows])
+            </section>
+        @endforeach
+        @include('partials.pagination', ['paginator' => $reservations])
     @else
-        <ul class="booking-list">
-            @foreach ($reservations as $reservation)
-                <li>
-                    <a class="booking-time" href="{{ route('tenant.admin.reservation.show', $reservation) }}">{{ $reservation->reserved_at->format('H:i') }}</a>
-                    <div class="booking-main">
-                        <a href="{{ route('tenant.admin.reservation.show', $reservation) }}">{{ $reservation->customer->name }}</a>
-                        <small>{{ __('reservation.party', ['count' => $reservation->party_size]) }}, {{ $reservation->area->name }}</small>
-                        <small><a href="tel:{{ $reservation->customer->phone }}">{{ $reservation->customer->phone }}</a></small>
-                    </div>
-                    <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>
-                    @include('modules.reservation.status-actions')
-                </li>
-            @endforeach
-        </ul>
+        @include('modules.reservation.rows', ['rows' => $reservations])
     @endif
 @endsection
