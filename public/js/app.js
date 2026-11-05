@@ -552,4 +552,144 @@
             });
         }
     }
+
+    // Tạo đơn: chọn món trong popup, số lượng nằm trong input ẩn của từng món.
+    var orderForm = document.querySelector('[data-order-form]');
+
+    if (orderForm) {
+        var money = function (amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+        };
+        var pickRows = Array.prototype.slice.call(orderForm.querySelectorAll('.picker [data-item-id]'));
+        var linesList = orderForm.querySelector('[data-order-lines]');
+        var lineTemplate = orderForm.querySelector('template[data-order-line]');
+        var byId = {};
+        var picked = [];
+
+        pickRows.forEach(function (row) {
+            byId[row.dataset.itemId] = row;
+            row.pickQty = row.querySelector('[data-qty]');
+
+            if (Number(row.pickQty.value) > 0) {
+                picked.push(row.dataset.itemId);
+            }
+        });
+
+        var renderOrder = function () {
+            var total = 0;
+            var count = 0;
+
+            linesList.textContent = '';
+
+            pickRows.forEach(function (row) {
+                var qty = Number(row.pickQty.value);
+
+                row.classList.toggle('has-qty', qty > 0);
+                row.classList.toggle('is-zero', qty === 0);
+                row.querySelector('[data-count]').textContent = qty;
+            });
+
+            picked.forEach(function (id) {
+                var row = byId[id];
+                var qty = Number(row.pickQty.value);
+                var price = Number(row.dataset.price);
+                var line = lineTemplate.content.firstElementChild.cloneNode(true);
+
+                line.dataset.itemId = id;
+                line.querySelector('[data-line-name]').textContent = row.dataset.name;
+                line.querySelector('[data-line-price]').textContent = money(price);
+                line.querySelector('[data-line-total]').textContent = money(price * qty);
+                line.querySelector('[data-count]').textContent = qty;
+                linesList.appendChild(line);
+
+                total += price * qty;
+                count += qty;
+            });
+
+            orderForm.querySelector('[data-order-empty]').hidden = picked.length > 0;
+
+            orderForm.querySelectorAll('[data-order-total]').forEach(function (node) {
+                node.textContent = money(total);
+            });
+            orderForm.querySelectorAll('[data-order-count]').forEach(function (node) {
+                node.textContent = orderForm.dataset.countLabel.replace(':count', count);
+            });
+        };
+
+        var changeQty = function (id, step) {
+            var row = byId[id];
+            var qty = Math.min(999, Math.max(0, Number(row.pickQty.value) + step));
+
+            row.pickQty.value = qty;
+
+            if (qty > 0 && picked.indexOf(id) === -1) {
+                picked.push(id);
+            } else if (qty === 0) {
+                picked = picked.filter(function (other) {
+                    return other !== id;
+                });
+            }
+
+            renderOrder();
+        };
+
+        orderForm.addEventListener('click', function (event) {
+            var row = event.target.closest('[data-item-id]');
+            var stepButton = event.target.closest('[data-step]');
+
+            if (!row) {
+                return;
+            }
+
+            if (stepButton) {
+                changeQty(row.dataset.itemId, Number(stepButton.dataset.step));
+            } else if (row.closest('.picker')) {
+                changeQty(row.dataset.itemId, 1);
+            }
+        });
+
+        var pickSearch = orderForm.querySelector('[data-pick-search]');
+        var pickGroups = Array.prototype.slice.call(orderForm.querySelectorAll('[data-pick-group]'));
+        var pickItems = Array.prototype.slice.call(orderForm.querySelectorAll('[data-pick-search-text]'));
+        var pickEmpty = orderForm.querySelector('[data-pick-empty]');
+        var pickerDialog = document.getElementById('pick-dialog');
+
+        pickItems.forEach(function (item) {
+            item.searchText = plain(item.dataset.pickSearchText);
+        });
+
+        var filterPicker = function () {
+            var words = plain(pickSearch.value).trim().split(/\s+/).filter(Boolean);
+            var found = 0;
+
+            pickItems.forEach(function (item) {
+                var show = words.every(function (word) {
+                    return item.searchText.indexOf(word) !== -1;
+                });
+
+                item.hidden = !show;
+                found += show ? 1 : 0;
+            });
+
+            pickGroups.forEach(function (group) {
+                group.hidden = !group.querySelector('li:not([hidden])');
+            });
+
+            pickEmpty.hidden = found > 0;
+        };
+
+        pickSearch.addEventListener('input', filterPicker);
+        pickSearch.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+            }
+        });
+        // Mỗi lần mở popup là tìm lại từ đầu.
+        pickerDialog.addEventListener('close', function () {
+            pickSearch.value = '';
+            filterPicker();
+        });
+
+        renderOrder();
+    }
 })();

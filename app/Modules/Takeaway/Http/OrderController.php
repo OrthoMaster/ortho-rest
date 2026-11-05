@@ -44,7 +44,7 @@ class OrderController extends Controller
     {
         return view('modules.takeaway.form', [
             'categories' => MenuCategory::where('is_visible', true)
-                ->with(['items' => fn ($query) => $query->orderableForTakeaway()])
+                ->with(['items' => fn ($query) => $query->whereNotNull('price_takeaway')->where('is_visible', true)])
                 ->orderBy('sort_order')
                 ->get()
                 ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty()),

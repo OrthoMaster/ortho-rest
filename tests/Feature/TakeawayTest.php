@@ -155,6 +155,21 @@ class TakeawayTest extends TestCase
         $this->post($url, ['status' => 'cancelled'])->assertSessionHasErrors('status');
     }
 
+    public function test_order_form_lists_takeaway_items_and_marks_sold_out(): void
+    {
+        $this->item($this->restaurant, 'Đã hết', 10000, ['is_sold_out' => true]);
+        $this->item($this->restaurant, 'Chỉ tại quán', null);
+        $this->item($this->restaurant, 'Đang ẩn món', 10000, ['is_visible' => false]);
+
+        $this->get("$this->base/create")
+            ->assertOk()
+            ->assertSee('name="items['.$this->pho->id.']"', false)
+            ->assertSee('Đã hết')
+            ->assertSee(__('menu.sold_out'))
+            ->assertDontSee('Chỉ tại quán')
+            ->assertDontSee('Đang ẩn món');
+    }
+
     public function test_day_list(): void
     {
         $this->order();
