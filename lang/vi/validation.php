@@ -72,6 +72,8 @@ return [
         'menu_category_id' => 'danh mục',
         'party_size' => 'số khách',
         'pickup_at' => 'giờ nhận',
+        'pickup_date' => 'ngày nhận',
+        'pickup_time' => 'giờ nhận',
         'pickup_closes' => 'giờ kết thúc nhận hàng',
         'pickup_opens' => 'giờ bắt đầu nhận hàng',
         'price_dine_in' => 'giá tại quán',

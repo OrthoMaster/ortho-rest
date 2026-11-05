@@ -25,7 +25,11 @@
                     @include('partials.field', ['name' => 'customer_name', 'label' => __('reservation.customer_name')])
                     @include('partials.field', ['name' => 'customer_phone', 'type' => 'tel', 'label' => __('reservation.customer_phone')])
                 </div>
-                @include('partials.field', ['name' => 'pickup_at', 'type' => 'datetime-local', 'label' => __('takeaway.pickup_at'), 'value' => now()->addMinutes(30)->format('Y-m-d\TH:i')])
+                <div class="form-row pickup-row" data-pickup data-today="{{ today()->toDateString() }}" data-now="{{ now()->format('H:i') }}">
+                    @include('partials.select', ['name' => 'pickup_date', 'label' => __('takeaway.pickup_date'), 'value' => $defaultDate, 'options' => $pickupDays])
+                    @include('partials.select', ['name' => 'pickup_time', 'label' => __('takeaway.pickup_time'), 'value' => $defaultTime, 'options' => $pickupTimes])
+                </div>
+                @error('pickup_at')<small class="error">{{ $message }}</small>@enderror
                 @include('partials.textarea', ['name' => 'notes', 'label' => __('reservation.notes'), 'rows' => 2])
             </section>
 
@@ -35,12 +39,16 @@
                     <input type="checkbox" name="discount_enabled" value="1" aria-labelledby="discount-title" data-discount-toggle @checked(old('discount_enabled'))>
                 </div>
                 <div class="stack" data-discount-body @unless (old('discount_enabled')) hidden @endunless>
-                    @php($mode = in_array(old('discount_mode'), ['code', 'percent', 'amount'], true) ? old('discount_mode') : 'code')
-                    <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
-                        @foreach (['code', 'percent', 'amount'] as $option)
-                            <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
-                        @endforeach
-                    </div>
+                    @can('takeaway.direct-discount')
+                        @php($mode = in_array(old('discount_mode'), ['code', 'percent', 'amount'], true) ? old('discount_mode') : 'code')
+                        <div class="segmented" role="radiogroup" aria-label="{{ __('takeaway.discount') }}">
+                            @foreach (['code', 'percent', 'amount'] as $option)
+                                <label><input type="radio" name="discount_mode" value="{{ $option }}" @checked($mode === $option)> <span>{{ __('takeaway.discount_mode.'.$option) }}</span></label>
+                            @endforeach
+                        </div>
+                    @else
+                        <input type="hidden" name="discount_mode" value="code">
+                    @endcan
                     <div data-discount-field="code" hidden>
                         <div class="inline-form">
                             <input name="discount_code" value="{{ old('discount_code') }}" placeholder="{{ __('takeaway.code_example') }}" aria-label="{{ __('takeaway.code') }}" autocomplete="off" data-code-input>
@@ -49,12 +57,14 @@
                         <small class="code-message" data-code-message></small>
                         @error('discount_code')<small class="error">{{ $message }}</small>@enderror
                     </div>
-                    <div data-discount-field="percent" hidden>
-                        @include('modules.takeaway.number-stepper', ['name' => 'discount_percent', 'label' => __('takeaway.discount_percent'), 'default' => 5, 'max' => 100, 'suffix' => '%'])
-                    </div>
-                    <div data-discount-field="amount" hidden>
-                        @include('modules.takeaway.number-stepper', ['name' => 'discount_thousands', 'label' => __('takeaway.discount_amount'), 'default' => 10, 'max' => 999999, 'suffix' => __('takeaway.thousands_suffix')])
-                    </div>
+                    @can('takeaway.direct-discount')
+                        <div data-discount-field="percent" hidden>
+                            @include('modules.takeaway.number-stepper', ['name' => 'discount_percent', 'label' => __('takeaway.discount_percent'), 'default' => 5, 'max' => 100, 'suffix' => '%'])
+                        </div>
+                        <div data-discount-field="amount" hidden>
+                            @include('modules.takeaway.number-stepper', ['name' => 'discount_thousands', 'label' => __('takeaway.discount_amount'), 'default' => 10, 'max' => 999999, 'suffix' => __('takeaway.thousands_suffix')])
+                        </div>
+                    @endcan
                 </div>
             </section>
 

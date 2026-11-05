@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
+use App\Modules\ModuleManager;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\DiscountCode;
 use App\Modules\Takeaway\Models\TakeawayOrder;
@@ -62,7 +63,8 @@ class TakeawayTest extends TestCase
         return [
             'customer_name' => 'Anh Tuấn',
             'customer_phone' => '0987654321',
-            'pickup_at' => '2026-12-01T12:00',
+            'pickup_date' => '2026-12-01',
+            'pickup_time' => '12:00',
             'items' => $items,
             ...$overrides,
         ];
@@ -140,7 +142,7 @@ class TakeawayTest extends TestCase
 
     public function test_pickup_must_be_within_pickup_hours(): void
     {
-        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_at' => '2026-12-01T22:30']))
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_time' => '22:30']))
             ->assertSessionHasErrors('pickup_at');
     }
 
@@ -334,6 +336,103 @@ class TakeawayTest extends TestCase
         $this->delete("$this->base/discounts/{$other->id}")->assertNotFound();
     }
 
+    public function test_pickup_date_shows_weekday_without_year_and_defaults_to_today(): void
+    {
+        $this->get("$this->base/create")
+            ->assertSee('<option value="2026-12-01" selected>Hôm nay, Thứ ba 01/12</option>', false)
+            ->assertSee('Ngày mai, Thứ tư 02/12')
+            ->assertSee('<option value="10:00" selected>', false)
+            ->assertDontSee('2026</option>', false);
+    }
+
+    public function test_pickup_time_defaults_to_the_first_slot_after_preparing(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 12:05'));
+
+        $this->get("$this->base/create")->assertSee('<option value="12:45" selected>', false);
+    }
+
+    public function test_after_the_last_slot_the_default_moves_to_tomorrow(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 21:30'));
+
+        $this->get("$this->base/create")
+            ->assertSee('<option value="2026-12-02" selected>', false)
+            ->assertSee('<option value="10:00" selected>', false);
+    }
+
+    public function test_pickup_in_the_past_is_refused(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 15:00'));
+
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_time' => '12:00']))
+            ->assertSessionHasErrors('pickup_at');
+    }
+
+    private function asRole(UserRole $role): User
+    {
+        return User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => $role]);
+    }
+
+    public function test_direct_discount_defaults_to_owner_and_manager(): void
+    {
+        $this->assertTrue($this->owner->can('takeaway.direct-discount'));
+        $this->assertTrue($this->asRole(UserRole::Manager)->can('takeaway.direct-discount'));
+        $this->assertFalse($this->asRole(UserRole::Staff)->can('takeaway.direct-discount'));
+    }
+
+    public function test_user_without_the_permission_can_use_codes_but_not_direct_discounts(): void
+    {
+        $this->code('GIAM10', DiscountType::Percent, 10);
+        $staff = $this->asRole(UserRole::Staff);
+        $on = ['discount_enabled' => 1];
+
+        $this->actingAs($staff)->get("$this->base/create")
+            ->assertSee('name="discount_code"', false)
+            ->assertDontSee('name="discount_percent"', false)
+            ->assertDontSee('name="discount_thousands"', false);
+
+        $this->post($this->base, $this->form([$this->pho->id => 1], [...$on, 'discount_mode' => 'percent', 'discount_percent' => 50]))->assertForbidden();
+        $this->post($this->base, $this->form([$this->pho->id => 1], [...$on, 'discount_mode' => 'amount', 'discount_thousands' => 50]))->assertForbidden();
+
+        $this->post($this->base, $this->form([$this->pho->id => 2], [...$on, 'discount_mode' => 'code', 'discount_code' => 'GIAM10']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(126000, TakeawayOrder::forRestaurant($this->restaurant)->sole()->total);
+    }
+
+    public function test_owner_can_grant_and_remove_the_permission(): void
+    {
+        $settings = ['pickup_opens' => '10:00', 'pickup_closes' => '21:00'];
+        $staff = $this->asRole(UserRole::Staff);
+        $manager = $this->asRole(UserRole::Manager);
+
+        $this->put("$this->base/settings", [...$settings, 'direct_discount_roles' => ['staff', 'owner', 'khac']])->assertSessionHasNoErrors();
+        $modules = app(ModuleManager::class);
+
+        $this->assertSame(['staff'], $modules->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
+        $this->assertTrue($staff->can('takeaway.direct-discount'));
+        $this->assertFalse($manager->can('takeaway.direct-discount'));
+        $this->assertTrue($this->owner->can('takeaway.direct-discount'));
+
+        $this->put("$this->base/settings", $settings)->assertSessionHasNoErrors();
+
+        $this->assertSame([], $modules->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
+    }
+
+    public function test_manager_cannot_change_the_permission(): void
+    {
+        $manager = $this->asRole(UserRole::Manager);
+
+        $this->actingAs($manager)->get("$this->base/settings")->assertDontSee('direct_discount_roles', false);
+
+        $this->put("$this->base/settings", [
+            'pickup_opens' => '10:00', 'pickup_closes' => '21:00', 'direct_discount_roles' => ['staff'],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(['manager'], app(ModuleManager::class)->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
+    }
+
     public function test_day_list(): void
     {
         $this->order();
@@ -349,7 +448,7 @@ class TakeawayTest extends TestCase
         $this->put("$this->base/settings", ['pickup_opens' => '11:00', 'pickup_closes' => '20:00'])
             ->assertSessionHasNoErrors();
 
-        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_at' => '2026-12-01T10:30']))
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['pickup_time' => '10:30']))
             ->assertSessionHasErrors('pickup_at');
 
         $this->get("$this->base/settings")->assertDontSee('name="accepting_orders" value="1" checked', false);

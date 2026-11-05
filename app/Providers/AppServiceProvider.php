@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use App\Modules\ModuleManager;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -22,6 +25,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Giảm theo % hoặc số tiền trên đơn. Nhập mã không cần quyền này.
+        Gate::define('takeaway.direct-discount', fn (User $user): bool => $user->role === UserRole::Owner
+            || in_array(
+                $user->role?->value,
+                app(ModuleManager::class)->settings($user->restaurant, 'takeaway')['direct_discount_roles'],
+                true,
+            ));
+
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
             Str::lower((string) $request->input('email')).'|'.$request->ip(),
         ));

@@ -631,10 +631,13 @@
         var codeMessage = orderForm.querySelector('[data-code-message]');
         var appliedCode = null;
 
+        // Không có quyền giảm trực tiếp thì chỉ có một input ẩn mang giá trị code.
         var currentMode = function () {
-            return modeInputs.filter(function (input) {
-                return input.checked;
-            })[0].value;
+            var checked = modeInputs.filter(function (input) {
+                return input.checked || input.type === 'hidden';
+            })[0];
+
+            return checked.value;
         };
 
         // Cùng cách tính với DiscountType::amountOff ở server.
@@ -643,9 +646,9 @@
             var off = 0;
 
             if (mode === 'percent') {
-                off = Math.round(subtotal * Math.min(100, Number(percentInput.value) || 0) / 100);
+                off = percentInput ? Math.round(subtotal * Math.min(100, Number(percentInput.value) || 0) / 100) : 0;
             } else if (mode === 'amount') {
-                off = (Number(amountInput.value) || 0) * 1000;
+                off = amountInput ? (Number(amountInput.value) || 0) * 1000 : 0;
             } else if (mode === 'code' && appliedCode) {
                 off = appliedCode.type === 'percent' ? Math.round(subtotal * appliedCode.value / 100) : appliedCode.value;
             }
@@ -708,8 +711,11 @@
                 }
             });
         });
-        percentInput.addEventListener('input', renderOrder);
-        amountInput.addEventListener('input', renderOrder);
+        [percentInput, amountInput].forEach(function (input) {
+            if (input) {
+                input.addEventListener('input', renderOrder);
+            }
+        });
         orderForm.querySelector('[data-code-apply]').addEventListener('click', checkCode);
         codeInput.addEventListener('input', function () {
             appliedCode = null;
@@ -796,6 +802,36 @@
             pickSearch.value = '';
             filterPicker();
         });
+
+        // Hôm nay thì không chọn được giờ đã qua.
+        var pickup = orderForm.querySelector('[data-pickup]');
+        var pickupDate = pickup.querySelector('[name=pickup_date]');
+        var pickupTime = pickup.querySelector('[name=pickup_time]');
+        var syncPickupTimes = function () {
+            var isToday = pickupDate.value === pickup.dataset.today;
+
+            Array.prototype.forEach.call(pickupTime.options, function (option) {
+                option.disabled = isToday && option.value < pickup.dataset.now;
+            });
+
+            if (pickupTime.selectedOptions[0].disabled) {
+                var firstOpen = Array.prototype.filter.call(pickupTime.options, function (option) {
+                    return !option.disabled;
+                })[0];
+
+                if (firstOpen) {
+                    pickupTime.value = firstOpen.value;
+                }
+            }
+        };
+
+        var hasTimeLeftToday = Array.prototype.some.call(pickupTime.options, function (option) {
+            return option.value >= pickup.dataset.now;
+        });
+
+        pickupDate.querySelector('option[value="' + pickup.dataset.today + '"]').disabled = !hasTimeLeftToday;
+        pickupDate.addEventListener('change', syncPickupTimes);
+        syncPickupTimes();
 
         syncDiscountMode();
 
