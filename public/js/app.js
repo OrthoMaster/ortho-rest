@@ -1457,14 +1457,19 @@
     });
 
     // Form đặt bàn: đổi ngày, giờ, số khách thì hỏi chỗ còn, rồi mới hiện khu vực và thông tin khách.
+    // Ngày nghỉ hoặc giờ ngoài ca mở cửa thì không cho đặt; hết chỗ vẫn cho, nhưng hỏi lại khi lưu.
     document.querySelectorAll('form[data-availability]').forEach(function (form) {
         var status = form.querySelector('[data-availability-status]');
         var text = form.querySelector('[data-availability-text]');
-        var warning = form.querySelector('[data-availability-warning]');
+        var hours = form.querySelector('[data-availability-hours]');
         var steps = form.querySelectorAll('[data-after-check]');
+        var overbook = form.querySelector('[data-overbook]');
+        var dialog = form.querySelector('[data-overbook-dialog]');
         var fields = ['reserved_date', 'reserved_time', 'party_size'];
         var timer = null;
         var request = 0;
+        var state = null;
+        var areaFits = {};
 
         var showSteps = function (show) {
             steps.forEach(function (step) {
@@ -1472,28 +1477,44 @@
             });
         };
 
+        var selectedArea = function () {
+            var checked = form.querySelector('input[name=area_id]:checked');
+
+            return checked ? checked.value : '';
+        };
+
+        // Lý do hỏi lại: cả quán hết chỗ, hoặc khu vực đã chọn không đủ chỗ.
+        var overReason = function () {
+            if (state && state.state === 'over') {
+                return state.message;
+            }
+
+            var area = selectedArea();
+
+            return area !== '' && areaFits[area] === false ? form.dataset.areaOver : '';
+        };
+
         var apply = function (data) {
-            status.classList.toggle('is-ok', data.fits);
-            status.classList.toggle('is-full', !data.fits);
+            state = data;
+            areaFits = {};
+            status.classList.toggle('is-ok', data.state === 'ok');
+            status.classList.toggle('is-full', data.state !== 'ok');
             text.textContent = data.message;
-            warning.textContent = data.warning || '';
-            warning.hidden = !data.warning;
+            hours.textContent = data.hours || '';
+            hours.hidden = !data.hours;
 
             data.areas.forEach(function (area) {
                 var choice = form.querySelector('[data-area-choice="' + area.id + '"]');
 
-                if (!choice) {
-                    return;
+                areaFits[area.id] = area.fits;
+
+                if (choice) {
+                    choice.querySelector('[data-area-left]').textContent = area.label;
+                    choice.classList.toggle('is-full', !area.fits);
                 }
-
-                var input = choice.querySelector('input');
-
-                choice.querySelector('[data-area-left]').textContent = area.label;
-                choice.classList.toggle('is-full', !area.fits);
-                input.disabled = !area.fits && !input.checked;
             });
 
-            showSteps(data.fits);
+            showSteps(data.state !== 'closed');
         };
 
         var check = function () {
@@ -1509,10 +1530,11 @@
 
             var current = ++request;
 
+            state = null;
             status.hidden = false;
             status.classList.remove('is-ok', 'is-full');
             text.textContent = form.dataset.checking;
-            warning.hidden = true;
+            hours.hidden = true;
 
             fetch(form.dataset.availability + '?' + params.toString(), { headers: { Accept: 'application/json' } })
                 .then(function (response) {
@@ -1548,11 +1570,33 @@
             }
         });
 
+        form.addEventListener('submit', function (event) {
+            var reason = overReason();
+
+            if (overbook.value === '1' || reason === '') {
+                return;
+            }
+
+            event.preventDefault();
+            dialog.querySelector('[data-overbook-message]').textContent = reason;
+            dialog.showModal();
+        });
+
+        dialog.querySelector('[data-overbook-confirm]').addEventListener('click', function () {
+            overbook.value = '1';
+            dialog.close();
+            form.requestSubmit();
+        });
+
         // Có lỗi từ lần lưu trước thì giữ mọi phần đang hiện, còn lại chờ kiểm tra xong.
         if (!form.querySelector('.error')) {
             showSteps(false);
         }
 
         check();
+    });
+
+    document.querySelectorAll('dialog[data-auto-open]').forEach(function (dialog) {
+        dialog.showModal();
     });
 })();

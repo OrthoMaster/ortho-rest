@@ -16,10 +16,11 @@
         {{-- Từng bước: ngày, giờ, số khách → kiểm tra chỗ còn → khu vực (không bắt buộc) → thông tin khách. --}}
         <form method="post" class="stack reservation-form" data-guard
               data-availability="{{ route('tenant.admin.reservation.availability') }}" @if ($editing) data-ignore="{{ $reservation->id }}" @endif
-              data-checking="{{ __('reservation.checking') }}" data-check-failed="{{ __('reservation.check_failed') }}"
+              data-checking="{{ __('reservation.checking') }}" data-check-failed="{{ __('reservation.check_failed') }}" data-area-over="{{ __('reservation.overbook_area') }}"
               action="{{ $editing ? route('tenant.admin.reservation.update', $reservation) : route('tenant.admin.reservation.store') }}">
             @csrf
             @if ($editing) @method('put') @endif
+            <input type="hidden" name="overbook" value="0" data-overbook>
 
             <div class="reservation-grid">
                 <div class="stack">
@@ -36,7 +37,7 @@
 
                         <div class="availability" data-availability-status role="status" aria-live="polite" hidden>
                             <span data-availability-text></span>
-                            <small data-availability-warning hidden></small>
+                            <small data-availability-hours hidden></small>
                         </div>
                         @error('reserved_at')<small class="error">{{ $message }}</small>@enderror
                     </section>
@@ -88,6 +89,19 @@
             <div data-after-check>
                 <button class="btn" type="submit">{{ __('reservation.save') }}</button>
             </div>
+
+            {{-- Hết chỗ vẫn nhận được, nhưng hỏi lại trước khi lưu. --}}
+            <dialog class="confirm-dialog" data-overbook-dialog aria-labelledby="overbook-title">
+                <div class="stack">
+                    <h2 id="overbook-title">{{ __('reservation.overbook_title') }}</h2>
+                    <p data-overbook-message></p>
+                    <p>{{ __('reservation.overbook_question') }}</p>
+                    <div class="dialog-foot">
+                        <button class="btn" type="button" data-overbook-confirm>{{ __('reservation.overbook_confirm') }}</button>
+                        <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.close') }}</button>
+                    </div>
+                </div>
+            </dialog>
         </form>
     @endif
 @endsection

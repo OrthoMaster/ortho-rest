@@ -56,4 +56,6 @@
         @endforeach
         @include('partials.pagination', ['paginator' => $reservations])
     @endif
+
+    @include('modules.reservation.overbook-prompt')
 @endsection

@@ -53,4 +53,6 @@
             </section>
         @endforeach
     @endif
+
+    @include('modules.reservation.overbook-prompt')
 @endsection

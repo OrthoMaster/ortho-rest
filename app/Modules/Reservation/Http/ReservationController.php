@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -175,15 +176,27 @@ class ReservationController extends Controller
         $ignore = filled($data['ignore'] ?? null) ? Reservation::find($data['ignore']) : null;
         $start = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);
         $party = (int) $data['party_size'];
+        $hours = tenant()->hoursOn($start);
+        $hoursText = $hours['periods'] !== [] ? __('reservation.open_hours', ['hours' => ReservationBooking::hoursText($hours['periods'])]) : null;
+
+        // Ngày nghỉ hoặc giờ ngoài ca mở cửa: không nhận, chưa cần tính chỗ.
+        if ($hours['closed'] !== null || ! tenant()->opensAt($start)) {
+            return response()->json([
+                'state' => 'closed',
+                'message' => $hours['closed'] ?? __('reservation.time_closed', ['hours' => ReservationBooking::hoursText($hours['periods'])]),
+                'hours' => null,
+                'areas' => [],
+            ]);
+        }
+
         $result = $this->booking->availability($start, $ignore);
         $fits = $result['left'] >= $party;
+        $window = ['from' => $start->format('H:i'), 'to' => $result['end']->format('H:i'), 'minutes' => $result['turn'], 'left' => $result['left'], 'total' => $result['total'], 'party' => $party];
 
         return response()->json([
-            'fits' => $fits,
-            'message' => $fits
-                ? __('reservation.available', ['left' => $result['left'], 'total' => $result['total']])
-                : __('reservation.full', ['left' => $result['left']]),
-            'warning' => $result['closed'] ? __('reservation.outside_hours') : null,
+            'state' => $fits ? 'ok' : 'over',
+            'message' => __($fits ? 'reservation.available' : 'reservation.over', $window),
+            'hours' => $hoursText,
             'areas' => array_map(fn ($area) => $area + [
                 'fits' => $area['left'] >= $party,
                 'label' => __('reservation.seats_left', ['count' => $area['left']]),
@@ -238,7 +251,20 @@ class ReservationController extends Controller
         // Đặt bàn đang chờ: chỉ người quản lý đặt bàn được nhận, từ chối hay huỷ.
         abort_if($reservation->status === ReservationStatus::Pending && ! $request->user()->can('reservation.manage'), 403);
 
-        $this->booking->changeStatus($reservation, ReservationStatus::from($status), $request->user());
+        try {
+            $this->booking->changeStatus($reservation, ReservationStatus::from($status), $request->user(), $request->boolean('overbook'));
+        } catch (ValidationException $exception) {
+            // Nhận đặt online lúc hết chỗ: hỏi lại có chắc muốn nhận quá chỗ không.
+            if (! isset($exception->errors()['reserved_at'])) {
+                throw $exception;
+            }
+
+            return back()->with('overbook_prompt', [
+                'url' => route('tenant.admin.reservation.status', $reservation),
+                'status' => $status,
+                'message' => $exception->errors()['reserved_at'][0],
+            ]);
+        }
 
         return back()->with('status', __('reservation.status_changed', ['status' => ReservationStatus::from($status)->label()]));
     }
@@ -255,6 +281,7 @@ class ReservationController extends Controller
             'reserved_time' => ['required', 'date_format:H:i'],
             'party_size' => ['required', 'integer', 'min:1', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'overbook' => ['nullable', 'boolean'],
         ]);
 
         $data['reserved_at'] = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);

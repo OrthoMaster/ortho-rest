@@ -337,12 +337,13 @@ class ReservationTest extends TestCase
         $this->openingShifts();
         $this->book(['customer_name' => 'Khách trưa', 'reserved_at' => '2026-12-01T12:00', 'party_size' => 3]);
         $evening = $this->book(['customer_name' => 'Khách tối', 'customer_phone' => '0903333333', 'party_size' => 2]);
-        $this->book(['customer_name' => 'Khách khuya', 'customer_phone' => '0904444444', 'reserved_at' => '2026-12-01T22:30', 'party_size' => 1]);
+        // Đặt bàn ngoài ca (đã có từ trước khi đổi giờ mở cửa) vẫn hiện riêng.
+        $this->booked('2026-12-01 22:30', 'Khách khuya');
         $this->post("$this->base/{$evening->id}/status", ['status' => 'seated']);
 
         $this->get($this->base)
             ->assertSeeInOrder(['Trưa', 'Khách trưa', 'Tối', 'Khách tối', __('reservation.outside_shifts'), 'Khách khuya'])
-            ->assertSee(__('reservation.today_summary', ['count' => 3, 'seated' => 1, 'guests' => 6]))
+            ->assertSee(__('reservation.today_summary', ['count' => 3, 'seated' => 1, 'guests' => 7]))
             ->assertDontSee('>'.ReservationStatus::Confirmed->label().'<', false)
             ->assertSee('class="btn btn-sm arrive-btn"', false)
             ->assertSee('data-search-item="Khách trưa', false);
@@ -461,8 +462,10 @@ class ReservationTest extends TestCase
         $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-02T12:10'], ReservationSource::Online)->status);
         $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-31T12:00', 'party_size' => 2], ReservationSource::Online)->status);
 
-        // Nhân viên nhập tay thì không bị quy định online chặn.
-        $this->assertSame(ReservationStatus::Confirmed, $this->book(['reserved_at' => '2026-12-05T12:00', 'party_size' => 2])->status);
+        // Nhân viên nhập tay không bị quy định online chặn, nhưng vẫn theo giờ mở cửa.
+        $this->assertSame(ReservationStatus::Confirmed, $this->book(['reserved_at' => '2026-12-01T19:00', 'party_size' => 2])->status);
+        $this->expectExceptionMessage('Quán đóng cửa ngày này: Nghỉ');
+        $this->book(['reserved_at' => '2026-12-05T12:00', 'party_size' => 2]);
     }
 
     public function test_same_day_online_booking_when_notice_is_zero(): void
@@ -662,18 +665,22 @@ class ReservationTest extends TestCase
         // 16 chỗ, đã giữ 14: còn 2 cho cả quán, dù Ngoài sân còn 4.
         $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:30&party_size=3")
             ->assertOk()
-            ->assertJsonPath('fits', false)
+            ->assertJsonPath('state', 'over')
             ->assertJsonPath('areas.1.left', 2)
             ->assertJsonPath('areas.1.fits', false);
 
         $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 3, 'reserved_at' => '2026-12-01T19:30']))
             ->assertSessionHasErrors('reserved_at');
-        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 2, 'reserved_at' => '2026-12-01T19:30']))
+        // Đã xác nhận nhận quá chỗ thì vẫn lưu.
+        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 3, 'reserved_at' => '2026-12-01T19:30', 'overbook' => '1', 'customer_phone' => '0907777777']))
             ->assertSessionHasNoErrors();
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:30&party_size=1")
+            ->assertJsonPath('state', 'over')
+            ->assertJsonPath('areas.1.left', 0);
 
-        // Ngoài giờ lượt bàn thì chỗ được trả lại.
+        // Ngoài giờ lượt bàn thì chỗ được trả lại (đặt 19:30 + 90 phút).
         $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=21:00&party_size=3")
-            ->assertJsonPath('fits', true)
+            ->assertJsonPath('state', 'ok')
             ->assertJsonPath('areas.0.left', 10)
             ->assertJsonPath('areas.1.left', 6);
     }
@@ -684,21 +691,69 @@ class ReservationTest extends TestCase
         $this->assertSame(ReservationStatus::Pending, $pending->status);
 
         $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10")
-            ->assertJsonPath('fits', true);
+            ->assertJsonPath('state', 'ok');
 
         $this->book(['party_size' => 5]);
 
-        // Nhận lúc đã hết chỗ thì bị chặn.
-        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed'])->assertSessionHasErrors('reserved_at');
+        // Nhận lúc đã hết chỗ thì hỏi lại, đồng ý mới nhận.
+        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed'])->assertSessionHas('overbook_prompt');
         $this->actingInTenant($this->restaurant);
         $this->assertSame(ReservationStatus::Pending, $pending->fresh()->status);
+        $this->get("$this->base/manage")->assertSee('name="overbook" value="1"', false)->assertSee(__('reservation.overbook_question'));
+
+        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed', 'overbook' => '1'])->assertSessionHasNoErrors();
+        $this->assertSame(ReservationStatus::Confirmed, $pending->fresh()->status);
     }
 
     public function test_availability_ignores_the_booking_being_edited(): void
     {
         $booking = $this->book(['party_size' => 10]);
 
-        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10")->assertJsonPath('fits', false);
-        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10&ignore={$booking->id}")->assertJsonPath('fits', true);
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10")->assertJsonPath('state', 'over');
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10&ignore={$booking->id}")->assertJsonPath('state', 'ok');
+    }
+
+    public function test_seats_follow_the_current_turn_length(): void
+    {
+        $this->book(['reserved_at' => '2026-12-01T19:00', 'party_size' => 8]);
+
+        // Lượt bàn 90 phút: khách 19:00 vẫn ngồi lúc 20:00.
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=20:00&party_size=3")->assertJsonPath('state', 'over');
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=20:30&party_size=3")->assertJsonPath('state', 'ok');
+
+        // Đổi thời lượng thì đặt bàn đã có cũng tính lại.
+        $this->settings(['turn_minutes' => 60]);
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=20:00&party_size=3")->assertJsonPath('state', 'ok');
+        $this->settings(['turn_minutes' => 120]);
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=20:30&party_size=3")->assertJsonPath('state', 'over');
+    }
+
+    public function test_staff_bookings_follow_opening_hours(): void
+    {
+        $this->openingShifts();
+        Shift::forRestaurant($this->restaurant)->where('weekday', 1)->delete();
+        SpecialDay::create(['restaurant_id' => $this->restaurant->id, 'date' => '2026-12-03', 'type' => SpecialDayType::Closed, 'periods' => [], 'reason' => 'Sửa bếp']);
+
+        $this->getJson("$this->base/availability?reserved_date=2026-12-03&reserved_time=19:00&party_size=2")
+            ->assertJsonPath('state', 'closed')->assertJsonPath('message', 'Quán đóng cửa ngày này: Sửa bếp');
+        // 07/12/2026 là thứ hai, quán nghỉ thứ hai.
+        $this->getJson("$this->base/availability?reserved_date=2026-12-07&reserved_time=19:00&party_size=2")
+            ->assertJsonPath('state', 'closed')->assertJsonPath('message', 'Quán không mở cửa vào Thứ hai.');
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=15:00&party_size=2")
+            ->assertJsonPath('state', 'closed')->assertJsonPath('message', __('reservation.time_closed', ['hours' => '10:00–14:00, 17:00–22:00']));
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=21:30&party_size=2")
+            ->assertJsonPath('state', 'ok')->assertJsonPath('hours', 'Giờ mở cửa ngày này: 10:00–14:00, 17:00–22:00');
+
+        $this->post($this->base, $this->form(['reserved_at' => '2026-12-01T15:00']))->assertSessionHasErrors('reserved_at');
+        $this->post($this->base, $this->form(['reserved_at' => '2026-12-07T19:00']))->assertSessionHasErrors('reserved_at');
+        $this->post($this->base, $this->form(['reserved_at' => '2026-12-01T21:30']))->assertSessionHasNoErrors();
+    }
+
+    public function test_form_has_overbook_confirmation(): void
+    {
+        $this->get("$this->base/create")
+            ->assertSee('data-overbook-dialog', false)
+            ->assertSee('name="overbook" value="0"', false)
+            ->assertSee(__('reservation.overbook_question'));
     }
 }

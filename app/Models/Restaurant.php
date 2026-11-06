@@ -114,6 +114,61 @@ class Restaurant extends Model
             ->all();
     }
 
+    /**
+     * Giờ mở cửa của một ngày cho người nhập đặt bàn: các ca mở, và nếu đóng cả
+     * ngày thì vì sao. Quán chưa khai ca mở cửa nào thì không giới hạn giờ.
+     *
+     * @return array{restricted: bool, periods: list<array{name: string, start: string, end: string}>, closed: ?string}
+     */
+    public function hoursOn(CarbonInterface $date): array
+    {
+        $special = SpecialDay::forRestaurant($this)->whereDate('date', $date->toDateString())->first();
+        $restricted = $special?->type === SpecialDayType::Open
+            || Shift::forRestaurant($this)->where('type', ShiftType::Opening)->exists();
+
+        if (! $restricted) {
+            return ['restricted' => false, 'periods' => [], 'closed' => null];
+        }
+
+        $periods = $this->periodsOn($date);
+        $closed = null;
+
+        if ($periods === []) {
+            $closed = match (true) {
+                $special?->type === SpecialDayType::Closed && filled($special->reason) => __('reservation.day_closed_reason', ['reason' => $special->reason]),
+                $special?->type === SpecialDayType::Closed => __('reservation.day_closed'),
+                default => __('reservation.weekday_closed', ['day' => __('ui.calendar.weekdays')[$date->dayOfWeekIso - 1]]),
+            };
+        }
+
+        return ['restricted' => true, 'periods' => $periods, 'closed' => $closed];
+    }
+
+    /** Giờ bắt đầu có nằm trong một ca mở cửa không (ca hôm trước kéo qua nửa đêm cũng tính). */
+    public function opensAt(CarbonInterface $start): bool
+    {
+        $start = $start->toImmutable();
+        $today = $this->hoursOn($start);
+
+        if (! $today['restricted']) {
+            return true;
+        }
+
+        foreach ([[$start->startOfDay(), $today['periods']], [$start->subDay()->startOfDay(), $this->periodsOn($start->subDay())]] as [$day, $periods]) {
+            foreach ($periods as $period) {
+                $opens = $day->setTimeFromTimeString($period['start']);
+                $closes = $day->setTimeFromTimeString($period['end']);
+                $closes = $closes->lte($opens) ? $closes->addDay() : $closes;
+
+                if ($start->gte($opens) && $start->lt($closes)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function isLocked(): bool
     {
         return $this->status === RestaurantStatus::Locked;

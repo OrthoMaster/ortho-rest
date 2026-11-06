@@ -22,7 +22,9 @@ use Illuminate\Validation\ValidationException;
  * sau thấy chỗ người trước đã giữ.
  *
  * Chỗ còn tính trên tổng chỗ ngồi của quán, chỉ đếm đặt bàn đã được nhận
- * (đã xác nhận, đã đến). Chọn khu vực thì khu vực đó cũng phải còn đủ chỗ.
+ * (đã xác nhận, đã đến), mỗi lượt giữ chỗ theo thời lượng lượt bàn đang cài.
+ * Chọn khu vực thì khu vực đó cũng phải còn đủ chỗ. Nhân viên được nhận quá
+ * chỗ khi đã xác nhận ($data['overbook']), khách online thì không.
  */
 class ReservationBooking
 {
@@ -44,9 +46,13 @@ class ReservationBooking
 
             if ($online) {
                 $this->assertOnlineAllowed($start, $end, (int) $data['party_size']);
+            } else {
+                $this->assertOpen($start);
             }
 
-            $this->assertSeats($area, $start, $end, (int) $data['party_size']);
+            if ($online || empty($data['overbook'])) {
+                $this->assertSeats($area, $start, $end, (int) $data['party_size']);
+            }
 
             $status = $online && $this->settings()['auto_confirm'] ? ReservationStatus::Confirmed : $source->initialStatus();
 
@@ -88,7 +94,13 @@ class ReservationBooking
             $start = CarbonImmutable::parse($data['reserved_at']);
             $end = $this->endOf($start);
 
-            $this->assertSeats($area, $start, $end, (int) $data['party_size'], $reservation);
+            if (! $start->equalTo($reservation->reserved_at)) {
+                $this->assertOpen($start);
+            }
+
+            if (empty($data['overbook'])) {
+                $this->assertSeats($area, $start, $end, (int) $data['party_size'], $reservation);
+            }
 
             $customer = $this->sameCustomer($reservation->customer, $data)
                 ? tap($reservation->customer)->update(array_filter(['email' => $data['customer_email'] ?? null]))
@@ -128,9 +140,9 @@ class ReservationBooking
         });
     }
 
-    public function changeStatus(Reservation $reservation, ReservationStatus $status, ?User $user = null): Reservation
+    public function changeStatus(Reservation $reservation, ReservationStatus $status, ?User $user = null, bool $overbook = false): Reservation
     {
-        $reservation = DB::transaction(function () use ($reservation, $status, $user): Reservation {
+        $reservation = DB::transaction(function () use ($reservation, $status, $user, $overbook): Reservation {
             $this->lockRestaurant();
             $reservation = Reservation::whereKey($reservation->getKey())->lockForUpdate()->with('area')->firstOrFail();
             $from = $reservation->status;
@@ -140,7 +152,7 @@ class ReservationBooking
             }
 
             // Đặt online đang chờ chưa giữ chỗ: lúc nhận mới kiểm tra còn chỗ.
-            if ($from === ReservationStatus::Pending && in_array($status, ReservationStatus::holding(), true)) {
+            if (! $overbook && $from === ReservationStatus::Pending && in_array($status, ReservationStatus::holding(), true)) {
                 $this->assertSeats($reservation->area, $reservation->reserved_at->toImmutable(), $reservation->ends_at->toImmutable(), $reservation->party_size, $reservation);
             }
 
@@ -159,7 +171,7 @@ class ReservationBooking
      * Chỗ còn vào giờ này: tổng của quán và từng khu vực đang mở. Chỗ của khu
      * vực không vượt chỗ còn của cả quán.
      *
-     * @return array{total: int, left: int, closed: bool, areas: list<array{id: int, name: string, left: int}>}
+     * @return array{total: int, left: int, end: CarbonImmutable, turn: int, areas: list<array{id: int, name: string, left: int}>}
      */
     public function availability(CarbonImmutable $start, ?Reservation $ignore = null): array
     {
@@ -174,7 +186,32 @@ class ReservationBooking
                 'left' => min($left, max(0, $area->capacity - $this->peak(Reservation::where('area_id', $area->getKey()), $start, $end, $ignore))),
             ])->all();
 
-        return ['total' => $total, 'left' => $left, 'closed' => ! tenant()->isOpenBetween($start, $end), 'areas' => $areas];
+        return ['total' => $total, 'left' => $left, 'end' => $end, 'turn' => $this->turn(), 'areas' => $areas];
+    }
+
+    /** Nhân viên nhập tay: giờ đến phải nằm trong giờ mở cửa của quán. */
+    private function assertOpen(CarbonImmutable $start): void
+    {
+        $hours = tenant()->hoursOn($start);
+
+        if ($hours['closed'] !== null) {
+            throw ValidationException::withMessages(['reserved_at' => $hours['closed']]);
+        }
+
+        if (! tenant()->opensAt($start)) {
+            throw ValidationException::withMessages(['reserved_at' => __('reservation.time_closed', ['hours' => self::hoursText($hours['periods'])])]);
+        }
+    }
+
+    /** @param list<array{start: string, end: string}> $periods */
+    public static function hoursText(array $periods): string
+    {
+        return collect($periods)->map(fn (array $period) => substr($period['start'], 0, 5).'–'.substr($period['end'], 0, 5))->implode(', ');
+    }
+
+    private function turn(): int
+    {
+        return (int) $this->settings()['turn_minutes'];
     }
 
     private function lockRestaurant(): void
@@ -201,7 +238,7 @@ class ReservationBooking
 
     private function endOf(CarbonImmutable $start): CarbonImmutable
     {
-        return $start->addMinutes((int) $this->settings()['turn_minutes']);
+        return $start->addMinutes($this->turn());
     }
 
     private function assertSeats(?Area $area, CarbonImmutable $start, CarbonImmutable $end, int $party, ?Reservation $ignore = null): void
@@ -227,20 +264,25 @@ class ReservationBooking
         }
     }
 
-    /** Số khách cao nhất cùng lúc trong khoảng này: chỉ cần xét lúc mở đầu và lúc mỗi bàn khác vào. */
+    /**
+     * Số khách cao nhất cùng lúc trong khoảng này: chỉ cần xét lúc mở đầu và lúc
+     * mỗi bàn khác vào. Mỗi bàn giữ chỗ theo thời lượng lượt bàn đang cài, nên
+     * đổi thời lượng thì các đặt bàn đã có cũng tính lại theo.
+     */
     private function peak(Builder $query, CarbonImmutable $start, CarbonImmutable $end, ?Reservation $ignore = null, ?array $statuses = null): int
     {
+        $turn = $this->turn();
         $overlapping = $query
             ->whereIn('status', $statuses ?? ReservationStatus::holding())
             ->where('reserved_at', '<', $end)
-            ->where('ends_at', '>', $start)
+            ->where('reserved_at', '>', $start->subMinutes($turn))
             ->when($ignore, fn ($query) => $query->whereKeyNot($ignore->getKey()))
-            ->get(['reserved_at', 'ends_at', 'party_size']);
+            ->get(['reserved_at', 'party_size']);
 
         $moments = $overlapping->pluck('reserved_at')->filter(fn ($moment) => $moment > $start)->push($start);
 
         return (int) $moments->map(fn ($moment) => $overlapping
-            ->filter(fn ($other) => $other->reserved_at <= $moment && $other->ends_at > $moment)
+            ->filter(fn ($other) => $other->reserved_at <= $moment && $other->reserved_at->copy()->addMinutes($turn) > $moment)
             ->sum('party_size'))->max();
     }
 
