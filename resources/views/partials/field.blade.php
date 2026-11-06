@@ -1,6 +1,6 @@
 @php($id = 'f-'.$name)
 <div class="field">
-    <label for="{{ $id }}">{{ $label }}</label>
+    <label for="{{ $id }}">{{ $label }}@if ($required ?? true)@include('partials.required')@endif</label>
     <input id="{{ $id }}" name="{{ $name }}" type="{{ $type ?? 'text' }}"
            @unless (in_array($type ?? 'text', ['password', 'file'], true)) value="{{ old($name, $value ?? '') }}" @endunless
            @if ($accept ?? false) accept="{{ $accept }}" @endif

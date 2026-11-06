@@ -10,45 +10,37 @@
 
     @include('modules.reservation.subnav')
 
-    @php($keep = $upcoming ? [] : ['upcoming' => 0, 'from' => $from->toDateString(), 'to' => $to->toDateString()])
     @php($statusOptions = collect(\App\Modules\Reservation\ReservationStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all())
-    @php($areaOptions = $areas->pluck('name', 'id')->all())
-    @php($sourceOptions = collect(\App\Modules\Reservation\ReservationSource::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all())
     @php($pills = [])
+    @if ($from)
+        @php($pills[] = ['label' => $from->equalTo($to) ? $from->format('d/m/Y') : $from->format('d/m').' – '.$to->format('d/m/Y'), 'url' => request()->fullUrlWithQuery(['from' => null, 'to' => null, 'page' => null])])
+    @endif
     @if ($search !== '')
         @php($pills[] = ['label' => '“'.$search.'”', 'url' => request()->fullUrlWithQuery(['q' => null, 'page' => null])])
     @endif
-    @php($pills = [...$pills, ...filter_pills('status', $statusOptions, $statuses), ...filter_pills('area', $areaOptions, $areaIds), ...filter_pills('source', $sourceOptions, $sources)])
+    @php($pills = [...$pills, ...filter_pills('status', $statusOptions, $statuses)])
 
-    @component('partials.filter-bar', ['id' => 'reservation-manage', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().($keep ? '?'.http_build_query($keep) : '')])
+    @component('partials.filter-bar', ['id' => 'reservation-manage', 'pills' => $pills, 'clearUrl' => url()->current()])
         @slot('date')
-            @if ($upcoming)
-                <button class="picker-trigger all-days" type="button" data-filter-open>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>
-                    <span>{{ __('reservation.upcoming') }}</span>
-                </button>
-            @else
-                @include('partials.date-range-nav', ['from' => $from, 'to' => $to, 'max' => null, 'maxDays' => \App\Modules\Reservation\Http\ReservationController::MAX_RANGE_DAYS])
-            @endif
+            {{-- Gõ là lọc ngay trên trang; Enter thì tìm trong toàn bộ đặt bàn. --}}
+            <label class="today-search">
+                <span class="visually-hidden">{{ __('reservation.today_search') }}</span>
+                <input type="search" name="q" value="{{ $search }}" form="filter-panel-reservation-manage" data-search-input placeholder="{{ __('reservation.today_search') }}" autocomplete="off">
+            </label>
         @endslot
-        <input type="hidden" name="upcoming" value="0">
-        <label class="check"><input type="checkbox" name="upcoming" value="1" @checked($upcoming)> {{ __('reservation.upcoming_toggle') }}</label>
-        <label class="filter-search">
-            <span class="visually-hidden">{{ __('reservation.search') }}</span>
-            <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('reservation.search') }}" autocomplete="off">
-        </label>
+        @include('partials.date-range-picker', ['label' => __('reservation.date_filter'), 'showLabel' => true, 'from' => $from, 'to' => $to, 'max' => null,
+            'maxDays' => \App\Modules\Reservation\Http\ReservationController::MAX_RANGE_DAYS, 'placeholder' => __('reservation.upcoming')])
         @include('partials.filter-multi', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'options' => $statusOptions, 'values' => $statuses])
-        @include('partials.filter-multi', ['name' => 'area', 'label' => __('reservation.filter_area'), 'all' => __('reservation.all_areas'), 'options' => $areaOptions, 'values' => $areaIds])
-        @include('partials.filter-multi', ['name' => 'source', 'label' => __('reservation.source_label'), 'all' => __('reservation.all_sources'), 'options' => $sourceOptions, 'values' => $sources])
     @endcomponent
 
-    <p class="lead">{{ __('reservation.manage_summary', ['count' => $reservations->total()]) }}</p>
+    <p class="lead">{{ $upcoming ? __('reservation.manage_summary_upcoming', ['count' => $reservations->total()]) : __('reservation.manage_summary', ['count' => $reservations->total()]) }}</p>
+    <p class="empty" data-search-empty hidden>{{ __('reservation.today_search_empty') }}</p>
 
     @if ($reservations->isEmpty())
         <p class="empty">{{ __('reservation.empty') }}</p>
     @else
         @foreach ($reservations->getCollection()->groupBy(fn ($reservation) => $reservation->reserved_at->toDateString()) as $day => $rows)
-            <section class="day-group">
+            <section class="day-group" data-search-group="">
                 <h2>{{ day_label(\Carbon\CarbonImmutable::parse($day)) }}</h2>
                 @include('modules.reservation.rows', ['rows' => $rows])
             </section>

@@ -5,8 +5,9 @@
             <span class="booking-time">{{ $reservation->reserved_at->format('H:i') }}</span>
             <div class="booking-main">
                 <a href="{{ route('tenant.admin.reservation.show', $reservation) }}">{{ $reservation->customer->name }}</a>
-                <small>{{ __('reservation.party', ['count' => $reservation->party_size]) }}, {{ $reservation->area->name }}@if ($reservation->source === \App\Modules\Reservation\ReservationSource::Online), {{ $reservation->source->label() }}@endif</small>
-                <small><a class="booking-phone" href="tel:{{ $reservation->customer->phone }}">{{ $reservation->customer->phone }}</a></small>
+                <small>{{ __('reservation.party', ['count' => $reservation->party_size]) }} · {{ $reservation->area?->name }} · {{ $reservation->source->label() }}</small>
+                {{-- Số đầy đủ chỉ ở trang chi tiết, danh sách chỉ hiện 3 số cuối. --}}
+                <small class="booking-phone">{{ mask_phone($reservation->customer->phone) }}</small>
             </div>
             @php($arrive = ($today ?? false) && $reservation->status === \App\Modules\Reservation\ReservationStatus::Confirmed)
             {{-- Ở tab Hôm nay mọi dòng đều đã xác nhận, chỉ hiện nhãn khi khác. --}}

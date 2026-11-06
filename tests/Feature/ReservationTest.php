@@ -57,7 +57,7 @@ class ReservationTest extends TestCase
     /** @return array<string, mixed> */
     private function form(array $overrides = []): array
     {
-        return [
+        $data = [
             'customer_name' => 'Anh Minh',
             'customer_phone' => '0901234567',
             'area_id' => $this->area->id,
@@ -66,6 +66,10 @@ class ReservationTest extends TestCase
             'source' => 'phone',
             ...$overrides,
         ];
+        // Form chia ngày và giờ thành hai ô.
+        [$data['reserved_date'], $data['reserved_time']] = explode('T', str_replace(' ', 'T', (string) $data['reserved_at']));
+
+        return $data;
     }
 
     private function book(array $overrides = [], ReservationSource $source = ReservationSource::Phone): Reservation
@@ -246,16 +250,50 @@ class ReservationTest extends TestCase
         $this->get($manage)
             ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Khách hôm nay', 'Thứ năm 03/12', 'Khách chờ'])
             ->assertDontSee('Khách tuần trước')
-            ->assertSee('<span class="subnav-count">1</span>', false);
+            ->assertSee('<span class="subnav-count">1</span>', false)
+            ->assertSee(__('reservation.upcoming'))
+            ->assertDontSee('name="area[]"', false)
+            ->assertDontSee('name="source[]"', false);
 
-        $this->get("$manage?upcoming=0&from=2026-11-15&to=2026-11-30")->assertSee('Khách tuần trước')->assertDontSee('Khách hôm nay');
+        // Chọn ngày thì xem được cả quá khứ.
+        $this->get("$manage?from=2026-11-15&to=2026-11-30")->assertSee('Khách tuần trước')->assertDontSee('Khách hôm nay')->assertSee('15/11 – 30/11/2026');
         $this->get("$manage?status[]=pending")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
-        $this->get("$manage?source[]=online&source[]=walk_in")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
         $this->get("$manage?q=0903")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
         $this->get("$manage?q=h%C3%B4m")->assertSee('Khách hôm nay')->assertDontSee('Khách chờ');
 
         // Khoảng dài quá 92 ngày thì cắt bớt.
-        $this->get("$manage?upcoming=0&from=2026-01-01&to=2026-12-31")->assertSee('name="to" value="2026-04-02"', false);
+        $this->get("$manage?from=2026-01-01&to=2026-12-31")->assertSee('name="to" value="2026-04-02"', false);
+    }
+
+    public function test_lists_mask_phone_and_show_source_and_area(): void
+    {
+        $reservation = $this->book(['customer_phone' => '0901234567']);
+
+        foreach ([$this->base, "$this->base/manage"] as $page) {
+            $this->get($page)
+                ->assertSee('***567')
+                ->assertDontSee('>0901234567<', false)
+                ->assertSee(ReservationSource::Phone->label())
+                ->assertSee($this->area->name);
+        }
+
+        $this->get("$this->base/{$reservation->id}")->assertSee('0901234567');
+    }
+
+    public function test_form_splits_date_and_time_and_marks_required(): void
+    {
+        $this->get("$this->base/create")
+            ->assertSee('name="reserved_date"', false)
+            ->assertSee('name="reserved_time" value="09:00"', false)
+            ->assertSee('name="party_size"', false)
+            ->assertSee('class="req"', false)
+            ->assertDontSee('datetime-local', false);
+
+        $this->post($this->base, $this->form(['reserved_at' => '2026-12-02T18:30']))->assertSessionHasNoErrors();
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame('2026-12-02 18:30', Reservation::latest('id')->first()->reserved_at->format('Y-m-d H:i'));
+
+        $this->post($this->base, [...$this->form(), 'reserved_time' => '25:00'])->assertSessionHasErrors('reserved_time');
     }
 
     public function test_staff_sees_today_but_cannot_manage_or_accept(): void

@@ -993,7 +993,7 @@
         var todayIso = picker.dataset.today;
         var max = picker.dataset.max;
         var maxDays = Number(picker.dataset.maxDays);
-        var shown = fromIso(toInput.value);
+        var shown = toInput.value ? fromIso(toInput.value) : new Date();
         var start = null;
 
         var addDays = function (iso, count) {
@@ -1059,7 +1059,7 @@
 
         picker.querySelector('[data-date-trigger]').addEventListener('click', function () {
             start = null;
-            shown = fromIso(toInput.value);
+            shown = toInput.value ? fromIso(toInput.value) : new Date();
             renderMonth();
             dialog.showModal();
         });
@@ -1074,6 +1074,12 @@
             var step = event.target.closest('[data-month-step]');
             var day = event.target.closest('[data-date]');
             var shortcut = event.target.closest('[data-range-shortcut]');
+
+            if (event.target.closest('[data-range-clear]')) {
+                commit('', '');
+
+                return;
+            }
 
             if (step) {
                 shown = new Date(shown.getFullYear(), shown.getMonth() + Number(step.dataset.monthStep), 1);
@@ -1091,6 +1097,12 @@
         var render = function () {
             var from = fromInput.value;
             var to = toInput.value;
+
+            if (!from) {
+                text.textContent = picker.dataset.placeholder;
+
+                return;
+            }
 
             setDateText(text, label(from, to), from === to ? shortDay(picker, from, todayIso) : short(from) + ' – ' + short(to));
         };

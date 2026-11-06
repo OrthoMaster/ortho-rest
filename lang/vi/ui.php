@@ -23,6 +23,7 @@ return [
             'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật',
         ],
         'range' => 'Khoảng ngày',
+        'clear_range' => 'Bỏ chọn ngày',
         'range_start' => 'Chọn ngày bắt đầu',
         'range_end' => 'Chọn ngày kết thúc, tối đa :days ngày',
         'last_days' => ':days ngày',

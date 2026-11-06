@@ -90,6 +90,16 @@ if (! function_exists('filter_pills')) {
     }
 }
 
+if (! function_exists('mask_phone')) {
+    /** Che số điện thoại trong danh sách, chỉ để 3 số cuối: ***567. */
+    function mask_phone(?string $phone): string
+    {
+        $digits = preg_replace('/\D/', '', (string) $phone);
+
+        return $digits === '' ? '' : '***'.substr($digits, -3);
+    }
+}
+
 if (! function_exists('tenant_route')) {
     /**
      * Sinh link của nhà hàng, đúng kiểu URL: domain riêng nếu quán có domain đã

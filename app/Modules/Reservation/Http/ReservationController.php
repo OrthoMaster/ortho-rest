@@ -86,23 +86,18 @@ class ReservationController extends Controller
             : $time >= $period['start'] || $time < $period['end'];
     }
 
-    /** Toàn bộ đặt bàn: sắp tới (mặc định) hoặc một khoảng ngày, lọc và tìm khách. */
+    /** Toàn bộ đặt bàn. Không chọn ngày: từ hôm nay trở đi. Chọn ngày: khoảng đó, quá khứ cũng được. */
     public function manage(Request $request): View
     {
-        $areas = Area::orderBy('sort_order')->orderBy('id')->get();
         $statuses = filter_values('status', array_column(ReservationStatus::cases(), 'value'));
-        $areaIds = filter_values('area', $areas->pluck('id')->all());
-        $sources = filter_values('source', array_column(ReservationSource::cases(), 'value'));
         $search = trim((string) $request->query('q'));
-        $upcoming = ! $request->filled('from') && $request->query('upcoming') !== '0';
+        $upcoming = ! $request->filled('from');
         [$from, $to] = $upcoming ? [today()->toImmutable(), null] : $this->range($request);
 
         $reservations = Reservation::with(['customer', 'area'])
             ->when($upcoming, fn ($query) => $query->where('reserved_at', '>=', $from))
             ->unless($upcoming, fn ($query) => $query->whereBetween('reserved_at', [$from, $to->endOfDay()]))
             ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
-            ->when($areaIds, fn ($query) => $query->whereIn('area_id', $areaIds))
-            ->when($sources, fn ($query) => $query->whereIn('source', $sources))
             ->when($search !== '', fn ($query) => $query->whereHas('customer', function (Builder $query) use ($search): void {
                 $digits = preg_replace('/\D/', '', $search);
 
@@ -115,13 +110,10 @@ class ReservationController extends Controller
 
         return view('modules.reservation.manage', [
             'reservations' => $reservations,
-            'areas' => $areas,
             'statuses' => $statuses,
-            'areaIds' => $areaIds,
-            'sources' => $sources,
             'search' => $search,
             'upcoming' => $upcoming,
-            'from' => $from,
+            'from' => $upcoming ? null : $from,
             'to' => $to,
         ]);
     }
@@ -154,7 +146,7 @@ class ReservationController extends Controller
     public function create(): View
     {
         return view('modules.reservation.form', [
-            'reservation' => new Reservation(['reserved_at' => now()->addHour()->startOfHour(), 'party_size' => 2]),
+            'reservation' => new Reservation(['reserved_at' => now()->ceilMinutes(10), 'party_size' => 2]),
             'areas' => $this->activeAreas(),
         ]);
     }
@@ -228,12 +220,14 @@ class ReservationController extends Controller
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', Phone::RULE],
             'customer_email' => ['nullable', 'email', 'max:255'],
-            'area_id' => ['required', 'integer', Rule::exists('areas', 'id')->where('restaurant_id', tenant()->getKey())],
-            'reserved_at' => ['required', 'date'],
+            'area_id' => ['required', 'integer', Rule::exists('areas', 'id')->where('restaurant_id', tenant()->getKey())->where('is_active', true)],
+            'reserved_date' => ['required', 'date_format:Y-m-d'],
+            'reserved_time' => ['required', 'date_format:H:i'],
             'party_size' => ['required', 'integer', 'min:1', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $data['reserved_at'] = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);
         $data['customer_phone'] = Phone::normalize($data['customer_phone']);
         $data['area_id'] = (int) $data['area_id'];
 

@@ -1,7 +1,7 @@
 {{-- Giờ và phút là hai ô riêng, phút bước 10, đổi bằng $minuteStep. Truyền $opens, $closes, $outside, $past nếu cần cảnh báo ngoài giờ. --}}
 <div class="field" data-time-picker data-minute-step="{{ $minuteStep ?? 10 }}"
      @isset($opens) data-opens="{{ $opens }}" data-closes="{{ $closes }}" data-now="{{ now()->format('H:i') }}" data-outside="{{ $outside }}" data-past="{{ $past }}" @endisset>
-    <span class="field-label">{{ $label }}</span>
+    <span class="field-label">{{ $label }}@if ($required ?? false)@include('partials.required')@endif</span>
     <input type="hidden" name="{{ $name }}" value="{{ old($name, $value) }}" data-time-value>
     <div class="time-picker">
         @foreach (['hour' => __('ui.time.hour'), 'minute' => __('ui.time.minute')] as $unit => $unitLabel)

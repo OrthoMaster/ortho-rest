@@ -1,0 +1,1 @@
+{{-- Dấu * đỏ cho ô bắt buộc. --}}<span class="req" aria-hidden="true">*</span>
