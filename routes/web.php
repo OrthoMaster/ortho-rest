@@ -94,7 +94,7 @@ Route::middleware('main.domain')->group(function () {
 
             Route::prefix('admin')
                 ->name('tenant.admin.')
-                ->middleware(['auth', 'tenant.member', 'tenant.active'])
+                ->middleware(['auth', 'tenant.member', 'tenant.active', 'tenant.prune'])
                 ->group(base_path('routes/tenant_admin.php'));
 
             Route::name('tenant.')

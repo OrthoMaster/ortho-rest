@@ -13,7 +13,7 @@ class ActivityLog extends Model
 
     public const UPDATED_AT = null;
 
-    public const AREAS = ['menu', 'reservation', 'takeaway', 'settings'];
+    public const AREAS = ['menu', 'reservation', 'takeaway', 'customers', 'settings'];
 
     protected $guarded = ['id'];
 

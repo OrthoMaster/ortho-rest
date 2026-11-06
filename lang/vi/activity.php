@@ -16,6 +16,7 @@ return [
         'reservation' => 'Đặt bàn',
         'takeaway' => 'Đặt mang đi',
         'settings' => 'Cài đặt',
+        'customers' => 'Khách hàng',
     ],
 
     'actor_customer' => 'Khách đặt online',

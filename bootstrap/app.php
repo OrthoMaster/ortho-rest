@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\IdentifyTenantByHost;
 use App\Http\Middleware\IdentifyTenantBySlug;
+use App\Http\Middleware\PruneCustomers;
 use App\Http\Middleware\RedirectToCustomDomain;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackDevice;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'super' => EnsureSuperAdmin::class,
             'tenant.active' => EnsureRestaurantActive::class,
+            'tenant.prune' => PruneCustomers::class,
             'tenant.host' => IdentifyTenantByHost::class,
             'tenant.member' => EnsureRestaurantMember::class,
             'tenant.redirect' => RedirectToCustomDomain::class,

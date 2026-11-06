@@ -255,6 +255,10 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .list-search { display: flex; justify-content: flex-end; margin-top: .75rem; }
 .list-search input { width: 17rem; }
 .list-search label { display: block; }
+.list-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .75rem; }
+.list-tools .list-search { margin: 0 0 0 auto; }
+.list-tools .btn { display: inline-flex; align-items: center; gap: .4rem; }
+.list-tools .btn svg { width: 1.1rem; height: 1.1rem; }
 @media (min-width: 761px) {
     .list-search.has-divider { margin-top: 0; padding-top: 1.25rem; border-top: 1px solid var(--line); }
 }
@@ -708,6 +712,7 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
     .filter-fields [data-date-range] .field-label { font-weight: 600; font-size: .875rem; color: var(--ink); }
     .filter-fields [data-date-range] .picker-trigger { width: 100%; min-height: 3rem; }
     .list-search label, .list-search input { width: 100%; }
+    .list-tools .list-search { flex: 1 1 100%; }
     .today-tools .list-search { flex: 1 1 100%; }
     .arrive-btn { height: 2.75rem; }
     /* Cụm nút cuối dính đáy bảng, đệm trên dưới rộng cho dễ bấm. */

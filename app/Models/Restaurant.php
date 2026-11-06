@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'timezone', 'theme'])]
+#[Fillable(['name', 'slug', 'timezone', 'theme', 'customer_retention_days'])]
 class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
@@ -206,7 +206,7 @@ class Restaurant extends Model
 
     public function activityFields(): array
     {
-        return ['name' => 'text', 'slug' => 'plain', 'status' => 'plain', 'theme' => 'theme'];
+        return ['name' => 'text', 'slug' => 'plain', 'status' => 'plain', 'theme' => 'theme', 'customer_retention_days' => 'plain'];
     }
 
     protected function activityActions(): array

@@ -17,6 +17,10 @@ Route::middleware('module:reservation')
         Route::get('availability', [ReservationController::class, 'availability'])->name('availability');
 
         Route::get('customers', [CustomerController::class, 'index'])->name('customers');
+        Route::middleware('role:owner')->group(function () {
+            Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
+            Route::post('customers/{customer}/anonymize', [CustomerController::class, 'anonymize'])->whereNumber('customer')->name('customers.anonymize');
+        });
 
         Route::middleware('role:owner,manager')->prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [SettingsController::class, 'edit'])->name('edit');

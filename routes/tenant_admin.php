@@ -29,6 +29,7 @@ Route::middleware('role:owner')->prefix('restaurant')->name('restaurant.')->grou
     Route::get('special-days/{specialDay}/edit', [SpecialDayController::class, 'edit'])->whereNumber('specialDay')->name('special-days.edit');
     Route::put('special-days/{specialDay}', [SpecialDayController::class, 'update'])->whereNumber('specialDay')->name('special-days.update');
     Route::delete('special-days/{specialDay}', [SpecialDayController::class, 'destroy'])->whereNumber('specialDay')->name('special-days.destroy');
+    Route::put('customer-data', [RestaurantController::class, 'updateCustomerData'])->name('customer-data');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
 
