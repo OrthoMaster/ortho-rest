@@ -34,7 +34,7 @@
     @endcomponent
 
     {{-- Gõ là lọc ngay trên trang; Enter thì tìm trong toàn bộ đặt bàn. --}}
-    <form method="get" class="list-search">
+    <form method="get" class="list-search has-divider">
         @include('partials.query-hidden', ['except' => ['q', 'page']])
         <label>
             <span class="visually-hidden">{{ __('reservation.today_search') }}</span>

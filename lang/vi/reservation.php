@@ -124,7 +124,7 @@ return [
         'rejected_body' => 'Rất tiếc, quán không nhận được đặt bàn lúc :time cho :party khách. Hãy gọi cho quán để chọn giờ khác.',
     ],
 
-    'customer_search' => 'Tìm theo tên hoặc số điện thoại',
+    'customer_search' => 'Tìm tên hoặc số điện thoại',
     'customers_empty' => 'Chưa có khách nào. Khách được thêm tự động khi có đặt bàn.',
     'count_booked' => 'Số lần đặt',
     'count_cancelled' => 'Lần huỷ',

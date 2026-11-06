@@ -248,7 +248,7 @@ class ReservationTest extends TestCase
         $manage = "$this->base/manage";
 
         $this->get($manage)
-            ->assertSeeInOrder(['data-date-range', 'name="status[]"', 'class="list-search"'], false)
+            ->assertSeeInOrder(['data-date-range', 'name="status[]"', 'class="list-search has-divider"'], false)
             ->assertDontSee('data-range-shortcut="91"', false)
             ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Khách hôm nay', 'Thứ năm 03/12', 'Khách chờ'])
             ->assertDontSee('Khách tuần trước')
@@ -345,7 +345,7 @@ class ReservationTest extends TestCase
             ->assertSeeInOrder(['Trưa', 'Khách trưa', 'Tối', 'Khách tối', __('reservation.outside_shifts'), 'Khách khuya'])
             ->assertSee(__('reservation.today_summary', ['count' => 3, 'seated' => 1, 'guests' => 7]))
             ->assertDontSee('>'.ReservationStatus::Confirmed->label().'<', false)
-            ->assertSee('class="btn btn-sm arrive-btn"', false)
+            ->assertSee('class="arrive-btn"', false)
             ->assertSee('data-search-item="Khách trưa', false);
     }
 
@@ -778,5 +778,21 @@ class ReservationTest extends TestCase
             ->assertSessionHasErrors(['reserved_at' => __('reservation.split', ['left' => 2, 'party' => 2])]);
         $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 2, 'customer_phone' => '0906666666', 'overbook' => '1']))
             ->assertSessionHasNoErrors();
+    }
+
+    public function test_today_shifts_are_toggle_chips(): void
+    {
+        $this->openingShifts();
+        $this->book(['customer_name' => 'Khách trưa', 'reserved_at' => '2026-12-01T12:00']);
+
+        $this->get($this->base)
+            ->assertDontSee('data-filter-bar', false)
+            ->assertSeeInOrder(['class="chip is-active"', __('reservation.all_shifts'), 'Trưa', 'chip-count">1<', 'Tối', 'chip-count">0<', 'data-search-input'], false)
+            ->assertSee(e("$this->base?shift_set=1&shift%5B0%5D=Tr%C6%B0a"), false);
+
+        // Đang lọc Trưa: chip Trưa sáng lên, bấm lại là bỏ; bấm Tối là thêm.
+        $this->get("$this->base?shift_set=1&shift[]=Trưa")
+            ->assertSeeInOrder(['class="chip" href="http://localhost'.$this->base.'?shift_set=1"', 'class="chip is-active" href="http://localhost'.$this->base.'?shift_set=1"', 'aria-current'], false)
+            ->assertSee(e("$this->base?shift_set=1&shift%5B0%5D=Tr%C6%B0a&shift%5B1%5D=T%E1%BB%91i"), false);
     }
 }

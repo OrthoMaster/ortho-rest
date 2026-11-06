@@ -7,9 +7,11 @@
 
     @include('modules.reservation.subnav')
 
-    <form class="search" method="get">
-        <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('reservation.customer_search') }}" aria-label="{{ __('reservation.customer_search') }}">
-        <button class="btn btn-quiet" type="submit">{{ __('ui.super.search_submit') }}</button>
+    <form class="list-search" method="get">
+        <label>
+            <span class="visually-hidden">{{ __('reservation.customer_search') }}</span>
+            <input type="search" name="q" value="{{ $search }}" placeholder="{{ __('reservation.customer_search') }}" autocomplete="off">
+        </label>
     </form>
 
     @if ($customers->isEmpty())

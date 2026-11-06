@@ -55,6 +55,7 @@ class ReservationController extends Controller
             'rows' => $reservations->filter(fn (Reservation $reservation) => $this->inPeriod($reservation, $period))->values(),
         ]);
 
+        $shiftCounts = $groups->mapWithKeys(fn ($group) => [$group['name'] => $group['rows']->count()])->all();
         $outside = $reservations->reject(fn (Reservation $reservation) => $groups->contains(fn ($group) => $group['rows']->contains($reservation)));
 
         if ($chosen !== []) {
@@ -69,6 +70,7 @@ class ReservationController extends Controller
             'groups' => $groups,
             'periods' => $periods,
             'chosen' => $chosen,
+            'shiftCounts' => $shiftCounts,
             'count' => $shown->count(),
             'arrived' => $shown->whereIn('status', [ReservationStatus::Seated, ReservationStatus::Completed])->count(),
             'guests' => $shown->where('status', '!=', ReservationStatus::NoShow)->sum('party_size'),

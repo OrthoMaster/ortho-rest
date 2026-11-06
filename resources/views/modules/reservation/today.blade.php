@@ -19,21 +19,25 @@
         <p class="flash flash-warn"><a href="{{ route('tenant.admin.reservation.manage', ['status' => ['pending']]) }}">{{ __('reservation.pending_today', ['count' => $pendingToday]) }}</a></p>
     @endif
 
-    @php($shiftOptions = collect($periods)->mapWithKeys(fn ($period) => [$period['name'] => $period['name'].' '.$period['start'].' – '.$period['end']])->all())
-    @php($pills = collect($chosen)->map(fn ($name) => [
-        'label' => $name,
-        'url' => route('tenant.admin.reservation.index', ['shift_set' => 1, 'shift' => array_values(array_diff($chosen, [$name]))]),
-    ])->all())
-    @component('partials.filter-bar', ['id' => 'today', 'keep' => ['shift_set' => 1], 'pills' => $pills, 'noPanel' => $periods === [],
-        'clearUrl' => route('tenant.admin.reservation.index', ['shift_set' => 1])])
-        @slot('date')
-            <label class="today-search">
-                <span class="visually-hidden">{{ __('reservation.today_search') }}</span>
-                <input type="search" data-search-input placeholder="{{ __('reservation.today_search') }}" autocomplete="off">
-            </label>
-        @endslot
-        @include('partials.filter-multi', ['name' => 'shift', 'label' => __('reservation.shift_filter'), 'all' => __('reservation.all_shifts'), 'options' => $shiftOptions, 'values' => $chosen])
-    @endcomponent
+    {{-- Ca là các nút bật tắt: bấm để lọc thêm ca đó, bấm lại để bỏ. Lựa chọn được nhớ trong phiên. --}}
+    <div class="today-tools">
+        @if ($periods !== [])
+            <nav class="chip-row" aria-label="{{ __('reservation.shift_filter') }}">
+                <a @class(['chip', 'is-active' => $chosen === []]) href="{{ route('tenant.admin.reservation.index', ['shift_set' => 1]) }}" @if ($chosen === []) aria-current="true" @endif>{{ __('reservation.all_shifts') }}</a>
+                @foreach ($periods as $period)
+                    @php($on = in_array($period['name'], $chosen, true))
+                    @php($next = $on ? array_values(array_diff($chosen, [$period['name']])) : [...$chosen, $period['name']])
+                    <a @class(['chip', 'is-active' => $on]) href="{{ route('tenant.admin.reservation.index', ['shift_set' => 1, 'shift' => $next]) }}" @if ($on) aria-current="true" @endif>
+                        {{ $period['name'] }} <span class="chip-count">{{ $shiftCounts[$period['name']] ?? 0 }}</span>
+                    </a>
+                @endforeach
+            </nav>
+        @endif
+        <label class="list-search">
+            <span class="visually-hidden">{{ __('reservation.today_search') }}</span>
+            <input type="search" data-search-input placeholder="{{ __('reservation.today_search') }}" autocomplete="off">
+        </label>
+    </div>
 
     <p class="empty" data-search-empty hidden>{{ __('reservation.today_search_empty') }}</p>
 

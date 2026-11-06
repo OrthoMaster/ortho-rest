@@ -26,7 +26,7 @@
                         <form method="post" action="{{ route('tenant.admin.reservation.status', $reservation) }}">
                             @csrf
                             <input type="hidden" name="status" value="{{ \App\Modules\Reservation\ReservationStatus::Seated->value }}">
-                            <button class="btn btn-sm arrive-btn" type="submit">{{ __('reservation.status.seated') }}</button>
+                            <button class="arrive-btn" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>{{ __('reservation.status.seated') }}</button>
                         </form>
                     @endif
                     @if ($nextSteps !== [])
