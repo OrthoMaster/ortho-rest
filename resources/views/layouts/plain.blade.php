@@ -4,9 +4,14 @@
 
 @section('body')
 <main class="plain-main">
-    @unless (tenant())
+    @if (tenant())
+        <div class="plain-brand tenant-brand">
+            @include('partials.restaurant-logo', ['restaurant' => tenant(), 'size' => 'lg'])
+            <span>{{ tenant()->name }}</span>
+        </div>
+    @else
         <a class="plain-brand" href="{{ url('/') }}">@include('partials.liresto-logo')</a>
-    @endunless
+    @endif
     <div class="plain-box">
         @yield('content')
     </div>

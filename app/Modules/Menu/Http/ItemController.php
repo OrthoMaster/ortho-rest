@@ -77,7 +77,14 @@ class ItemController extends Controller
         DB::transaction(function () use ($request, $item, $data, $tags): void {
             $data['menu_category_id'] = $this->categoryId($request, $data['menu_category_id']);
 
+            $item->activityExtra = $this->tagChange($item, $tags);
             $item->update($data);
+
+            // Chỉ đổi nhãn thì không có sự kiện updated, tự ghi.
+            if (! $item->wasChanged() && $item->activityExtra !== []) {
+                $item->recordActivity('updated');
+            }
+
             $item->syncTags($tags);
         });
 
@@ -164,6 +171,24 @@ class ItemController extends Controller
             'is_sold_out' => $request->boolean('is_sold_out'),
             'is_visible' => $request->boolean('is_visible'),
         ], $tags];
+    }
+
+    /**
+     * @param  list<int>  $tags
+     * @return list<string>
+     */
+    private function tagChange(MenuItem $item, array $tags): array
+    {
+        $before = $item->tags()->orderBy('menu_tags.id')->pluck('name')->all();
+        $after = MenuTag::whereKey($tags)->orderBy('id')->pluck('name')->all();
+
+        if ($before === $after) {
+            return [];
+        }
+
+        $list = fn (array $names) => $names === [] ? __('activity.empty') : implode(', ', $names);
+
+        return [__('activity.tags', ['from' => $list($before), 'to' => $list($after)])];
     }
 
     private function storeImage(Request $request): ?string

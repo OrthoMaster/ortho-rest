@@ -40,7 +40,7 @@
             </div>
 
             <dialog id="category-dialog-{{ $category->id }}">
-                <form method="post" action="{{ route('tenant.admin.menu.categories.update', $category) }}" class="stack">
+                <form method="post" action="{{ route('tenant.admin.menu.categories.update', $category) }}" class="stack" enctype="multipart/form-data">
                     @csrf
                     @method('put')
                     <h2>{{ __('menu.category_edit') }}</h2>
@@ -52,6 +52,7 @@
                         <label for="category-description-{{ $category->id }}">{{ __('menu.description') }}</label>
                         <textarea id="category-description-{{ $category->id }}" name="description" rows="3" maxlength="1000" placeholder="{{ __('menu.category_description_example') }}">{{ $category->description }}</textarea>
                     </div>
+                    @include('partials.image-upload', ['name' => 'image', 'label' => __('menu.category_image'), 'url' => $category->imageUrl(), 'removeName' => 'remove_image', 'hint' => __('menu.category_image_hint')])
                     <label class="check"><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ __('menu.visible') }}</label>
                     <div class="dialog-foot">
                         <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
@@ -66,6 +67,9 @@
             </dialog>
 
             <div class="category-body" id="category-{{ $category->id }}">
+                @if ($category->image_path)
+                    <img class="category-image" src="{{ $category->imageUrl() }}" alt="">
+                @endif
                 @if ($category->description)
                     <p class="category-description">{{ $category->description }}</p>
                 @endif

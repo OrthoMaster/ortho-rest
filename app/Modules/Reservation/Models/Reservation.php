@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Modules\Reservation\ReservationSource;
 use App\Modules\Reservation\ReservationStatus;
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reservation extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -45,5 +46,29 @@ class Reservation extends Model
     public function statusLogs(): HasMany
     {
         return $this->hasMany(ReservationStatusLog::class)->orderBy('id');
+    }
+
+    public function activityArea(): string
+    {
+        return 'reservation';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.reservation', [
+            'customer' => $this->customer?->name,
+            'time' => $this->reserved_at->format('H:i d/m'),
+        ]);
+    }
+
+    public function activityFields(): array
+    {
+        return [
+            'status' => 'plain',
+            'reserved_at' => 'plain',
+            'party_size' => 'plain',
+            'area_id' => ['relation', Area::class],
+            'notes' => 'long',
+        ];
     }
 }

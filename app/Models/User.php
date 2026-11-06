@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -32,12 +33,26 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'is_super_admin' => 'boolean',
+            'devices_locked' => 'boolean',
         ];
     }
 
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(UserDevice::class);
+    }
+
+    /** Super admin đăng nhập ở trang Liresto, người của quán ở trang riêng của quán. */
+    public function loginUrl(): string
+    {
+        return $this->is_super_admin || $this->restaurant === null
+            ? route('login')
+            : route('tenant.login', ['resto' => $this->restaurant->slug]);
     }
 
     public function homeUrl(): string

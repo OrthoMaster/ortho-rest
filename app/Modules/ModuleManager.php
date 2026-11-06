@@ -2,6 +2,7 @@
 
 namespace App\Modules;
 
+use App\Models\ActivityLog;
 use App\Models\Restaurant;
 use App\Models\RestaurantModule;
 use Illuminate\Support\Facades\Cache;
@@ -96,7 +97,8 @@ class ModuleManager
             $state->save();
 
             if ($installer = $this->definition($module)['installer'] ?? null) {
-                app($installer)->install($restaurant, $state);
+                // Dữ liệu mẫu khi bật module không ghi vào nhật ký.
+                ActivityLog::quietly(fn () => app($installer)->install($restaurant, $state));
             }
         });
 
@@ -116,9 +118,12 @@ class ModuleManager
 
         $modules = [$module, ...$this->dependentsOf($module)];
 
+        // Lưu từng dòng để nhật ký ghi lại từng module bị tắt.
         RestaurantModule::forRestaurant($restaurant)
             ->whereIn('module', $modules)
-            ->update(['enabled' => false, 'enabled_at' => null]);
+            ->where('enabled', true)
+            ->get()
+            ->each(fn (RestaurantModule $state) => $state->update(['enabled' => false, 'enabled_at' => null]));
 
         $this->forget($restaurant);
 

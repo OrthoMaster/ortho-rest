@@ -28,6 +28,14 @@
         <h2>{{ __('ui.super.info') }}</h2>
         @if ($owner)
             <p>{{ __('ui.super.owner_line', ['name' => $owner->name, 'email' => $owner->email]) }}</p>
+            <p class="aside-link">{{ __('ui.super.owner_login', ['url' => route('tenant.login', ['resto' => $restaurant->slug])]) }}</p>
+            @if ($owner->devices_locked)
+                <form method="post" action="{{ route('super.restaurants.devices.unlock', $restaurant) }}" class="inline-form">
+                    @csrf
+                    <span>{{ __('ui.super.devices_locked') }}</span>
+                    <button class="btn btn-quiet btn-sm" type="submit">{{ __('ui.super.devices_unlock') }}</button>
+                </form>
+            @endif
         @endif
         <form method="post" action="{{ route('super.restaurants.update', $restaurant) }}" class="stack narrow" data-guard>
             @csrf

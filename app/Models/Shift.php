@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Enums\ShiftType;
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class Shift extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -73,5 +74,23 @@ class Shift extends Model
         [$hour, $minute] = array_map('intval', explode(':', $time));
 
         return $hour * 60 + $minute;
+    }
+
+    public function activityArea(): string
+    {
+        return 'settings';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.shift_'.$this->type->value, [
+            'name' => $this->name,
+            'day' => __('ui.calendar.weekdays')[$this->weekday - 1],
+        ]);
+    }
+
+    public function activityFields(): array
+    {
+        return ['name' => 'text', 'start_time' => 'plain', 'end_time' => 'plain'];
     }
 }

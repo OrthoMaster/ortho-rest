@@ -10,6 +10,7 @@ use App\Http\Middleware\IdentifyTenantByHost;
 use App\Http\Middleware\IdentifyTenantBySlug;
 use App\Http\Middleware\RedirectToCustomDomain;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackDevice;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -38,12 +39,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.slug' => IdentifyTenantBySlug::class,
         ]);
 
-        $middleware->web(append: [SetLocale::class]);
+        $middleware->web(append: [SetLocale::class, TrackDevice::class]);
 
         // Phải biết nhà hàng trước khi nạp model từ URL, để Global Scope lọc đúng quán.
         $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantBySlug::class);
 
-        $middleware->redirectGuestsTo(fn () => route('login'));
+        // Trong một quán thì về trang đăng nhập của quán đó.
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            $slug = $request->route('resto');
+
+            return match (true) {
+                is_string($slug) && $slug !== '' => route('tenant.login', ['resto' => $slug]),
+                tenant() !== null => route('tenant.login'),
+                default => route('login'),
+            };
+        });
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()->homeUrl());
     })
     ->withExceptions(function (Exceptions $exceptions): void {

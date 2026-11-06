@@ -6,6 +6,7 @@ use App\Enums\RestaurantStatus;
 use App\Enums\ShiftType;
 use App\Enums\UserRole;
 use App\Modules\ModuleManager;
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\RestaurantLogo;
 use App\Tenancy\RestaurantScope;
 use App\Tenancy\RestaurantTheme;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
-    use HasFactory;
+    use HasFactory, RecordsActivity;
 
     protected function casts(): array
     {
@@ -91,5 +92,37 @@ class Restaurant extends Model
     public function hasModule(string $module): bool
     {
         return app(ModuleManager::class)->isEnabled($this, $module);
+    }
+
+    public function activityRestaurantId(): int
+    {
+        return (int) $this->getKey();
+    }
+
+    public function activityArea(): string
+    {
+        return 'settings';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.restaurant');
+    }
+
+    public function activityFields(): array
+    {
+        return ['name' => 'text', 'slug' => 'plain', 'status' => 'plain', 'theme' => 'theme', 'closed_dates' => 'closed_dates'];
+    }
+
+    protected function activityActions(): array
+    {
+        return ['updated'];
+    }
+
+    protected function activitySummary(string $action, array $changed): ?string
+    {
+        return $changed === ['status']
+            ? __($this->isLocked() ? 'activity.restaurant_locked' : 'activity.restaurant_unlocked')
+            : null;
     }
 }

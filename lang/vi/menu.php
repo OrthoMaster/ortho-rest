@@ -46,6 +46,8 @@ return [
     'category_not_empty' => 'Danh mục còn món. Hãy chuyển hoặc xoá các món trước.',
     'item_name' => 'Tên món',
     'description' => 'Mô tả',
+    'category_image' => 'Hình danh mục',
+    'category_image_hint' => 'Ảnh ngang hiện ở đầu danh mục. PNG, JPG hoặc WebP, tối đa 2 MB.',
     'image' => 'Ảnh món',
     'price_dine_in' => 'Giá tại quán (₫)',
     'price_takeaway' => 'Giá mang đi (₫)',

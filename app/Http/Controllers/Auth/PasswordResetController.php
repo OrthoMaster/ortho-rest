@@ -24,7 +24,7 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        Password::sendResetLink($request->only('email'));
+        Password::sendResetLink([...$request->only('email'), LoginController::scope()]);
 
         // Trả về cùng một câu dù email có tồn tại hay không.
         return back()->with('status', __('passwords.sent'));
@@ -44,7 +44,7 @@ class PasswordResetController extends Controller
         ]);
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [...$request->only('email', 'password', 'password_confirmation', 'token'), LoginController::scope()],
             function (User $user, string $password): void {
                 $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
 
@@ -56,6 +56,6 @@ class PasswordResetController extends Controller
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect()->route('login')->with('status', __($status));
+        return redirect()->route(tenant() ? 'tenant.login' : 'login')->with('status', __($status));
     }
 }

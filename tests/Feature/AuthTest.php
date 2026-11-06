@@ -18,7 +18,7 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner()->create();
 
-        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])
+        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'password'])
             ->assertRedirect("/{$owner->restaurant->slug}/admin");
 
         $this->assertAuthenticatedAs($owner);
@@ -36,7 +36,7 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner()->create();
 
-        $this->post('/login', ['email' => $owner->email, 'password' => 'sai'])
+        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'sai'])
             ->assertSessionHasErrors(['email' => __('auth.failed')]);
 
         $this->assertGuest();
@@ -55,7 +55,7 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner(Restaurant::factory()->locked()->create())->create();
 
-        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])
+        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'password'])
             ->assertSessionHasErrors(['email' => __('ui.login.locked')]);
 
         $this->assertGuest();
@@ -71,7 +71,9 @@ class AuthTest extends TestCase
 
     public function test_logout(): void
     {
-        $this->actingAs(User::factory()->owner()->create())->post('/logout')->assertRedirect('/login');
+        $owner = User::factory()->owner()->create();
+
+        $this->actingAs($owner)->post('/logout')->assertRedirect("/{$owner->restaurant->slug}/login");
 
         $this->assertGuest();
     }
@@ -81,19 +83,22 @@ class AuthTest extends TestCase
         Notification::fake();
         $owner = User::factory()->owner()->create();
 
-        $this->post('/forgot-password', ['email' => $owner->email])->assertSessionHas('status');
+        $base = "/{$owner->restaurant->slug}";
 
-        Notification::assertSentTo($owner, ResetPassword::class, function (ResetPassword $notification) use ($owner) {
+        $this->post("$base/forgot-password", ['email' => $owner->email])->assertSessionHas('status');
+
+        Notification::assertSentTo($owner, ResetPassword::class, function (ResetPassword $notification) use ($owner, $base) {
             $mail = $notification->toMail($owner);
             $this->assertSame(__('ui.password.mail_subject'), $mail->subject);
-            $this->get($mail->actionUrl)->assertOk();
+            $this->assertStringContainsString("$base/reset-password/", $mail->actionUrl);
+            $this->get($mail->actionUrl)->assertOk()->assertSee($owner->restaurant->name);
 
-            $this->post('/reset-password', [
+            $this->post("$base/reset-password", [
                 'token' => $notification->token,
                 'email' => $owner->email,
                 'password' => 'mat-khau-moi',
                 'password_confirmation' => 'mat-khau-moi',
-            ])->assertRedirect('/login');
+            ])->assertRedirect("$base/login");
 
             return true;
         });
@@ -105,6 +110,62 @@ class AuthTest extends TestCase
     {
         $this->post('/forgot-password', ['email' => 'khong-co@ai.vn'])
             ->assertSessionHas('status', __('passwords.sent'));
+    }
+
+    public function test_main_login_is_only_for_super_admins(): void
+    {
+        $owner = User::factory()->owner()->create();
+
+        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+
+        $this->assertGuest();
+        $this->get('/login')->assertSee(__('ui.login.super_lead'));
+    }
+
+    public function test_restaurant_login_only_accepts_its_own_accounts(): void
+    {
+        $owner = User::factory()->owner()->create();
+        $other = Restaurant::factory()->create();
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->post("/{$other->slug}/login", ['email' => $owner->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+        $this->post("/{$other->slug}/login", ['email' => $admin->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+
+        $this->assertGuest();
+    }
+
+    public function test_restaurant_login_page_shows_its_name_and_colors(): void
+    {
+        $restaurant = Restaurant::factory()->create(['name' => 'Quán Gió', 'theme' => ['primary' => '#123456', 'secondary' => '#abcdef']]);
+
+        $this->get("/{$restaurant->slug}/login")
+            ->assertOk()
+            ->assertSee('Quán Gió')
+            ->assertSee('#123456', false)
+            ->assertDontSee(__('ui.login.super_lead'))
+            ->assertSee('action="'.url("/{$restaurant->slug}/login").'"', false);
+    }
+
+    public function test_guest_in_a_restaurant_is_sent_to_that_restaurant_login(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+
+        $this->get("/{$restaurant->slug}/admin/profile")->assertRedirect("/{$restaurant->slug}/login");
+        $this->get('/super/restaurants')->assertRedirect('/login');
+    }
+
+    public function test_forgot_password_of_another_restaurant_sends_nothing(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->owner()->create();
+        $other = Restaurant::factory()->create();
+
+        $this->post("/{$other->slug}/forgot-password", ['email' => $owner->email])->assertSessionHas('status', __('passwords.sent'));
+
+        Notification::assertNothingSent();
     }
 
     public function test_profile_can_be_updated(): void

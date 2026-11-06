@@ -2,6 +2,7 @@
 
 namespace App\Modules\Menu\Models;
 
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -54,5 +55,38 @@ class MenuItem extends Model
         return $this->image_path
             ? Storage::disk(config('liresto.uploads_disk'))->url($this->image_path)
             : null;
+    }
+
+    public function activityArea(): string
+    {
+        return 'menu';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.item', ['name' => $this->name]);
+    }
+
+    public function activityFields(): array
+    {
+        return [
+            'name' => 'text',
+            'menu_category_id' => ['relation', MenuCategory::class],
+            'description' => 'long',
+            'image_path' => 'image',
+            'price_dine_in' => 'money',
+            'price_takeaway' => 'money',
+            'is_sold_out' => 'bool',
+            'is_visible' => 'bool',
+        ];
+    }
+
+    protected function activitySummary(string $action, array $changed): ?string
+    {
+        return match ($changed) {
+            ['is_sold_out'] => __($this->is_sold_out ? 'activity.sold_out' : 'activity.back_in_stock', ['name' => $this->activityName()]),
+            ['is_visible'] => __($this->is_visible ? 'activity.shown' : 'activity.hidden', ['name' => $this->activityName()]),
+            default => null,
+        };
     }
 }

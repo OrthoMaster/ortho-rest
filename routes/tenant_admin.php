@@ -2,7 +2,9 @@
 
 // Phần quản lý của một quán: domain-chinh/{slug}/admin/...
 
+use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\ShiftController;
@@ -13,9 +15,12 @@ Route::get('/', DashboardController::class)->name('dashboard');
 Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
 Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+Route::put('profile/devices/lock', [DeviceController::class, 'lock'])->name('profile.devices.lock');
+Route::delete('profile/devices/{device}', [DeviceController::class, 'destroy'])->whereNumber('device')->name('profile.devices.destroy');
 
 Route::middleware('role:owner')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
+    Route::get('activity', [ActivityController::class, 'index'])->name('activity');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
 

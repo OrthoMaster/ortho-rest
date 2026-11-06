@@ -87,6 +87,6 @@ class TenantIsolationTest extends TestCase
 
     public function test_guest_is_sent_to_login(): void
     {
-        $this->get("/{$this->a->slug}/admin")->assertRedirect('/login');
+        $this->get("/{$this->a->slug}/admin")->assertRedirect("/{$this->a->slug}/login");
     }
 }

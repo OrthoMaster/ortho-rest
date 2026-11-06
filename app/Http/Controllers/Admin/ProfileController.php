@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Auth\DeviceGuard;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,14 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        return view('admin.profile', ['user' => $request->user()]);
+        $user = $request->user();
+
+        return view('admin.profile', [
+            'user' => $user,
+            'devices' => $user->devices()->latest('last_seen_at')->get(),
+            'currentDevice' => $request->session()->get(DeviceGuard::SESSION_KEY),
+            'impersonating' => $request->session()->has('impersonator_id'),
+        ]);
     }
 
     public function update(Request $request): RedirectResponse

@@ -116,4 +116,12 @@ class RestaurantController extends Controller
             Rule::unique('restaurants', 'slug')->ignore($restaurant),
         ]];
     }
+
+    /** Chủ quán khoá thiết bị rồi mất máy: super admin mở lại. */
+    public function unlockDevices(Restaurant $restaurant): RedirectResponse
+    {
+        $restaurant->owner()?->forceFill(['devices_locked' => false])->save();
+
+        return back()->with('status', __('ui.super.devices_unlocked'));
+    }
 }

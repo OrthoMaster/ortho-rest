@@ -71,12 +71,27 @@ Route::middleware('main.domain')->group(function () {
         Route::put('restaurants/{restaurant}/modules/{module}', [RestaurantModuleController::class, 'update'])->name('modules.update');
 
         Route::post('restaurants/{restaurant}/impersonate', [ImpersonationController::class, 'start'])->name('impersonate.start');
+        Route::post('restaurants/{restaurant}/devices/unlock', [RestaurantController::class, 'unlockDevices'])->name('restaurants.devices.unlock');
     });
 
     Route::prefix('{resto}')
         ->where(['resto' => config('liresto.slug_pattern')])
         ->middleware('tenant.slug')
         ->group(function () {
+            // Trang đăng nhập riêng của quán, mang màu và logo của quán.
+            Route::name('tenant.')->middleware('guest')->group(function () {
+                Route::get('login', [LoginController::class, 'create'])->name('login');
+                Route::post('login', [LoginController::class, 'store'])->middleware('throttle:login');
+                Route::get('forgot-password', [PasswordResetController::class, 'requestForm'])->name('password.request');
+                Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])
+                    ->middleware('throttle:5,1')
+                    ->name('password.email');
+                Route::get('reset-password/{token}', [PasswordResetController::class, 'resetForm'])->name('password.reset');
+                Route::post('reset-password', [PasswordResetController::class, 'reset'])
+                    ->middleware('throttle:5,1')
+                    ->name('password.update');
+            });
+
             Route::prefix('admin')
                 ->name('tenant.admin.')
                 ->middleware(['auth', 'tenant.member', 'tenant.active'])

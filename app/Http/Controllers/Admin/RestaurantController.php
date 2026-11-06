@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Tenancy\RestaurantLogo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class RestaurantController extends Controller
         $request->validate(['logo' => RestaurantLogo::RULES]);
 
         RestaurantLogo::store(tenant(), $request->file('logo'));
+        ActivityLog::record(tenant()->getKey(), 'settings', __('activity.logo_changed'));
 
         return back()->with('status', __('ui.logo.saved'));
     }
@@ -27,6 +29,7 @@ class RestaurantController extends Controller
     public function destroyLogo(): RedirectResponse
     {
         RestaurantLogo::remove(tenant());
+        ActivityLog::record(tenant()->getKey(), 'settings', __('activity.logo_removed'));
 
         return back()->with('status', __('ui.logo.removed'));
     }

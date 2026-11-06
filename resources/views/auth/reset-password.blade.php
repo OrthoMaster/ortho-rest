@@ -1,10 +1,12 @@
 @extends('layouts.plain')
 
+@php($prefix = tenant() ? 'tenant.' : '')
+
 @section('title', __('ui.password.reset_title'))
 
 @section('content')
     <h1>{{ __('ui.password.reset_title') }}</h1>
-    <form method="post" action="{{ route('password.update') }}" class="stack">
+    <form method="post" action="{{ route($prefix.'password.update') }}" class="stack">
         @csrf
         <input type="hidden" name="token" value="{{ $token }}">
         @include('partials.field', ['name' => 'email', 'type' => 'email', 'label' => __('ui.login.email'), 'value' => $email, 'autocomplete' => 'username'])

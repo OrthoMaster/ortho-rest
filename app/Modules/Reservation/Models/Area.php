@@ -2,13 +2,14 @@
 
 namespace App\Modules\Reservation\Models;
 
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -20,5 +21,20 @@ class Area extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public function activityArea(): string
+    {
+        return 'reservation';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.area', ['name' => $this->name]);
+    }
+
+    public function activityFields(): array
+    {
+        return ['name' => 'text', 'capacity' => 'plain', 'online_bookable' => 'bool', 'is_active' => 'bool'];
     }
 }

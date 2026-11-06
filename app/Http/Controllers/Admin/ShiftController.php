@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ShiftType;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,10 +56,25 @@ class ShiftController extends Controller
             $this->assertNoOverlap($type, $day, $data);
         }
 
+        $days = array_values(array_unique($days));
+        sort($days);
+
         DB::transaction(function () use ($days, $data, $type): void {
-            foreach (array_unique($days) as $day) {
-                Shift::create([...$data, 'type' => $type, 'weekday' => $day]);
-            }
+            // Thêm cho nhiều ngày một lần thì ghi một dòng nhật ký.
+            $shift = ActivityLog::quietly(function () use ($days, $data, $type): Shift {
+                foreach ($days as $day) {
+                    $shift = Shift::create([...$data, 'type' => $type, 'weekday' => $day]);
+                }
+
+                return $shift;
+            });
+
+            ActivityLog::record(tenant()->getKey(), 'settings', __('activity.shifts_added', [
+                'type' => __('activity.shift_types.'.$type->value),
+                'name' => $data['name'],
+                'range' => $shift->timeRange(),
+                'days' => implode(', ', array_map(fn (int $day) => __('ui.calendar.weekdays')[$day - 1], $days)),
+            ]), [], $shift);
         });
 
         return redirect()->route('tenant.admin.restaurant.shifts.index', $type)->with('status', __('shifts.saved'));

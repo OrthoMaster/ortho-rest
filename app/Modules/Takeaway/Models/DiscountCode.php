@@ -3,12 +3,13 @@
 namespace App\Modules\Takeaway\Models;
 
 use App\Modules\Takeaway\DiscountType;
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 
 class DiscountCode extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -29,5 +30,20 @@ class DiscountCode extends Model
     public function label(): string
     {
         return $this->type->label($this->value);
+    }
+
+    public function activityArea(): string
+    {
+        return 'takeaway';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.discount', ['code' => $this->code]);
+    }
+
+    public function activityFields(): array
+    {
+        return ['code' => 'text', 'type' => 'plain', 'value' => 'plain', 'is_active' => 'bool'];
     }
 }

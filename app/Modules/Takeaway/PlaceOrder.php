@@ -2,6 +2,7 @@
 
 namespace App\Modules\Takeaway;
 
+use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -189,6 +190,8 @@ class PlaceOrder
                     'user_id' => $user?->getKey(),
                     'changes' => $changes,
                 ]);
+
+                ActivityLog::record($order->restaurant_id, 'takeaway', __('activity.order_edited', ['code' => $order->code()]), $changes, $order);
             }
 
             return $order;

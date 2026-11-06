@@ -75,6 +75,26 @@ return [
         'submit' => 'Đăng nhập',
         'forgot' => 'Quên mật khẩu?',
         'locked' => 'Nhà hàng của bạn đang bị khoá. Hãy liên hệ Liresto để mở lại.',
+        'super_lead' => 'Trang này dành cho quản trị Liresto. Nhân viên nhà hàng đăng nhập ở link riêng của quán, dạng …/ten-quan/login.',
+    ],
+
+    'devices' => [
+        'title' => 'Thiết bị đăng nhập',
+        'name' => ':browser trên :system',
+        'unknown' => 'Thiết bị không rõ',
+        'seen' => 'Dùng lần cuối :time, IP :ip',
+        'current' => 'Thiết bị này',
+        'current_hint' => 'Muốn thoát thiết bị đang dùng thì bấm Đăng xuất.',
+        'revoke' => 'Đăng xuất',
+        'revoke_confirm' => 'Đăng xuất ngay :name? Muốn vào lại trên máy đó phải đăng nhập lại.',
+        'revoked_done' => 'Đã đăng xuất :name.',
+        'lock' => 'Chỉ cho đăng nhập trên các thiết bị này',
+        'lock_hint' => 'Khi bật, đăng nhập từ máy khác sẽ bị từ chối, kể cả khi đúng mật khẩu. Xoá một thiết bị thì máy đó không vào lại được nữa. Nếu mất hết thiết bị, liên hệ Liresto để mở lại.',
+        'locked_on' => 'Từ giờ chỉ các thiết bị trong danh sách đăng nhập được.',
+        'locked_off' => 'Đã cho đăng nhập từ thiết bị mới.',
+        'blocked' => 'Tài khoản này chỉ cho đăng nhập trên các thiết bị đã đăng ký.',
+        'revoked' => 'Thiết bị này đã bị đăng xuất từ xa. Hãy đăng nhập lại.',
+        'impersonating' => 'Bạn đang đăng nhập thay chủ quán, nên máy này không có trong danh sách.',
     ],
 
     'password' => [
@@ -166,6 +186,10 @@ return [
 
         'info' => 'Thông tin',
         'owner_line' => 'Chủ quán: :name (:email)',
+        'owner_login' => 'Trang đăng nhập của quán: :url',
+        'devices_locked' => 'Chủ quán đang chỉ cho đăng nhập trên thiết bị đã có.',
+        'devices_unlock' => 'Mở khoá thiết bị',
+        'devices_unlocked' => 'Đã mở khoá thiết bị cho chủ quán.',
         'impersonate' => 'Đăng nhập thay chủ quán',
         'no_owner' => 'Nhà hàng này chưa có chủ quán.',
         'view_site' => 'Mở website',

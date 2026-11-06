@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\ShiftType;
 use App\Enums\UserRole;
+use App\Models\ActivityLog;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -28,6 +29,12 @@ class DatabaseSeeder extends Seeder
             throw new RuntimeException('Seed chạy thử không dùng cho production. Dùng: php artisan liresto:super-admin');
         }
 
+        // Dữ liệu mẫu không ghi vào nhật ký của quán.
+        ActivityLog::quietly(fn () => $this->seed($modules));
+    }
+
+    private function seed(ModuleManager $modules): void
+    {
         $this->user('super@liresto.test', 'Super admin', superAdmin: true);
 
         $demo = Restaurant::firstOrCreate(['slug' => 'quan-demo'], [

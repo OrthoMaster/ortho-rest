@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\OrderStatus;
+use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TakeawayOrder extends Model
 {
-    use BelongsToRestaurant;
+    use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
 
@@ -64,5 +65,21 @@ class TakeawayOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(TakeawayOrderItem::class);
+    }
+
+    public function activityArea(): string
+    {
+        return 'takeaway';
+    }
+
+    public function activityName(): string
+    {
+        return __('activity.names.order', ['code' => $this->code()]);
+    }
+
+    /** Sửa món, giờ nhận... được ghi trong PlaceOrder::update cùng lịch sử sửa đơn. */
+    public function activityFields(): array
+    {
+        return ['status' => 'plain'];
     }
 }
