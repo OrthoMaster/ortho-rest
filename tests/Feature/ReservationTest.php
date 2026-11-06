@@ -267,7 +267,7 @@ class ReservationTest extends TestCase
         $this->get("$manage?from=2026-01-01&to=2026-12-31")->assertSee('name="to" value="2026-04-02"', false);
     }
 
-    public function test_lists_mask_phone_and_show_source_and_area(): void
+    public function test_lists_mask_phone_and_show_area(): void
     {
         $reservation = $this->book(['customer_phone' => '0901234567']);
 
@@ -275,9 +275,11 @@ class ReservationTest extends TestCase
             $this->get($page)
                 ->assertSee('***567')
                 ->assertDontSee('>0901234567<', false)
-                ->assertSee(ReservationSource::Phone->label())
                 ->assertSee($this->area->name);
         }
+
+        // Nguồn chỉ hiện ở Quản lý đặt bàn, tab Hôm nay không cần.
+        $this->get("$this->base/manage")->assertSee(ReservationSource::Phone->label());
 
         $this->get("$this->base/{$reservation->id}")->assertSee('0901234567');
     }
@@ -806,5 +808,13 @@ class ReservationTest extends TestCase
             ->assertSee('data-confirm-danger', false)
             ->assertSee('class="is-danger"', false);
         $this->assertSame(substr_count($this->get($this->base)->getContent(), 'data-confirm='), substr_count($this->get($this->base)->getContent(), 'name="status"'));
+    }
+
+    public function test_today_cards_hide_the_source(): void
+    {
+        $this->book(['customer_name' => 'Chị Hoa']);
+
+        $this->get($this->base)->assertSee('Chị Hoa')->assertDontSee(ReservationSource::Phone->label());
+        $this->get("$this->base/manage")->assertSee('Chị Hoa')->assertSee(ReservationSource::Phone->label());
     }
 }
