@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\ShiftType;
+use App\Enums\SpecialDayType;
 use App\Enums\UserRole;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\Shift;
+use App\Models\SpecialDay;
 use App\Models\User;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
@@ -279,18 +281,23 @@ class ReservationTest extends TestCase
             ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Thứ năm 03/12', 'Thứ sáu 20/11']);
     }
 
+    private function settings(array $values): void
+    {
+        app(ModuleManager::class)->updateSettings($this->restaurant, 'reservation', $values);
+    }
+
     public function test_online_rules(): void
     {
-        $this->restaurant->update(['closed_dates' => [['date' => '2026-12-05', 'note' => 'Nghỉ']]]);
+        SpecialDay::create(['restaurant_id' => $this->restaurant->id, 'date' => '2026-12-05', 'type' => SpecialDayType::Closed, 'periods' => [], 'reason' => 'Nghỉ']);
+        $this->settings(['min_notice_days' => 1, 'max_advance_days' => 30]);
 
         foreach (range(1, 7) as $day) {
             Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Opening, 'weekday' => $day, 'name' => 'Cả ngày', 'start_time' => '10:00', 'end_time' => '22:00']);
         }
 
         $refused = [
-            'quá gần' => ['reserved_at' => '2026-12-01T09:30'],
-            'quá xa' => ['reserved_at' => '2027-03-01T12:00'],
-            'lệch khung giờ' => ['reserved_at' => '2026-12-02T12:10'],
+            'trong ngày khi cần đặt trước 1 ngày' => ['reserved_at' => '2026-12-01T19:00'],
+            'quá xa' => ['reserved_at' => '2027-01-01T12:00'],
             'ngoài giờ mở cửa' => ['reserved_at' => '2026-12-02T21:00'],
             'ngày đóng cửa' => ['reserved_at' => '2026-12-05T12:00'],
         ];
@@ -304,58 +311,151 @@ class ReservationTest extends TestCase
             }
         }
 
-        $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-02T12:00'], ReservationSource::Online)->status);
+        // Không còn khung giờ cố định: 12:10 vẫn đặt được. Ngày cuối cùng được phép cũng được.
+        $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-02T12:10'], ReservationSource::Online)->status);
+        $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-31T12:00', 'party_size' => 2], ReservationSource::Online)->status);
+
+        // Nhân viên nhập tay thì không bị quy định online chặn.
+        $this->assertSame(ReservationStatus::Confirmed, $this->book(['reserved_at' => '2026-12-05T12:00', 'party_size' => 2])->status);
     }
 
-    public function test_area_not_open_for_online_only_blocks_online(): void
+    public function test_same_day_online_booking_when_notice_is_zero(): void
     {
-        $this->area->update(['online_bookable' => false]);
+        $this->settings(['min_notice_days' => 0]);
+
+        $this->assertSame(ReservationStatus::Pending, $this->book(['reserved_at' => '2026-12-01T19:00'], ReservationSource::Online)->status);
 
         $this->expectException(ValidationException::class);
+        $this->book(['reserved_at' => '2026-12-01T08:00'], ReservationSource::Online);
+    }
+
+    public function test_online_switched_off_refuses_only_online(): void
+    {
+        $this->settings(['online_enabled' => false]);
+
+        $this->assertSame(ReservationStatus::Confirmed, $this->book()->status);
+
+        $this->expectExceptionMessage(__('reservation.online_off'));
+        $this->book(['party_size' => 2], ReservationSource::Online);
+    }
+
+    public function test_auto_confirm_skips_pending(): void
+    {
+        $this->settings(['auto_confirm' => true]);
+
+        $this->assertSame(ReservationStatus::Confirmed, $this->book([], ReservationSource::Online)->status);
+    }
+
+    public function test_online_seats_cap_counts_only_online_bookings(): void
+    {
+        Area::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Ngoài sân', 'capacity' => 10, 'sort_order' => 2]);
+        $this->settings(['online_seats' => 6]);
+
+        $this->book(['party_size' => 4], ReservationSource::Online);
+        $this->book(['party_size' => 4]);
 
         try {
-            $this->book();
-            $this->assertTrue(true);
-        } finally {
-            $this->book(['reserved_at' => '2026-12-02T12:00'], ReservationSource::Online);
+            $this->book(['party_size' => 3, 'reserved_at' => '2026-12-01T19:30'], ReservationSource::Online);
+            $this->fail('Vượt số chỗ online');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('chỉ còn 2 chỗ', $exception->getMessage());
         }
+
+        $this->assertSame(ReservationStatus::Pending, $this->book(['party_size' => 2, 'reserved_at' => '2026-12-01T19:30'], ReservationSource::Online)->status);
+        // Lượt online đã hết giờ thì chỗ được trả lại.
+        $this->assertSame(ReservationStatus::Pending, $this->book(['party_size' => 6, 'reserved_at' => '2026-12-01T21:00'], ReservationSource::Online)->status);
+    }
+
+    public function test_online_seats_never_exceed_total_seats(): void
+    {
+        $this->settings(['online_seats' => 50]);
+
+        $this->expectExceptionMessage('chỉ còn 10 chỗ');
+        $this->book(['party_size' => 11], ReservationSource::Online);
     }
 
     public function test_settings_save(): void
     {
         $settings = "$this->base/settings";
 
-        $this->get($settings)->assertOk();
+        $this->get($settings)->assertOk()->assertSee(__('reservation.online_rules'));
 
         $this->put("$settings/booking", [
-            'min_notice_minutes' => 30, 'max_advance_days' => 14, 'turn_minutes' => 120, 'slot_interval_minutes' => 15,
+            'turn_minutes' => 120, 'online_enabled' => 1, 'min_notice_days' => 1, 'max_advance_days' => 14, 'auto_confirm' => 1, 'online_seats' => 8,
         ])->assertSessionHasNoErrors();
 
-        $this->actingInTenant($this->restaurant);
-        $this->assertSame('120', (string) app(ModuleManager::class)->settings($this->restaurant, 'reservation')['turn_minutes']);
+        $saved = app(ModuleManager::class)->settings($this->restaurant, 'reservation');
+        $this->assertSame([120, true, 1, 14, true, 8, 10], [
+            $saved['turn_minutes'], $saved['online_enabled'], $saved['min_notice_days'], $saved['max_advance_days'], $saved['auto_confirm'], $saved['online_seats'], $saved['online_seats_total'],
+        ]);
 
-        $this->post("$settings/closed-dates", ['date' => '2027-02-10', 'note' => 'Tết'])->assertSessionHasNoErrors();
-        $this->assertSame('2027-02-10', $this->restaurant->fresh()->closed_dates[0]['date']);
+        $this->put("$settings/booking", ['turn_minutes' => 120, 'online_enabled' => 1, 'min_notice_days' => 0, 'max_advance_days' => 14, 'online_seats' => 11])
+            ->assertSessionHasErrors(['online_seats' => __('reservation.online_seats_over', ['total' => 10])]);
+        $this->put("$settings/booking", ['turn_minutes' => 120, 'online_enabled' => 1, 'min_notice_days' => 5, 'max_advance_days' => 3, 'online_seats' => 5])
+            ->assertSessionHasErrors('max_advance_days');
 
-        $this->delete("$settings/closed-dates/2027-02-10");
-        $this->assertSame([], $this->restaurant->fresh()->closed_dates);
+        // Tắt đặt online thì không cần các ô quy định, và quy định cũ được giữ.
+        $this->put("$settings/booking", ['turn_minutes' => 90, 'online_enabled' => 0])->assertSessionHasNoErrors();
+        $saved = app(ModuleManager::class)->settings($this->restaurant, 'reservation');
+        $this->assertFalse($saved['online_enabled']);
+        $this->assertSame(8, $saved['online_seats']);
+    }
+
+    public function test_settings_warn_when_total_seats_changed_since_saved(): void
+    {
+        $this->settings(['online_seats' => 8, 'online_seats_total' => 10]);
+        $this->area->update(['capacity' => 6]);
+
+        $this->get("$this->base/settings")->assertSee(__('reservation.total_changed_since', ['from' => 10, 'to' => 6]));
     }
 
     public function test_area_management(): void
     {
-        $settings = "$this->base/settings";
+        $areas = "$this->base/areas";
 
-        $this->post("$settings/areas", ['name' => 'Lầu 1', 'capacity' => 20, 'is_active' => 1, 'online_bookable' => 1])
-            ->assertSessionHasNoErrors();
-        $this->assertSame(2, Area::forRestaurant($this->restaurant)->count());
+        $this->get($areas)->assertOk()->assertSee('<table>', false)->assertSee(__('reservation.area_capacity'));
 
-        $this->book();
-        $this->delete("$settings/areas/{$this->area->id}")->assertSessionHas('error');
+        $this->post($areas, ['name' => 'Lầu 1', 'capacity' => 20])->assertSessionHasNoErrors();
+        $upstairs = Area::forRestaurant($this->restaurant)->where('name', 'Lầu 1')->sole();
+        $this->assertSame(2, $upstairs->sort_order);
 
-        $this->put("$settings/areas/{$this->area->id}", ['name' => 'Trong nhà', 'capacity' => 5])->assertSessionHasNoErrors();
+        $this->post("$areas/reorder", ['ids' => [$upstairs->id, $this->area->id]])->assertNoContent();
+        $this->get($areas)->assertSeeInOrder(['Lầu 1', $this->area->name]);
+
+        $this->put("$areas/{$this->area->id}", ['name' => 'Trong nhà', 'capacity' => 5])->assertSessionHasNoErrors();
+        $this->assertSame('Trong nhà', $this->area->fresh()->name);
+
+        // Còn đặt bàn sắp tới: không xoá được.
+        $this->book(['party_size' => 2]);
+        $this->delete("$areas/{$this->area->id}")->assertSessionHas('error');
+
+        // Chỉ còn đặt bàn đã qua: ẩn khu vực, giữ lịch sử.
+        $this->travelTo(Carbon::parse('2026-12-03 09:00'));
+        $this->delete("$areas/{$this->area->id}")->assertSessionHas('status');
         $this->assertFalse($this->area->fresh()->is_active);
+        $this->get($areas)->assertDontSee('Trong nhà');
 
-        $this->post($this->base, $this->form())->assertSessionHasErrors('area_id');
+        // Chưa có đặt bàn: xoá hẳn.
+        $this->delete("$areas/{$upstairs->id}");
+        $this->assertNull(Area::forRestaurant($this->restaurant)->find($upstairs->id));
+
+        $this->post($this->base, $this->form(['reserved_at' => '2026-12-03T19:00']))->assertSessionHasErrors('area_id');
+    }
+
+    public function test_changing_total_seats_warns_when_online_is_on(): void
+    {
+        $this->settings(['online_seats' => 8, 'online_seats_total' => 10]);
+
+        $this->put("$this->base/areas/{$this->area->id}", ['name' => $this->area->name, 'capacity' => 6])
+            ->assertSessionHas('warning', __('reservation.total_changed_over', ['from' => 10, 'to' => 6, 'online' => 8]));
+
+        $this->settings(['online_enabled' => false]);
+        $this->put("$this->base/areas/{$this->area->id}", ['name' => $this->area->name, 'capacity' => 12])->assertSessionMissing('warning');
+    }
+
+    public function test_staff_cannot_manage_areas(): void
+    {
+        $this->actingAs(User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]))->get("$this->base/areas")->assertForbidden();
     }
 
     public function test_staff_can_book_but_not_change_settings(): void

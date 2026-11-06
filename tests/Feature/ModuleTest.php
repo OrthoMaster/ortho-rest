@@ -61,7 +61,7 @@ class ModuleTest extends TestCase
 
         $settings = $state->fresh()->settings;
         $this->assertSame(120, $settings['turn_minutes']);
-        $this->assertSame(30, $settings['slot_interval_minutes']);
+        $this->assertSame(30, $settings['max_advance_days']);
         $this->assertSame(1, RestaurantModule::forRestaurant($restaurant)->count());
     }
 

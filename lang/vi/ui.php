@@ -31,6 +31,11 @@ return [
         'weekdays_short' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
     ],
 
+    'number' => [
+        'increase' => 'Tăng :label',
+        'decrease' => 'Giảm :label',
+    ],
+
     'filter' => [
         'title' => 'Lọc',
         'open' => 'Mở bộ lọc',

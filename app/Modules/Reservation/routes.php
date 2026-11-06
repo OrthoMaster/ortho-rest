@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Reservation\Http\AreaController;
 use App\Modules\Reservation\Http\CustomerController;
 use App\Modules\Reservation\Http\ReservationController;
 use App\Modules\Reservation\Http\SettingsController;
@@ -18,11 +19,14 @@ Route::middleware('module:reservation')
         Route::middleware('role:owner,manager')->prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [SettingsController::class, 'edit'])->name('edit');
             Route::put('booking', [SettingsController::class, 'updateBooking'])->name('booking');
-            Route::post('closed-dates', [SettingsController::class, 'storeClosedDate'])->name('closed-dates.store');
-            Route::delete('closed-dates/{date}', [SettingsController::class, 'destroyClosedDate'])->name('closed-dates.destroy');
-            Route::post('areas', [SettingsController::class, 'storeArea'])->name('areas.store');
-            Route::put('areas/{area}', [SettingsController::class, 'updateArea'])->name('areas.update');
-            Route::delete('areas/{area}', [SettingsController::class, 'destroyArea'])->name('areas.destroy');
+        });
+
+        Route::middleware('role:owner,manager')->prefix('areas')->name('areas.')->group(function () {
+            Route::get('/', [AreaController::class, 'index'])->name('index');
+            Route::post('/', [AreaController::class, 'store'])->name('store');
+            Route::post('reorder', [AreaController::class, 'reorder'])->name('reorder');
+            Route::put('{area}', [AreaController::class, 'update'])->whereNumber('area')->name('update');
+            Route::delete('{area}', [AreaController::class, 'destroy'])->whereNumber('area')->name('destroy');
         });
 
         Route::get('{reservation}', [ReservationController::class, 'show'])->whereNumber('reservation')->name('show');

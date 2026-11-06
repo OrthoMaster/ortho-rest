@@ -754,20 +754,6 @@
         });
         discountToggle.addEventListener('change', syncDiscountMode);
 
-        discountSection.querySelectorAll('[data-number-stepper]').forEach(function (stepper) {
-            var input = stepper.querySelector('input');
-
-            stepper.addEventListener('click', function (event) {
-                var button = event.target.closest('[data-number-step]');
-
-                if (button) {
-                    var next = (Number(input.value) || 0) + Number(button.dataset.numberStep);
-
-                    input.value = Math.min(Number(input.max), Math.max(Number(input.min), next));
-                    renderOrder();
-                }
-            });
-        });
         [percentInput, amountInput].forEach(function (input) {
             if (input) {
                 input.addEventListener('input', renderOrder);
@@ -1250,6 +1236,103 @@
                 multi.close();
             });
         }
+    });
+
+    // Ô số có nút + −: bước theo step, giữ trong min và max, báo input để nơi khác tính lại.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-number-step]');
+        var stepper = button ? button.closest('[data-number-stepper]') : null;
+
+        if (!stepper) {
+            return;
+        }
+
+        var input = stepper.querySelector('input');
+        var step = Number(input.step) || 1;
+        var next = (Number(input.value) || 0) + step * Number(button.dataset.numberStep);
+
+        if (input.min !== '') {
+            next = Math.max(Number(input.min), next);
+        }
+
+        if (input.max !== '') {
+            next = Math.min(Number(input.max), next);
+        }
+
+        input.value = next;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Toggle ẩn hiện phần liên quan: data-reveal="tên" và data-reveal-for="tên".
+    // Có data-reveal-off thì hiện khi toggle tắt.
+    document.querySelectorAll('[data-reveal]').forEach(function (toggle) {
+        var sync = function () {
+            var show = toggle.hasAttribute('data-reveal-off') ? !toggle.checked : toggle.checked;
+
+            document.querySelectorAll('[data-reveal-for="' + toggle.dataset.reveal + '"]').forEach(function (section) {
+                section.hidden = !show;
+            });
+        };
+
+        toggle.addEventListener('change', sync);
+    });
+
+    // Ngày đặc biệt: đổi Đóng/Mở cửa, và danh sách ca đóng theo thứ của ngày đã chọn.
+    document.querySelectorAll('[data-special-day]').forEach(function (form) {
+        var typeInputs = form.querySelectorAll('[data-day-type]');
+        var dateInput = form.querySelector('input[name=date]');
+        var list = form.querySelector('[data-closed-shifts]');
+        var shifts = JSON.parse(list.dataset.shifts);
+        var selected = JSON.parse(list.dataset.selected);
+
+        var syncType = function () {
+            var type = form.querySelector('[data-day-type]:checked').value;
+
+            form.querySelectorAll('[data-type-section]').forEach(function (section) {
+                section.hidden = section.dataset.typeSection !== type;
+            });
+        };
+        var renderShifts = function () {
+            var date = fromIso(dateInput.value);
+            var weekday = ((date.getDay() + 6) % 7) + 1;
+            var today = shifts[weekday] || [];
+
+            list.querySelectorAll('input:checked').forEach(function (input) {
+                if (selected.indexOf(input.value) === -1) {
+                    selected.push(input.value);
+                }
+            });
+            list.textContent = '';
+
+            if (today.length === 0) {
+                var note = document.createElement('p');
+
+                note.className = 'row-note';
+                note.textContent = list.dataset.empty;
+                list.appendChild(note);
+            }
+
+            today.forEach(function (shift) {
+                var label = document.createElement('label');
+                var input = document.createElement('input');
+
+                label.className = 'check';
+                input.type = 'checkbox';
+                input.name = 'closed_shifts[]';
+                input.value = shift.key;
+                input.checked = selected.indexOf(shift.key) !== -1;
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(' ' + shift.label));
+                list.appendChild(label);
+            });
+        };
+
+        typeInputs.forEach(function (input) {
+            input.addEventListener('change', syncType);
+        });
+        dateInput.addEventListener('change', renderShifts);
+        renderShifts();
     });
 
     // Chọn giờ: giờ và phút riêng, phút mặc định bước 10.

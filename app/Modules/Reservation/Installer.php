@@ -12,10 +12,14 @@ class Installer extends ModuleInstaller
     public function defaultSettings(): array
     {
         return [
-            'min_notice_minutes' => 60,
-            'max_advance_days' => 30,
             'turn_minutes' => 90,
-            'slot_interval_minutes' => 30,
+            'online_enabled' => true,
+            'min_notice_days' => 0,
+            'max_advance_days' => 30,
+            'auto_confirm' => false,
+            // null: chưa đặt riêng, dùng tổng chỗ ngồi của các khu vực.
+            'online_seats' => null,
+            'online_seats_total' => null,
         ];
     }
 
@@ -24,7 +28,7 @@ class Installer extends ModuleInstaller
         parent::install($restaurant, $state);
 
         if (! Area::forRestaurant($restaurant)->exists()) {
-            Area::create(['restaurant_id' => $restaurant->getKey(), 'name' => __('reservation.default_area'), 'capacity' => 40]);
+            Area::create(['restaurant_id' => $restaurant->getKey(), 'name' => __('reservation.default_area'), 'capacity' => 40, 'sort_order' => 1]);
         }
     }
 }

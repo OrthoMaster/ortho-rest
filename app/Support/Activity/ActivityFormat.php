@@ -4,7 +4,6 @@ namespace App\Support\Activity;
 
 use App\Enums\UserRole;
 use BackedEnum;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -30,7 +29,6 @@ class ActivityFormat
             'long' => [__('activity.changed', ['field' => $label])],
             'image' => [__($old ? ($new ? 'activity.image_changed' : 'activity.image_removed') : 'activity.image_added')],
             'theme' => [__('activity.theme_changed')],
-            'closed_dates' => self::closedDates((array) $old, (array) $new),
             'settings' => self::settings((array) $old, (array) $new),
             default => [self::change($label, self::value($old, $kind), self::value($new, $kind))],
         };
@@ -79,21 +77,6 @@ class ActivityFormat
     private static function change(string $label, string $from, string $to): string
     {
         return __('activity.change', ['field' => $label, 'from' => $from, 'to' => $to]);
-    }
-
-    /** @return list<string> */
-    private static function closedDates(array $old, array $new): array
-    {
-        $line = fn (array $day, string $key) => __($key, [
-            'date' => CarbonImmutable::parse($day['date'])->format('d/m/Y'),
-            'note' => ($day['note'] ?? '') !== '' ? ' ('.$day['note'].')' : '',
-        ]);
-        $dates = fn (array $days) => array_column($days, null, 'date');
-
-        return [
-            ...array_map(fn ($day) => $line($day, 'activity.closed_added'), array_values(array_diff_key($dates($new), $dates($old)))),
-            ...array_map(fn ($day) => $line($day, 'activity.closed_removed'), array_values(array_diff_key($dates($old), $dates($new)))),
-        ];
     }
 
     /** @return list<string> */

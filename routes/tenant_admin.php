@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\ShiftController;
+use App\Http\Controllers\Admin\SpecialDayController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', DashboardController::class)->name('dashboard');
@@ -21,6 +22,13 @@ Route::delete('profile/devices/{device}', [DeviceController::class, 'destroy'])-
 Route::middleware('role:owner')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
     Route::get('activity', [ActivityController::class, 'index'])->name('activity');
+
+    Route::get('special-days', [SpecialDayController::class, 'index'])->name('special-days.index');
+    Route::get('special-days/create', [SpecialDayController::class, 'create'])->name('special-days.create');
+    Route::post('special-days', [SpecialDayController::class, 'store'])->name('special-days.store');
+    Route::get('special-days/{specialDay}/edit', [SpecialDayController::class, 'edit'])->whereNumber('specialDay')->name('special-days.edit');
+    Route::put('special-days/{specialDay}', [SpecialDayController::class, 'update'])->whereNumber('specialDay')->name('special-days.update');
+    Route::delete('special-days/{specialDay}', [SpecialDayController::class, 'destroy'])->whereNumber('specialDay')->name('special-days.destroy');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
 

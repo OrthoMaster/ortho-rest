@@ -56,8 +56,6 @@ return [
     'discount_percent' => 'Giảm bao nhiêu %',
     'discount_amount' => 'Giảm bao nhiêu nghìn đồng',
     'thousands_suffix' => '.000 ₫',
-    'increase_value' => 'Tăng mức giảm',
-    'decrease_value' => 'Giảm mức giảm',
     'discount_percent_label' => 'giảm :value%',
     'discount_amount_label' => 'giảm :amount',
     'code' => 'Mã giảm giá',

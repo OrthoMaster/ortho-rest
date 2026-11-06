@@ -15,7 +15,13 @@ class Area extends Model
 
     protected function casts(): array
     {
-        return ['online_bookable' => 'boolean', 'is_active' => 'boolean'];
+        return ['is_active' => 'boolean'];
+    }
+
+    /** Tổng chỗ ngồi của các khu vực đang dùng. */
+    public static function totalSeats(): int
+    {
+        return (int) self::where('is_active', true)->sum('capacity');
     }
 
     public function reservations(): HasMany
@@ -35,6 +41,6 @@ class Area extends Model
 
     public function activityFields(): array
     {
-        return ['name' => 'text', 'capacity' => 'plain', 'online_bookable' => 'bool', 'is_active' => 'bool'];
+        return ['name' => 'text', 'capacity' => 'plain', 'is_active' => 'bool'];
     }
 }

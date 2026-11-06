@@ -107,8 +107,9 @@ class DatabaseSeeder extends Seeder
         MenuItem::where('name', 'Bún chả')->first()->syncTags([$tags['Must-try']]);
 
         $inside = Area::first();
-        Area::create(['name' => 'Ngoài sân', 'capacity' => 20]);
-        Area::create(['name' => 'Lầu 1', 'capacity' => 30, 'online_bookable' => false]);
+        Area::create(['name' => 'Ngoài sân', 'capacity' => 20, 'sort_order' => 2]);
+        Area::create(['name' => 'Lầu 1', 'capacity' => 30, 'sort_order' => 3]);
+        $modules->updateSettings($restaurant, 'reservation', ['online_seats' => 60, 'online_seats_total' => 90]);
 
         $booking = app(ReservationBooking::class);
         $today = today();

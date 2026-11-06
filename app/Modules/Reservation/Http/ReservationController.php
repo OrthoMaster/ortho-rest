@@ -26,7 +26,7 @@ class ReservationController extends Controller
 
     public function index(Request $request): View
     {
-        $areas = Area::orderBy('name')->get();
+        $areas = Area::orderBy('sort_order')->orderBy('id')->get();
         $statuses = filter_values('status', array_column(ReservationStatus::cases(), 'value'));
         $areaIds = filter_values('area', $areas->pluck('id')->all());
 
@@ -147,6 +147,6 @@ class ReservationController extends Controller
 
     private function activeAreas()
     {
-        return Area::where('is_active', true)->orderBy('name')->get();
+        return Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
     }
 }

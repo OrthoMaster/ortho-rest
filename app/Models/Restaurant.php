@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RestaurantStatus;
 use App\Enums\ShiftType;
+use App\Enums\SpecialDayType;
 use App\Enums\UserRole;
 use App\Modules\ModuleManager;
 use App\Support\Activity\RecordsActivity;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'timezone', 'theme', 'closed_dates'])]
+#[Fillable(['name', 'slug', 'timezone', 'theme'])]
 class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
@@ -28,7 +29,6 @@ class Restaurant extends Model
         return [
             'status' => RestaurantStatus::class,
             'theme' => 'array',
-            'closed_dates' => 'array',
         ];
     }
 
@@ -62,14 +62,26 @@ class Restaurant extends Model
             ->value('domain');
     }
 
-    /** Quán chưa khai ca mở cửa thì coi như mở cả ngày. Khoảng giờ phải nằm trọn trong một ca. */
+    /**
+     * Khoảng giờ phải nằm trọn trong một ca mở cửa. Quán chưa khai ca nào thì
+     * coi như mở cả ngày. Ngày đặc biệt được xét trước lịch thường.
+     */
     public function isOpenBetween(CarbonInterface $start, CarbonInterface $end): bool
     {
-        if (collect($this->closed_dates)->contains('date', $start->toDateString())) {
+        $special = SpecialDay::forRestaurant($this)->whereDate('date', $start->toDateString())->first();
+
+        if ($special?->type === SpecialDayType::Open) {
+            return $special->covers($start, $end);
+        }
+
+        if ($special && ($special->isWholeDay() || $special->overlaps($start, $end))) {
             return false;
         }
 
-        $shifts = Shift::forRestaurant($this)->where('type', ShiftType::Opening)->get();
+        $shifts = Shift::forRestaurant($this)->where('type', ShiftType::Opening)->get()
+            ->reject(fn (Shift $shift): bool => $special !== null
+                && $shift->weekday === $start->dayOfWeekIso
+                && $special->includesShift($shift));
 
         return $shifts->isEmpty() || $shifts->contains(fn (Shift $shift): bool => $shift->covers($start, $end));
     }
@@ -111,7 +123,7 @@ class Restaurant extends Model
 
     public function activityFields(): array
     {
-        return ['name' => 'text', 'slug' => 'plain', 'status' => 'plain', 'theme' => 'theme', 'closed_dates' => 'closed_dates'];
+        return ['name' => 'text', 'slug' => 'plain', 'status' => 'plain', 'theme' => 'theme'];
     }
 
     protected function activityActions(): array

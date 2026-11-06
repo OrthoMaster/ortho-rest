@@ -5,6 +5,7 @@ namespace App\Modules\Reservation\Http;
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Reservation\ReservationBooking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,86 +16,47 @@ class SettingsController extends Controller
 
     public function edit(): View
     {
+        $settings = $this->modules->settings(tenant(), 'reservation');
+        $total = Area::totalSeats();
+        $savedTotal = $settings['online_seats_total'] ?? null;
+
         return view('modules.reservation.settings', [
-            'restaurant' => tenant(),
-            'settings' => $this->modules->settings(tenant(), 'reservation'),
-            'areas' => Area::orderBy('name')->get(),
+            'settings' => $settings,
+            'total' => $total,
+            'onlineSeats' => ReservationBooking::onlineSeats($settings),
+            // Tổng chỗ ngồi đã đổi kể từ lần lưu số chỗ online trước.
+            'totalChangedFrom' => $savedTotal !== null && (int) $savedTotal !== $total ? (int) $savedTotal : null,
         ]);
     }
 
     public function updateBooking(Request $request): RedirectResponse
     {
-        $this->modules->updateSettings(tenant(), 'reservation', $request->validate([
-            'min_notice_minutes' => ['required', 'integer', 'min:0', 'max:10080'],
-            'max_advance_days' => ['required', 'integer', 'min:1', 'max:365'],
+        $total = Area::totalSeats();
+        $online = $request->boolean('online_enabled');
+
+        $data = $request->validate([
             'turn_minutes' => ['required', 'integer', 'min:15', 'max:600'],
-            'slot_interval_minutes' => ['required', 'integer', 'min:5', 'max:120'],
-        ]));
-
-        return back()->with('status', __('reservation.settings_saved'));
-    }
-
-    public function storeClosedDate(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d'],
-            'note' => ['nullable', 'string', 'max:255'],
+            'min_notice_days' => [$online ? 'required' : 'nullable', 'integer', 'min:0', 'max:60'],
+            'max_advance_days' => [$online ? 'required' : 'nullable', 'integer', 'min:1', 'max:365', 'gte:min_notice_days'],
+            'online_seats' => [$online ? 'required' : 'nullable', 'integer', 'min:1', 'max:'.max(1, $total)],
+        ], [
+            'online_seats.max' => __('reservation.online_seats_over', ['total' => $total]),
+            'max_advance_days.gte' => __('reservation.max_before_min'),
         ]);
 
-        $dates = collect(tenant()->closed_dates)->reject(fn ($closed) => $closed['date'] === $data['date']);
+        $current = $this->modules->settings(tenant(), 'reservation');
 
-        tenant()->update(['closed_dates' => $dates->push($data)->sortBy('date')->values()->all()]);
-
-        return back()->with('status', __('reservation.settings_saved'));
-    }
-
-    public function destroyClosedDate(string $date): RedirectResponse
-    {
-        tenant()->update(['closed_dates' => collect(tenant()->closed_dates)
-            ->reject(fn ($closed) => $closed['date'] === $date)
-            ->values()
-            ->all()]);
-
-        return back()->with('status', __('reservation.settings_saved'));
-    }
-
-    public function storeArea(Request $request): RedirectResponse
-    {
-        Area::create($this->validatedArea($request));
-
-        return back()->with('status', __('reservation.area_saved'));
-    }
-
-    public function updateArea(Request $request, Area $area): RedirectResponse
-    {
-        $area->update($this->validatedArea($request));
-
-        return back()->with('status', __('reservation.area_saved'));
-    }
-
-    public function destroyArea(Area $area): RedirectResponse
-    {
-        if ($area->reservations()->exists()) {
-            return back()->with('error', __('reservation.area_in_use'));
-        }
-
-        $area->delete();
-
-        return back()->with('status', __('reservation.area_deleted'));
-    }
-
-    /** @return array<string, mixed> */
-    private function validatedArea(Request $request): array
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'capacity' => ['required', 'integer', 'min:1', 'max:10000'],
+        // Tắt đặt online thì giữ nguyên quy định cũ để bật lại không phải nhập lại.
+        $this->modules->updateSettings(tenant(), 'reservation', [
+            'turn_minutes' => (int) $data['turn_minutes'],
+            'online_enabled' => $online,
+            'min_notice_days' => $online ? (int) $data['min_notice_days'] : $current['min_notice_days'],
+            'max_advance_days' => $online ? (int) $data['max_advance_days'] : $current['max_advance_days'],
+            'auto_confirm' => $online ? $request->boolean('auto_confirm') : (bool) $current['auto_confirm'],
+            'online_seats' => $online ? (int) $data['online_seats'] : $current['online_seats'],
+            'online_seats_total' => $online ? $total : $current['online_seats_total'],
         ]);
 
-        return [
-            ...$data,
-            'online_bookable' => $request->boolean('online_bookable'),
-            'is_active' => $request->boolean('is_active'),
-        ];
+        return back()->with('status', __('reservation.settings_saved'));
     }
 }

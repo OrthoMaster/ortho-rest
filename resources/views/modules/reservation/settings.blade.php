@@ -7,84 +7,63 @@
 
     @include('modules.reservation.subnav')
 
-    <section class="panel">
-        <h2>{{ __('reservation.areas') }}</h2>
-        @if ($areas->isNotEmpty())
-            <ul class="rows">
-                @foreach ($areas as $area)
-                    <li>
-                        <form method="post" action="{{ route('tenant.admin.reservation.settings.areas.update', $area) }}" class="inline-form area-form">
-                            @csrf
-                            @method('put')
-                            <input name="name" value="{{ $area->name }}" aria-label="{{ __('reservation.area_name') }}" required>
-                            <input class="input-short" type="number" name="capacity" min="1" value="{{ $area->capacity }}" aria-label="{{ __('reservation.area_capacity') }}" required>
-                            <label class="check"><input type="checkbox" name="online_bookable" value="1" @checked($area->online_bookable)> {{ __('reservation.area_online') }}</label>
-                            <label class="check"><input type="checkbox" name="is_active" value="1" @checked($area->is_active)> {{ __('reservation.area_active') }}</label>
-                            <button class="btn btn-quiet btn-sm" type="submit">{{ __('ui.common.save') }}</button>
-                        </form>
-                        <form method="post" action="{{ route('tenant.admin.reservation.settings.areas.destroy', $area) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('reservation.area_delete_confirm', ['name' => $area->name]) }}">
-                            @csrf
-                            @method('delete')
-                            <button class="link link-danger" type="submit">{{ __('reservation.area_delete') }}</button>
-                        </form>
-                    </li>
-                @endforeach
-            </ul>
-        @endif
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.areas.store') }}" class="inline-form">
-            @csrf
-            <input name="name" placeholder="{{ __('reservation.area_example') }}" aria-label="{{ __('reservation.area_name') }}" required>
-            <input class="input-short" type="number" name="capacity" min="1" placeholder="{{ __('reservation.area_capacity') }}" aria-label="{{ __('reservation.area_capacity') }}" required>
-            <input type="hidden" name="online_bookable" value="1">
-            <input type="hidden" name="is_active" value="1">
-            <button class="btn btn-quiet" type="submit">{{ __('reservation.area_add') }}</button>
-        </form>
-        <p class="row-note">{{ __('reservation.area_hint') }}</p>
-    </section>
+    <form method="post" action="{{ route('tenant.admin.reservation.settings.booking') }}" class="stack settings-stack" data-guard>
+        @csrf
+        @method('put')
 
-    <section class="panel">
-        <h2>{{ __('reservation.hours') }}</h2>
-        <p class="row-note">{{ __('reservation.hours_moved') }}</p>
-        @if (auth()->user()->role === \App\Enums\UserRole::Owner)
-            <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.shifts.index', \App\Enums\ShiftType::Opening) }}">{{ __('reservation.hours_open') }}</a>
-        @endif
-    </section>
+        <section class="panel stack">
+            <h2>{{ __('reservation.general') }}</h2>
+            @include('partials.number-stepper', ['name' => 'turn_minutes', 'label' => __('reservation.turn_label'), 'value' => $settings['turn_minutes'],
+                'min' => 15, 'max' => 600, 'step' => 15, 'suffix' => __('reservation.unit_minutes'), 'hint' => __('reservation.turn_hint')])
+        </section>
 
-    <section class="panel">
-        <h2>{{ __('reservation.closed_dates') }}</h2>
-        @if ($restaurant->closed_dates)
-            <ul class="rows">
-                @foreach ($restaurant->closed_dates as $closed)
-                    <li>
-                        <span class="row-name">{{ \Carbon\Carbon::parse($closed['date'])->format('d/m/Y') }}</span>
-                        @if ($closed['note'] ?? null)<span class="row-note">{{ $closed['note'] }}</span>@endif
-                        <form method="post" action="{{ route('tenant.admin.reservation.settings.closed-dates.destroy', $closed['date']) }}">
-                            @csrf
-                            @method('delete')
-                            <button class="link link-danger" type="submit">{{ __('reservation.area_delete') }}</button>
-                        </form>
-                    </li>
-                @endforeach
-            </ul>
-        @endif
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.closed-dates.store') }}" class="inline-form">
-            @csrf
-            <input class="input-date" type="date" name="date" aria-label="{{ __('reservation.date') }}" required>
-            <input name="note" placeholder="{{ __('reservation.closed_note') }}" aria-label="{{ __('reservation.closed_note') }}">
-            <button class="btn btn-quiet" type="submit">{{ __('reservation.closed_add') }}</button>
-        </form>
-    </section>
+        @php($online = (bool) old('online_enabled', $settings['online_enabled']))
+        <section class="panel stack">
+            <div class="panel-head">
+                <h2 id="online-title">{{ __('reservation.online') }}</h2>
+                <input type="checkbox" name="online_enabled" value="1" aria-labelledby="online-title" data-reveal="online" @checked($online)>
+            </div>
+            <p class="row-note">{{ __('reservation.online_hint') }}</p>
+        </section>
 
-    <section class="panel">
-        <h2>{{ __('reservation.booking_rules') }}</h2>
-        <form method="post" action="{{ route('tenant.admin.reservation.settings.booking') }}" class="stack narrow" data-guard>
-            @csrf
-            @method('put')
-            @include('partials.field', ['name' => 'turn_minutes', 'type' => 'number', 'label' => __('reservation.turn_minutes'), 'value' => $settings['turn_minutes']])
-            @include('partials.field', ['name' => 'min_notice_minutes', 'type' => 'number', 'label' => __('reservation.min_notice_minutes'), 'value' => $settings['min_notice_minutes']])
-            @include('partials.field', ['name' => 'max_advance_days', 'type' => 'number', 'label' => __('reservation.max_advance_days'), 'value' => $settings['max_advance_days']])
-            @include('partials.field', ['name' => 'slot_interval_minutes', 'type' => 'number', 'label' => __('reservation.slot_interval_minutes'), 'value' => $settings['slot_interval_minutes']])
+        <section class="panel stack" data-reveal-for="online" @unless ($online) hidden @endunless>
+            <h2>{{ __('reservation.online_rules') }}</h2>
+            @include('partials.number-stepper', ['name' => 'min_notice_days', 'label' => __('reservation.min_notice_days'), 'value' => $settings['min_notice_days'],
+                'min' => 0, 'max' => 60, 'suffix' => __('reservation.unit_days'), 'hint' => __('reservation.min_notice_hint')])
+            @include('partials.number-stepper', ['name' => 'max_advance_days', 'label' => __('reservation.max_advance_label'), 'value' => $settings['max_advance_days'],
+                'min' => 1, 'max' => 365, 'suffix' => __('reservation.unit_days')])
+            <div class="field">
+                <label class="check"><input type="checkbox" name="auto_confirm" value="1" @checked(old('auto_confirm', $settings['auto_confirm']))> {{ __('reservation.auto_confirm') }}</label>
+                <small>{{ __('reservation.auto_confirm_hint') }}</small>
+            </div>
+        </section>
+
+        <section class="panel stack" data-reveal-for="online" @unless ($online) hidden @endunless>
+            <h2>{{ __('reservation.online_seats') }}</h2>
+            @if ($totalChangedFrom !== null)
+                <p class="flash flash-warn" role="status">{{ __('reservation.total_changed_since', ['from' => $totalChangedFrom, 'to' => $total]) }}</p>
+            @endif
+            @if ($total === 0)
+                <p class="row-note">{{ __('reservation.need_area_seats') }} <a href="{{ route('tenant.admin.reservation.areas.index') }}">{{ __('reservation.areas') }}</a></p>
+            @else
+                @include('partials.number-stepper', ['name' => 'online_seats', 'label' => __('reservation.online_seats_label'), 'value' => $onlineSeats,
+                    'min' => 1, 'max' => $total, 'suffix' => __('reservation.of_total', ['total' => $total]), 'hint' => __('reservation.online_seats_hint')])
+            @endif
+        </section>
+
+        <section class="panel stack">
+            <h2>{{ __('reservation.hours') }}</h2>
+            <p class="row-note">{{ __('reservation.hours_moved') }}</p>
+            @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+                <div class="inline-form">
+                    <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.shifts.index', \App\Enums\ShiftType::Opening) }}">{{ __('reservation.hours_open') }}</a>
+                    <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.special-days.index') }}">{{ __('special_days.title') }}</a>
+                </div>
+            @endif
+        </section>
+
+        <div>
             <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
-        </form>
-    </section>
+        </div>
+    </form>
 @endsection
