@@ -22,7 +22,21 @@ return [
         'weekdays' => [
             'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật',
         ],
+        'range' => 'Khoảng ngày',
+        'range_start' => 'Chọn ngày bắt đầu',
+        'range_end' => 'Chọn ngày kết thúc, tối đa :days ngày',
+        'last_days' => ':days ngày',
+        'previous_range' => 'Khoảng trước',
+        'next_range' => 'Khoảng sau',
         'weekdays_short' => ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    ],
+
+    'filter' => [
+        'title' => 'Lọc',
+        'open' => 'Mở bộ lọc',
+        'apply' => 'Áp dụng',
+        'clear' => 'Xoá lọc',
+        'remove' => 'Bỏ lọc :label',
     ],
 
     'time' => [

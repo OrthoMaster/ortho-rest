@@ -9,34 +9,23 @@
 
     <p class="lead">{{ __('activity.lead') }}</p>
 
-    <div class="filters">
-    <div class="date-tools">
-        @if ($date)
-            @include('partials.date-nav', ['date' => $date])
-            <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['date' => null, 'page' => null]) }}">{{ __('activity.all_days') }}</a>
-        @else
-            <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['date' => today()->toDateString(), 'page' => null]) }}">{{ __('activity.by_day') }}</a>
-        @endif
-    </div>
-    <form method="get" class="inline-form">
-        @if ($date)
-            <input type="hidden" name="date" value="{{ $date->toDateString() }}">
-        @endif
-        <select name="area" aria-label="{{ __('activity.filter_area') }}" onchange="this.form.submit()">
-            <option value="">{{ __('activity.all_areas') }}</option>
-            @foreach (\App\Models\ActivityLog::AREAS as $key)
-                <option value="{{ $key }}" @selected($area === $key)>{{ __('activity.areas.'.$key) }}</option>
-            @endforeach
-        </select>
-        <select name="user" aria-label="{{ __('activity.filter_user') }}" onchange="this.form.submit()">
-            <option value="">{{ __('activity.all_users') }}</option>
-            @foreach ($users as $user)
-                <option value="{{ $user->id }}" @selected($userId === $user->id)>{{ $user->name }}</option>
-            @endforeach
-        </select>
-        <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.super.search_submit') }}</button></noscript>
-    </form>
-    </div>
+    @php($keep = ['from' => $from->toDateString(), 'to' => $to->toDateString()])
+    @php($pills = [])
+    @if ($area)
+        @php($pills[] = ['label' => __('activity.areas.'.$area), 'url' => request()->fullUrlWithQuery(['area' => null, 'page' => null])])
+    @endif
+    @if ($userId)
+        @php($pills[] = ['label' => $users->firstWhere('id', $userId)->name, 'url' => request()->fullUrlWithQuery(['user' => null, 'page' => null])])
+    @endif
+    @component('partials.filter-bar', ['id' => 'activity', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
+        @slot('date')
+            @include('partials.date-range-nav', ['from' => $from, 'to' => $to, 'max' => today()->toDateString(), 'maxDays' => \App\Http\Controllers\Admin\ActivityController::MAX_DAYS])
+        @endslot
+        @include('partials.filter-field', ['name' => 'area', 'label' => __('activity.filter_area'), 'all' => __('activity.all_areas'), 'value' => $area,
+            'options' => collect(\App\Models\ActivityLog::AREAS)->mapWithKeys(fn ($key) => [$key => __('activity.areas.'.$key)])->all()])
+        @include('partials.filter-field', ['name' => 'user', 'label' => __('activity.filter_user'), 'all' => __('activity.all_users'), 'value' => $userId,
+            'options' => $users->pluck('name', 'id')->all()])
+    @endcomponent
 
     @if ($logs->isEmpty())
         <p class="empty">{{ __('activity.none') }}</p>

@@ -972,6 +972,161 @@
         text.textContent = label(value.value);
     });
 
+    // Chọn khoảng ngày: bấm ngày đầu rồi ngày cuối, không dài quá data-max-days.
+    document.querySelectorAll('[data-date-range]').forEach(function (picker) {
+        var fromInput = picker.querySelector('[data-range-from]');
+        var toInput = picker.querySelector('[data-range-to]');
+        var text = picker.querySelector('[data-date-text]');
+        var dialog = picker.querySelector('[data-date-dialog]');
+        var days = picker.querySelector('[data-month-days]');
+        var title = picker.querySelector('[data-month-title]');
+        var status = picker.querySelector('[data-range-status]');
+        var weekdays = JSON.parse(picker.dataset.weekdays);
+        var todayIso = picker.dataset.today;
+        var max = picker.dataset.max;
+        var maxDays = Number(picker.dataset.maxDays);
+        var shown = fromIso(toInput.value);
+        var start = null;
+
+        var addDays = function (iso, count) {
+            var date = fromIso(iso);
+
+            return toIso(new Date(date.getFullYear(), date.getMonth(), date.getDate() + count));
+        };
+        var short = function (iso) {
+            var date = fromIso(iso);
+
+            return pad(date.getDate()) + '/' + pad(date.getMonth() + 1);
+        };
+        var label = function (from, to) {
+            if (from !== to) {
+                return short(from) + ' – ' + short(to);
+            }
+
+            var name = weekdays[(fromIso(from).getDay() + 6) % 7] + ' ' + short(from);
+
+            return from === todayIso ? picker.dataset.todayLabel + ', ' + name : name;
+        };
+
+        var renderMonth = function () {
+            var first = new Date(shown.getFullYear(), shown.getMonth(), 1);
+            var count = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
+            var low = start ? start : fromInput.value;
+            var high = start ? start : toInput.value;
+
+            title.textContent = picker.dataset.monthLabel.replace(':month', shown.getMonth() + 1).replace(':year', shown.getFullYear());
+            picker.querySelector('[data-month-step="1"]').disabled = Boolean(max) && toIso(first).slice(0, 7) >= max.slice(0, 7);
+            status.textContent = start ? picker.dataset.endHint : picker.dataset.startHint;
+            days.textContent = '';
+
+            for (var blank = 0; blank < (first.getDay() + 6) % 7; blank++) {
+                days.appendChild(document.createElement('span'));
+            }
+
+            for (var day = 1; day <= count; day++) {
+                var iso = toIso(new Date(shown.getFullYear(), shown.getMonth(), day));
+                var button = document.createElement('button');
+
+                button.type = 'button';
+                button.textContent = day;
+                button.dataset.date = iso;
+                button.disabled = (max && iso > max)
+                    || (start !== null && (iso > addDays(start, maxDays - 1) || iso < addDays(start, 1 - maxDays)));
+                button.classList.toggle('is-today', iso === todayIso);
+                button.classList.toggle('is-selected', iso === low || iso === high);
+                button.classList.toggle('in-range', iso > low && iso < high);
+                button.setAttribute('aria-label', label(iso, iso));
+                days.appendChild(button);
+            }
+        };
+
+        var commit = function (from, to) {
+            fromInput.value = from;
+            toInput.value = to;
+            text.textContent = label(from, to);
+            start = null;
+            dialog.close();
+            toInput.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        picker.querySelector('[data-date-trigger]').addEventListener('click', function () {
+            start = null;
+            shown = fromIso(toInput.value);
+            renderMonth();
+            dialog.showModal();
+        });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+
+                return;
+            }
+
+            var step = event.target.closest('[data-month-step]');
+            var day = event.target.closest('[data-date]');
+            var shortcut = event.target.closest('[data-range-shortcut]');
+
+            if (step) {
+                shown = new Date(shown.getFullYear(), shown.getMonth() + Number(step.dataset.monthStep), 1);
+                renderMonth();
+            } else if (day && start === null) {
+                start = day.dataset.date;
+                renderMonth();
+            } else if (day) {
+                commit(day.dataset.date < start ? day.dataset.date : start, day.dataset.date < start ? start : day.dataset.date);
+            } else if (shortcut) {
+                commit(addDays(todayIso, -Number(shortcut.dataset.rangeShortcut)), todayIso);
+            }
+        });
+
+        text.textContent = label(fromInput.value, toInput.value);
+    });
+
+    // Thanh lọc: máy tính đổi là lọc ngay; điện thoại mở bảng lọc rồi bấm Áp dụng.
+    var narrow = window.matchMedia('(max-width: 760px)');
+
+    document.querySelectorAll('[data-filter-bar]').forEach(function (bar) {
+        var form = bar.querySelector('[data-filter-form]');
+        var openers = bar.querySelectorAll('[data-filter-open]');
+        var setOpen = function (open) {
+            bar.classList.toggle('is-open', open);
+            document.body.classList.toggle('filter-open', open);
+            openers.forEach(function (button) {
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+
+            if (open) {
+                var first = form.querySelector('select, input:not([type=hidden])');
+
+                if (first) {
+                    first.focus({ preventScroll: true });
+                }
+            }
+        };
+
+        openers.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setOpen(true);
+            });
+        });
+        bar.querySelectorAll('[data-filter-close]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                setOpen(false);
+            });
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && bar.classList.contains('is-open')) {
+                setOpen(false);
+            }
+        });
+        form.addEventListener('change', function () {
+            if (!narrow.matches) {
+                form.submit();
+            }
+        });
+    });
+
     // Chọn giờ: giờ và phút riêng, phút mặc định bước 10.
     document.querySelectorAll('[data-time-picker]').forEach(function (picker) {
         var value = picker.querySelector('[data-time-value]');

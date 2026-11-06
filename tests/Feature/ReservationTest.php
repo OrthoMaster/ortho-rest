@@ -274,7 +274,7 @@ class ReservationTest extends TestCase
 
         $this->get("$list?all=1")
             ->assertOk()
-            ->assertSee(__('reservation.show_by_day'))
+            ->assertSee(__('reservation.all_days'))
             ->assertDontSee('data-date-picker', false)
             ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Thứ năm 03/12', 'Thứ sáu 20/11']);
     }

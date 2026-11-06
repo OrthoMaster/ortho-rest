@@ -11,36 +11,34 @@
     @include('modules.reservation.subnav')
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
-    <div class="filters">
-        <div class="date-tools">
+    @php($keep = $showAll ? [] : ['date' => $date->toDateString()])
+    @php($pills = [])
+    @if ($showAll)
+        @php($pills[] = ['label' => __('reservation.all_days'), 'url' => request()->fullUrlWithQuery(['all' => null, 'page' => null])])
+    @endif
+    @if ($status)
+        @php($pills[] = ['label' => $status->label(), 'url' => request()->fullUrlWithQuery(['status' => null, 'page' => null])])
+    @endif
+    @if ($areaId)
+        @php($pills[] = ['label' => $areas->firstWhere('id', $areaId)?->name, 'url' => request()->fullUrlWithQuery(['area' => null, 'page' => null])])
+    @endif
+    @component('partials.filter-bar', ['id' => 'reservation', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
+        @slot('date')
             @if ($showAll)
-                <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['all' => null, 'page' => null]) }}">{{ __('reservation.show_by_day') }}</a>
+                <button class="picker-trigger all-days" type="button" data-filter-open>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>
+                    <span>{{ __('reservation.all_days') }}</span>
+                </button>
             @else
                 @include('partials.date-nav', ['date' => $date])
-                <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['all' => 1, 'date' => null, 'page' => null]) }}">{{ __('reservation.show_all') }}</a>
             @endif
-        </div>
-        <form method="get" class="inline-form">
-            @if ($showAll)
-                <input type="hidden" name="all" value="1">
-            @else
-                <input type="hidden" name="date" value="{{ $date->toDateString() }}">
-            @endif
-            <select name="status" aria-label="{{ __('reservation.filter_status') }}" onchange="this.form.submit()">
-                <option value="">{{ __('reservation.all_statuses') }}</option>
-                @foreach (\App\Modules\Reservation\ReservationStatus::cases() as $case)
-                    <option value="{{ $case->value }}" @selected($status === $case)>{{ $case->label() }}</option>
-                @endforeach
-            </select>
-            <select name="area" aria-label="{{ __('reservation.filter_area') }}" onchange="this.form.submit()">
-                <option value="">{{ __('reservation.all_areas') }}</option>
-                @foreach ($areas as $area)
-                    <option value="{{ $area->id }}" @selected($areaId === $area->id)>{{ $area->name }}</option>
-                @endforeach
-            </select>
-            <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.super.search_submit') }}</button></noscript>
-        </form>
-    </div>
+        @endslot
+        <label class="check"><input type="checkbox" name="all" value="1" @checked($showAll)> {{ __('reservation.show_all') }}</label>
+        @include('partials.filter-field', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'value' => $status?->value,
+            'options' => collect(\App\Modules\Reservation\ReservationStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all()])
+        @include('partials.filter-field', ['name' => 'area', 'label' => __('reservation.filter_area'), 'all' => __('reservation.all_areas'), 'value' => $areaId,
+            'options' => $areas->pluck('name', 'id')->all()])
+    @endcomponent
 
     @if ($showAll)
         <p class="lead">{{ __('reservation.all_summary', ['count' => $reservations->total()]) }}</p>

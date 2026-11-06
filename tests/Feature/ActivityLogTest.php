@@ -138,23 +138,34 @@ class ActivityLogTest extends TestCase
         $this->get("$this->admin/restaurant/activity?user={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
     }
 
-    public function test_logs_can_be_filtered_by_day(): void
+    public function test_logs_show_today_by_default_and_a_range_up_to_31_days(): void
     {
-        $this->travelTo(now()->subDays(2));
-        ActivityLog::record($this->restaurant->id, 'menu', 'Việc hôm kia');
-        $this->travelBack();
+        foreach ([40, 2] as $daysAgo) {
+            $this->travelTo(now()->subDays($daysAgo));
+            ActivityLog::record($this->restaurant->id, 'menu', "Việc $daysAgo ngày trước");
+            $this->travelBack();
+        }
         ActivityLog::record($this->restaurant->id, 'menu', 'Việc hôm nay');
         $page = "$this->admin/restaurant/activity";
+        $day = fn (int $ago) => now()->subDays($ago)->toDateString();
 
-        $this->actingAs($this->owner)->get($page)->assertSee('Việc hôm kia')->assertSee('Việc hôm nay')->assertSee(__('activity.by_day'));
+        $this->actingAs($this->owner)->get($page)
+            ->assertSee('Việc hôm nay')
+            ->assertDontSee('Việc 2 ngày trước')
+            ->assertSee('data-date-range', false);
 
-        $this->get("$page?date=".now()->subDays(2)->toDateString())
-            ->assertSee('Việc hôm kia')
-            ->assertDontSee('Việc hôm nay')
-            ->assertSee('data-date-picker', false)
-            ->assertSee(__('activity.all_days'));
+        $this->get("$page?from={$day(2)}&to={$day(2)}")->assertSee('Việc 2 ngày trước')->assertDontSee('Việc hôm nay');
 
-        $this->get("$page?date=khong-phai-ngay")->assertOk()->assertSee('Việc hôm nay');
+        // Xin 60 ngày thì chỉ lấy 31 ngày cuối.
+        $this->get("$page?from={$day(60)}&to={$day(0)}")
+            ->assertSee('Việc hôm nay')
+            ->assertSee('Việc 2 ngày trước')
+            ->assertDontSee('Việc 40 ngày trước')
+            ->assertSee('name="from" value="'.$day(30).'"', false);
+
+        // Đảo ngày đầu và cuối thì tự sắp lại; ngày sai thì về hôm nay.
+        $this->get("$page?from={$day(0)}&to={$day(2)}")->assertSee('Việc 2 ngày trước')->assertSee('Việc hôm nay');
+        $this->get("$page?from=khong-phai-ngay")->assertOk()->assertSee('Việc hôm nay')->assertDontSee('Việc 2 ngày trước');
     }
 
     public function test_logs_of_another_restaurant_are_not_shown(): void

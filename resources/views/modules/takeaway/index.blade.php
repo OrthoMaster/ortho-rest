@@ -11,19 +11,15 @@
     @include('modules.takeaway.subnav')
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
-    <div class="filters">
-        @include('partials.date-nav', ['date' => $date])
-        <form method="get" class="inline-form">
-            <input type="hidden" name="date" value="{{ $date->toDateString() }}">
-            <select name="status" aria-label="{{ __('reservation.filter_status') }}" onchange="this.form.submit()">
-                <option value="">{{ __('reservation.all_statuses') }}</option>
-                @foreach (\App\Modules\Takeaway\OrderStatus::cases() as $case)
-                    <option value="{{ $case->value }}" @selected($status === $case)>{{ $case->label() }}</option>
-                @endforeach
-            </select>
-            <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.super.search_submit') }}</button></noscript>
-        </form>
-    </div>
+    @php($keep = ['date' => $date->toDateString()])
+    @php($pills = $status ? [['label' => $status->label(), 'url' => request()->fullUrlWithQuery(['status' => null])]] : [])
+    @component('partials.filter-bar', ['id' => 'takeaway', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
+        @slot('date')
+            @include('partials.date-nav', ['date' => $date])
+        @endslot
+        @include('partials.filter-field', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'value' => $status?->value,
+            'options' => collect(\App\Modules\Takeaway\OrderStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all()])
+    @endcomponent
 
     @if ($orders->isEmpty())
         <p class="empty">{{ __('takeaway.empty') }}</p>

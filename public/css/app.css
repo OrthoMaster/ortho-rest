@@ -562,7 +562,42 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .pagination { display: flex; gap: 1rem; }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--ink-soft); background: var(--surface); border: 1px dashed var(--field-line); border-radius: var(--radius); }
 
+/* Thanh lọc chung: máy tính một hàng, điện thoại hàng ngày + nút Lọc mở bảng từ dưới lên. */
+.filter-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; }
+.filter-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.filter-toggle, .filter-head, .filter-foot, .filter-backdrop, .filter-pills { display: none; }
+.filter-panel, .filter-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; }
+.filter-field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.filter-field select { width: auto; }
+.filter-fields .check { white-space: nowrap; }
+.btn.is-disabled { opacity: .4; pointer-events: none; }
+.picker-trigger.all-days { width: auto; min-height: 0; padding-block: .45rem; }
+.calendar-hint { margin: .5rem 0 0; font-size: .875rem; color: var(--ink-soft); text-align: center; }
+.calendar-grid .in-range { background: var(--primary-soft); border-radius: 0; }
+
 @media (max-width: 760px) {
+    .filter-bar { display: block; }
+    .filter-top .date-nav { flex: 1 1 auto; min-width: 0; }
+    .filter-toggle { position: relative; display: inline-flex; flex: none; }
+    .filter-toggle svg { width: 1.3rem; height: 1.3rem; }
+    .filter-count { position: absolute; top: -.4rem; right: -.4rem; display: grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 .3rem; font-size: .75rem; font-weight: 700; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
+    .filter-backdrop { position: fixed; inset: 0; z-index: 39; display: block; background: rgb(23 40 56 / .45); opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .filter-panel { position: fixed; inset: auto 0 0; z-index: 40; display: grid; gap: 1rem; max-height: 85dvh; overflow: auto; padding: 1rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgb(23 40 56 / .18); transform: translateY(105%); visibility: hidden; transition: transform .22s ease, visibility 0s .22s; }
+    .filter-bar.is-open .filter-panel { transform: none; visibility: visible; transition: transform .22s ease; }
+    .filter-bar.is-open .filter-backdrop { opacity: 1; pointer-events: auto; }
+    body.filter-open { overflow: hidden; }
+    .filter-head { display: flex; justify-content: space-between; align-items: center; }
+    .filter-head strong { font-size: 1.125rem; }
+    .filter-fields { display: grid; gap: .9rem; }
+    .filter-field { display: grid; gap: .35rem; }
+    .filter-field > span { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: .875rem; font-weight: 600; }
+    .filter-field select { width: 100%; }
+    .filter-foot { display: flex; gap: .6rem; }
+    .filter-foot > * { flex: 1; justify-content: center; text-align: center; }
+    .filter-pills { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .65rem; }
+    .filter-pill { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: 0 .75rem; font-size: .875rem; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
+    .filter-pill span { font-size: .75rem; color: var(--ink-soft); }
+
     .shell { position: relative; flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
 
     .sidebar { position: sticky; top: 0; z-index: 20; display: block; padding: 0; }
