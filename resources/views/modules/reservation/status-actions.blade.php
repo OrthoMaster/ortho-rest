@@ -1,5 +1,5 @@
 <div class="status-actions">
-    @foreach ($reservation->status->next() as $next)
+    @foreach ($reservation->status->nextFor(auth()->user()) as $next)
         <form method="post" action="{{ route('tenant.admin.reservation.status', $reservation) }}">
             @csrf
             <input type="hidden" name="status" value="{{ $next->value }}">

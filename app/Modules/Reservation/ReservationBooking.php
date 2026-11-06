@@ -2,6 +2,7 @@
 
 namespace App\Modules\Reservation;
 
+use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -73,11 +74,11 @@ class ReservationBooking
     }
 
     /** @param array{area_id: int, reserved_at: mixed, party_size: int, customer_name: string, customer_phone: string, customer_email?: ?string, notes?: ?string} $data */
-    public function update(Reservation $reservation, array $data): Reservation
+    public function update(Reservation $reservation, array $data, ?User $user = null): Reservation
     {
-        return DB::transaction(function () use ($reservation, $data): Reservation {
+        return DB::transaction(function () use ($reservation, $data, $user): Reservation {
             $area = $this->lockArea($data['area_id']);
-            $reservation = Reservation::whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
+            $reservation = Reservation::whereKey($reservation->getKey())->lockForUpdate()->with(['customer', 'area'])->firstOrFail();
 
             if (! $reservation->status->holdsSeats()) {
                 throw ValidationException::withMessages(['reserved_at' => __('reservation.not_editable')]);
@@ -88,14 +89,37 @@ class ReservationBooking
 
             $this->assertSeats($area, $start, $end, (int) $data['party_size'], $reservation);
 
+            $customer = Customer::remember($data['customer_name'], $data['customer_phone'], $data['customer_email'] ?? null);
+            $changes = array_values(array_filter([
+                $customer->getKey() !== $reservation->customer_id
+                    ? __('reservation.change_customer', ['from' => $reservation->customer->name.' '.$reservation->customer->phone, 'to' => $customer->name.' '.$customer->phone]) : null,
+                ! $start->equalTo($reservation->reserved_at)
+                    ? __('reservation.change_time', ['from' => $reservation->reserved_at->format('H:i d/m'), 'to' => $start->format('H:i d/m')]) : null,
+                (int) $data['party_size'] !== $reservation->party_size
+                    ? __('reservation.change_party', ['from' => $reservation->party_size, 'to' => $data['party_size']]) : null,
+                $area->getKey() !== $reservation->area_id
+                    ? __('reservation.change_area', ['from' => $reservation->area->name, 'to' => $area->name]) : null,
+                ($data['notes'] ?? null) !== $reservation->notes ? __('reservation.change_notes') : null,
+            ]));
+
             $reservation->update([
-                'customer_id' => Customer::remember($data['customer_name'], $data['customer_phone'], $data['customer_email'] ?? null)->getKey(),
+                'customer_id' => $customer->getKey(),
                 'area_id' => $area->getKey(),
                 'reserved_at' => $start,
                 'ends_at' => $end,
                 'party_size' => $data['party_size'],
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            if ($changes !== []) {
+                $reservation->edits()->create([
+                    'restaurant_id' => $reservation->restaurant_id,
+                    'user_id' => $user?->getKey(),
+                    'changes' => $changes,
+                ]);
+
+                ActivityLog::record($reservation->restaurant_id, 'reservation', __('activity.updated', ['name' => $reservation->activityName()]), $changes, $reservation);
+            }
 
             return $reservation;
         });

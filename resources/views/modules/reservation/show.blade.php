@@ -4,7 +4,9 @@
 
 @section('content')
     <div class="page-head">
-        @component('partials.page-title', ['title' => $reservation->customer->name, 'back' => route('tenant.admin.reservation.index', ['date' => $reservation->reserved_at->toDateString()])])
+        @component('partials.page-title', ['title' => $reservation->customer->name, 'back' => back_url($reservation->reserved_at->isToday() || ! auth()->user()->can('reservation.manage')
+            ? route('tenant.admin.reservation.index')
+            : route('tenant.admin.reservation.manage', ['upcoming' => 0, 'from' => $reservation->reserved_at->toDateString(), 'to' => $reservation->reserved_at->toDateString()]))])
             <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>
         @endcomponent
         @if ($reservation->status->holdsSeats())
@@ -14,7 +16,7 @@
 
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
-    @if ($reservation->status->next())
+    @if ($reservation->status->nextFor(auth()->user()))
         <section class="panel">
             @include('modules.reservation.status-actions')
         </section>
@@ -37,7 +39,7 @@
             <dt>{{ __('reservation.source_label') }}</dt>
             <dd>{{ $reservation->source->label() }}</dd>
             <dt>{{ __('reservation.created_by') }}</dt>
-            <dd>{{ $reservation->creator?->name ?? __('reservation.created_by_customer') }}</dd>
+            <dd>{{ $reservation->creator?->name ?? __('reservation.created_by_customer') }}, {{ $reservation->created_at->format('H:i d/m/Y') }}</dd>
             @if ($reservation->notes)
                 <dt>{{ __('reservation.notes') }}</dt>
                 <dd>{{ $reservation->notes }}</dd>
@@ -47,13 +49,16 @@
 
     <section class="panel">
         <h2>{{ __('reservation.history') }}</h2>
-        <ul class="rows">
-            @foreach ($reservation->statusLogs as $log)
+        <ol class="timeline">
+            @foreach ($history as $entry)
                 <li>
-                    <span class="row-name">{{ $log->to_status->label() }}</span>
-                    <span class="row-note">{{ $log->user?->name ?? __('reservation.created_by_customer') }}, {{ $log->created_at->format('H:i d/m/Y') }}</span>
+                    <strong>{{ $entry['title'] }}</strong>
+                    @foreach ($entry['lines'] as $line)
+                        <span class="edit-line">{{ $line }}</span>
+                    @endforeach
+                    <small>{{ $entry['user']?->name ?? ($reservation->source === \App\Modules\Reservation\ReservationSource::Online ? __('reservation.created_by_customer') : __('reservation.by_system')) }}, {{ $entry['at']->format('H:i d/m/Y') }}</small>
                 </li>
             @endforeach
-        </ul>
+        </ol>
     </section>
 @endsection

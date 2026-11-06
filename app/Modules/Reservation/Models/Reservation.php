@@ -48,6 +48,11 @@ class Reservation extends Model
         return $this->hasMany(ReservationStatusLog::class)->orderBy('id');
     }
 
+    public function edits(): HasMany
+    {
+        return $this->hasMany(ReservationEdit::class)->orderBy('id');
+    }
+
     public function activityArea(): string
     {
         return 'reservation';
@@ -63,12 +68,7 @@ class Reservation extends Model
 
     public function activityFields(): array
     {
-        return [
-            'status' => 'plain',
-            'reserved_at' => 'plain',
-            'party_size' => 'plain',
-            'area_id' => ['relation', Area::class],
-            'notes' => 'long',
-        ];
+        // Sửa giờ, số khách... được ghi trong ReservationBooking::update cùng lịch sử sửa.
+        return ['status' => 'plain'];
     }
 }

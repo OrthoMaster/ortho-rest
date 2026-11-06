@@ -213,23 +213,106 @@ class ReservationTest extends TestCase
         $this->assertSame('Anh Minh', Customer::forRestaurant($this->restaurant)->sole()->name);
     }
 
-    public function test_back_returns_to_the_day_of_the_booking(): void
+    public function test_back_goes_to_today_or_to_the_day_in_manage(): void
     {
-        $reservation = $this->book(['reserved_at' => '2026-12-05T19:00']);
+        $today = $this->book();
+        $later = $this->book(['reserved_at' => '2026-12-05T19:00', 'customer_phone' => '0902222222']);
 
-        $this->get("$this->base/{$reservation->id}")->assertSee('date=2026-12-05', false);
-        $this->get("$this->base/{$reservation->id}/edit")->assertSee('href="'.url("$this->base/{$reservation->id}").'"', false);
+        $this->get("$this->base/{$today->id}")->assertSee('href="'.url($this->base).'"', false);
+        $this->get("$this->base/{$later->id}")->assertSee('from=2026-12-05', false);
+        $this->get("$this->base/{$later->id}/edit")->assertSee('href="'.url("$this->base/{$later->id}").'"', false);
     }
 
-    public function test_day_list_and_filters(): void
+    public function test_today_shows_only_accepted_bookings_of_today(): void
     {
-        $this->book(['customer_name' => 'Khách hôm nay']);
+        $this->book(['customer_name' => 'Khách đã nhận']);
+        $this->book(['customer_name' => 'Khách chờ', 'customer_phone' => '0903333333', 'party_size' => 2], ReservationSource::Online);
         $this->book(['customer_name' => 'Khách ngày mai', 'customer_phone' => '0902222222', 'reserved_at' => '2026-12-02T19:00']);
 
-        $this->get($this->base)->assertSee('Khách hôm nay')->assertDontSee('Khách ngày mai');
-        $this->get("$this->base?date=2026-12-02")->assertSee('Khách ngày mai');
-        $this->get("$this->base?status=cancelled")->assertDontSee('Khách hôm nay');
-        $this->get("$this->base?date=khong-hop-le")->assertOk();
+        $this->get($this->base)
+            ->assertSee('Khách đã nhận')
+            ->assertDontSee('Khách chờ')
+            ->assertDontSee('Khách ngày mai')
+            ->assertSee(__('reservation.pending_today', ['count' => 1]));
+    }
+
+    public function test_manage_lists_upcoming_by_default_and_filters(): void
+    {
+        $this->booked('2026-11-20 12:00', 'Khách tuần trước');
+        $this->book(['customer_name' => 'Khách hôm nay']);
+        $this->book(['customer_name' => 'Khách chờ', 'customer_phone' => '0903333333', 'party_size' => 2, 'reserved_at' => '2026-12-03T19:00'], ReservationSource::Online);
+        $manage = "$this->base/manage";
+
+        $this->get($manage)
+            ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Khách hôm nay', 'Thứ năm 03/12', 'Khách chờ'])
+            ->assertDontSee('Khách tuần trước')
+            ->assertSee('<span class="subnav-count">1</span>', false);
+
+        $this->get("$manage?upcoming=0&from=2026-11-15&to=2026-11-30")->assertSee('Khách tuần trước')->assertDontSee('Khách hôm nay');
+        $this->get("$manage?status[]=pending")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
+        $this->get("$manage?source[]=online&source[]=walk_in")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
+        $this->get("$manage?q=0903")->assertSee('Khách chờ')->assertDontSee('Khách hôm nay');
+        $this->get("$manage?q=h%C3%B4m")->assertSee('Khách hôm nay')->assertDontSee('Khách chờ');
+
+        // Khoảng dài quá 92 ngày thì cắt bớt.
+        $this->get("$manage?upcoming=0&from=2026-01-01&to=2026-12-31")->assertSee('name="to" value="2026-04-02"', false);
+    }
+
+    public function test_staff_sees_today_but_cannot_manage_or_accept(): void
+    {
+        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $pending = $this->book(['party_size' => 2], ReservationSource::Online);
+        $confirmed = $this->book(['customer_phone' => '0903333333', 'party_size' => 2]);
+
+        $this->actingAs($staff);
+        $this->get($this->base)->assertOk()->assertDontSee(__('reservation.manage'));
+        $this->get("$this->base/manage")->assertForbidden();
+
+        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed'])->assertForbidden();
+        $this->post("$this->base/{$confirmed->id}/status", ['status' => 'seated'])->assertSessionHasNoErrors();
+        $this->get("$this->base/{$pending->id}")->assertDontSee(__('reservation.action.confirmed'));
+    }
+
+    public function test_owner_can_give_manage_rights_to_staff(): void
+    {
+        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $pending = $this->book(['party_size' => 2], ReservationSource::Online);
+
+        $this->put("$this->base/settings/booking", ['turn_minutes' => 90, 'online_enabled' => 0, 'manage_roles' => ['staff']])->assertSessionHasNoErrors();
+
+        $this->actingAs($staff)->get("$this->base/manage")->assertOk();
+        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed'])->assertSessionHasNoErrors();
+
+        // Quản lý mất quyền vì chủ quán chỉ giao cho nhân viên, và không tự giao lại được.
+        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $this->actingAs($manager)->get("$this->base/manage")->assertForbidden();
+        $this->put("$this->base/settings/booking", ['turn_minutes' => 90, 'online_enabled' => 0, 'manage_roles' => ['manager']]);
+        $this->get("$this->base/manage")->assertForbidden();
+    }
+
+    public function test_history_records_who_created_changed_and_edited(): void
+    {
+        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager, 'name' => 'Quản lý Lan']);
+        $reservation = $this->book([], ReservationSource::Online);
+        $edit = $this->form(['reserved_at' => '2026-12-01T19:30', 'party_size' => 6, 'notes' => 'Ghế em bé']);
+
+        $this->actingAs($manager)->post("$this->base/{$reservation->id}/status", ['status' => 'confirmed']);
+        $this->put("$this->base/{$reservation->id}", $edit)->assertSessionHasNoErrors();
+        $this->put("$this->base/{$reservation->id}", $edit);
+
+        $this->actingInTenant($this->restaurant);
+        $saved = $reservation->edits()->sole();
+        $this->assertSame($manager->id, $saved->user_id);
+        $this->assertSame(['Giờ: 19:00 01/12 → 19:30 01/12', 'Số khách: 4 → 6', 'Đổi ghi chú'], $saved->changes);
+
+        $this->get("$this->base/{$reservation->id}")->assertSeeInOrder([
+            __('reservation.history_created', ['source' => ReservationSource::Online->label(), 'status' => ReservationStatus::Pending->label()]),
+            $this->owner->name,
+            'Chờ xác nhận → Đã xác nhận',
+            'Quản lý Lan',
+            __('reservation.history_edited'),
+            'Số khách: 4 → 6',
+        ]);
     }
 
     public function test_confirmation_mail_is_sent_only_with_an_email(): void
@@ -245,13 +328,13 @@ class ReservationTest extends TestCase
             fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'khach@mail.vn');
     }
 
-    private function booked(string $at): Reservation
+    private function booked(string $at, string $name = 'Khách'): Reservation
     {
         $restaurant = ['restaurant_id' => $this->restaurant->id];
 
         return Reservation::create([
             ...$restaurant,
-            'customer_id' => Customer::create([...$restaurant, 'name' => 'Khách', 'phone' => '09'.random_int(10000000, 99999999)])->id,
+            'customer_id' => Customer::create([...$restaurant, 'name' => $name, 'phone' => '09'.random_int(10000000, 99999999)])->id,
             'area_id' => Area::forRestaurant($this->restaurant)->first()->id,
             'reserved_at' => $at,
             'ends_at' => $at,
@@ -259,26 +342,6 @@ class ReservationTest extends TestCase
             'status' => ReservationStatus::Confirmed,
             'source' => ReservationSource::Phone,
         ]);
-    }
-
-    public function test_list_uses_the_calendar_and_can_show_all_days_grouped(): void
-    {
-        $this->booked('2026-12-01 18:00');
-        $this->booked('2026-12-03 19:00');
-        $this->booked('2026-11-20 12:00');
-
-        $list = "/{$this->restaurant->slug}/admin/reservations";
-
-        $this->get($list)
-            ->assertSee('data-date-picker', false)
-            ->assertDontSee('type="date"', false)
-            ->assertSee(__('reservation.show_all'));
-
-        $this->get("$list?all=1")
-            ->assertOk()
-            ->assertSee(__('reservation.all_days'))
-            ->assertDontSee('data-date-picker', false)
-            ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Thứ năm 03/12', 'Thứ sáu 20/11']);
     }
 
     private function settings(array $values): void

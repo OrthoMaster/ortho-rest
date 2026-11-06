@@ -25,6 +25,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Nhận, từ chối đặt bàn và xem toàn bộ đặt bàn. Chủ quán luôn có, vai trò khác do chủ quán giao.
+        Gate::define('reservation.manage', fn (User $user): bool => $user->role === UserRole::Owner
+            || ($user->restaurant !== null && in_array(
+                $user->role?->value,
+                app(ModuleManager::class)->settings($user->restaurant, 'reservation')['manage_roles'],
+                true,
+            )));
+
         // Giảm theo % hoặc số tiền trên đơn. Nhập mã không cần quyền này.
         Gate::define('takeaway.direct-discount', fn (User $user): bool => $user->role === UserRole::Owner
             || in_array(

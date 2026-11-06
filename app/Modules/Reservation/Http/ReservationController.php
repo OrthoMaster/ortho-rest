@@ -10,7 +10,6 @@ use App\Modules\Reservation\ReservationSource;
 use App\Modules\Reservation\ReservationStatus;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,58 +19,95 @@ use Throwable;
 
 class ReservationController extends Controller
 {
-    private const ALL_PER_PAGE = 50;
+    private const PER_PAGE = 50;
+
+    /** Khoảng ngày xem tối đa một lần ở trang quản lý. */
+    public const MAX_RANGE_DAYS = 92;
 
     public function __construct(private ReservationBooking $booking) {}
 
-    public function index(Request $request): View
+    /** Đặt bàn hôm nay đã nhận, cho người đón khách. */
+    public function today(Request $request): View
+    {
+        $reservations = Reservation::with(['customer', 'area'])
+            ->whereIn('status', ReservationStatus::accepted())
+            ->whereBetween('reserved_at', [today(), today()->endOfDay()])
+            ->orderBy('reserved_at')
+            ->get();
+
+        return view('modules.reservation.today', [
+            'reservations' => $reservations,
+            'guests' => $reservations->filter(fn ($reservation) => $reservation->status->holdsSeats())->sum('party_size'),
+            'seated' => $reservations->where('status', ReservationStatus::Seated)->count(),
+            'pendingToday' => $request->user()->can('reservation.manage')
+                ? Reservation::where('status', ReservationStatus::Pending)->whereBetween('reserved_at', [today(), today()->endOfDay()])->count()
+                : 0,
+        ]);
+    }
+
+    /** Toàn bộ đặt bàn: sắp tới (mặc định) hoặc một khoảng ngày, lọc và tìm khách. */
+    public function manage(Request $request): View
     {
         $areas = Area::orderBy('sort_order')->orderBy('id')->get();
         $statuses = filter_values('status', array_column(ReservationStatus::cases(), 'value'));
         $areaIds = filter_values('area', $areas->pluck('id')->all());
+        $sources = filter_values('source', array_column(ReservationSource::cases(), 'value'));
+        $search = trim((string) $request->query('q'));
+        $upcoming = ! $request->filled('from') && $request->query('upcoming') !== '0';
+        [$from, $to] = $upcoming ? [today()->toImmutable(), null] : $this->range($request);
 
-        $query = Reservation::with(['customer', 'area'])
+        $reservations = Reservation::with(['customer', 'area'])
+            ->when($upcoming, fn ($query) => $query->where('reserved_at', '>=', $from))
+            ->unless($upcoming, fn ($query) => $query->whereBetween('reserved_at', [$from, $to->endOfDay()]))
             ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
-            ->when($areaIds, fn ($query) => $query->whereIn('area_id', $areaIds));
+            ->when($areaIds, fn ($query) => $query->whereIn('area_id', $areaIds))
+            ->when($sources, fn ($query) => $query->whereIn('source', $sources))
+            ->when($search !== '', fn ($query) => $query->whereHas('customer', function (Builder $query) use ($search): void {
+                $digits = preg_replace('/\D/', '', $search);
 
-        $filters = [
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->when(strlen($digits) >= 3, fn ($query) => $query->orWhere('phone', 'like', '%'.ltrim($digits, '0').'%'));
+            }))
+            ->orderBy('reserved_at')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        return view('modules.reservation.manage', [
+            'reservations' => $reservations,
+            'areas' => $areas,
             'statuses' => $statuses,
             'areaIds' => $areaIds,
-            'areas' => $areas,
-        ];
-
-        if ($request->boolean('all')) {
-            return view('modules.reservation.index', [...$filters, 'showAll' => true, 'reservations' => $this->allDays($query)]);
-        }
-
-        try {
-            $date = CarbonImmutable::parse((string) $request->query('date', 'today'))->startOfDay();
-        } catch (Throwable) {
-            $date = CarbonImmutable::today();
-        }
-
-        $reservations = $query->whereBetween('reserved_at', [$date, $date->endOfDay()])->orderBy('reserved_at')->get();
-
-        return view('modules.reservation.index', [
-            ...$filters,
-            'showAll' => false,
-            'date' => $date,
-            'reservations' => $reservations,
-            'guests' => $reservations->filter(fn ($reservation) => $reservation->status->holdsSeats())->sum('party_size'),
+            'sources' => $sources,
+            'search' => $search,
+            'upcoming' => $upcoming,
+            'from' => $from,
+            'to' => $to,
         ]);
     }
 
-    /** Hôm nay và sắp tới lên đầu theo thứ tự thời gian, các ngày đã qua xuống sau, mới nhất trước. */
-    private function allDays(Builder $query): LengthAwarePaginator
+    /** @return array{CarbonImmutable, CarbonImmutable} mặc định hôm nay, dài quá thì cắt bớt */
+    private function range(Request $request): array
     {
-        $today = today();
+        $parse = function (string $key) use ($request): ?CarbonImmutable {
+            try {
+                return $request->filled($key) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $request->query($key)) : null;
+            } catch (Throwable) {
+                return null;
+            }
+        };
 
-        return $query
-            ->orderByRaw('reserved_at < ?', [$today])
-            ->orderByRaw('CASE WHEN reserved_at >= ? THEN reserved_at END ASC', [$today])
-            ->orderByDesc('reserved_at')
-            ->paginate(self::ALL_PER_PAGE)
-            ->withQueryString();
+        $from = $parse('from') ?? CarbonImmutable::today();
+        $to = $parse('to') ?? $from;
+
+        if ($from->gt($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        if ($from->diffInDays($to) >= self::MAX_RANGE_DAYS) {
+            $to = $from->addDays(self::MAX_RANGE_DAYS - 1);
+        }
+
+        return [$from, $to];
     }
 
     public function create(): View
@@ -94,9 +130,24 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation): View
     {
-        $reservation->load(['customer', 'area', 'creator', 'statusLogs.user']);
+        $reservation->load(['customer', 'area', 'creator', 'statusLogs.user', 'edits.user']);
 
-        return view('modules.reservation.show', compact('reservation'));
+        // Dòng thời gian: tạo, đổi trạng thái, sửa, theo thứ tự xảy ra.
+        $history = $reservation->statusLogs->map(fn ($log) => [
+            'at' => $log->created_at,
+            'user' => $log->user,
+            'title' => $log->from_status === null
+                ? __('reservation.history_created', ['source' => $reservation->source->label(), 'status' => $log->to_status->label()])
+                : __('reservation.history_status', ['from' => $log->from_status->label(), 'to' => $log->to_status->label()]),
+            'lines' => [],
+        ])->concat($reservation->edits->map(fn ($edit) => [
+            'at' => $edit->created_at,
+            'user' => $edit->user,
+            'title' => __('reservation.history_edited'),
+            'lines' => $edit->changes,
+        ]))->sortBy(fn ($entry) => $entry['at']->getTimestamp())->values();
+
+        return view('modules.reservation.show', ['reservation' => $reservation, 'history' => $history]);
     }
 
     public function edit(Reservation $reservation): View|RedirectResponse
@@ -112,7 +163,7 @@ class ReservationController extends Controller
 
     public function update(Request $request, Reservation $reservation): RedirectResponse
     {
-        $this->booking->update($reservation, $this->validated($request));
+        $this->booking->update($reservation, $this->validated($request), $request->user());
 
         return redirect()->route('tenant.admin.reservation.show', $reservation)->with('status', __('reservation.saved'));
     }
@@ -120,6 +171,9 @@ class ReservationController extends Controller
     public function changeStatus(Request $request, Reservation $reservation): RedirectResponse
     {
         $status = $request->validate(['status' => ['required', Rule::enum(ReservationStatus::class)]])['status'];
+
+        // Đặt bàn đang chờ: chỉ người quản lý đặt bàn được nhận, từ chối hay huỷ.
+        abort_if($reservation->status === ReservationStatus::Pending && ! $request->user()->can('reservation.manage'), 403);
 
         $this->booking->changeStatus($reservation, ReservationStatus::from($status), $request->user());
 

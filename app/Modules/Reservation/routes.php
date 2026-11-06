@@ -10,7 +10,8 @@ Route::middleware('module:reservation')
     ->prefix('reservations')
     ->name('reservation.')
     ->group(function () {
-        Route::get('/', [ReservationController::class, 'index'])->name('index');
+        Route::get('/', [ReservationController::class, 'today'])->name('index');
+        Route::get('manage', [ReservationController::class, 'manage'])->middleware('can:reservation.manage')->name('manage');
         Route::get('create', [ReservationController::class, 'create'])->name('create');
         Route::post('/', [ReservationController::class, 'store'])->name('store');
 

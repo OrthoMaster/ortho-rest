@@ -2,6 +2,8 @@
 
 namespace App\Modules\Reservation;
 
+use App\Models\User;
+
 enum ReservationStatus: string
 {
     case Pending = 'pending';
@@ -33,6 +35,17 @@ enum ReservationStatus: string
         };
     }
 
+    /**
+     * Bước tiếp theo người này được làm. Nhận, từ chối hay huỷ đặt bàn đang chờ
+     * cần quyền quản lý đặt bàn; đón khách, không đến, xong thì ai cũng làm được.
+     *
+     * @return list<self>
+     */
+    public function nextFor(User $user): array
+    {
+        return $this === self::Pending && ! $user->can('reservation.manage') ? [] : $this->next();
+    }
+
     public function canBecome(self $status): bool
     {
         return in_array($status, $this->next(), true);
@@ -42,6 +55,12 @@ enum ReservationStatus: string
     public function holdsSeats(): bool
     {
         return in_array($this, self::active(), true);
+    }
+
+    /** Đã được quán nhận: hiện ở tab Hôm nay cho người đón khách. */
+    public static function accepted(): array
+    {
+        return [self::Confirmed, self::Seated, self::Completed, self::NoShow];
     }
 
     /** @return list<self> */

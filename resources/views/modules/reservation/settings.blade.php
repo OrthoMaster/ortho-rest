@@ -17,6 +17,18 @@
                 'min' => 15, 'max' => 600, 'step' => 15, 'suffix' => __('reservation.unit_minutes'), 'hint' => __('reservation.turn_hint')])
         </section>
 
+        @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+            <section class="panel stack">
+                <h2>{{ __('reservation.manage_permission') }}</h2>
+                <p class="row-note">{{ __('reservation.manage_permission_hint') }}</p>
+                <div class="toggles">
+                    @foreach ([\App\Enums\UserRole::Manager, \App\Enums\UserRole::Staff] as $role)
+                        <label class="check"><input type="checkbox" name="manage_roles[]" value="{{ $role->value }}" @checked(in_array($role->value, $settings['manage_roles'], true))> {{ $role->label() }}</label>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @php($online = (bool) old('online_enabled', $settings['online_enabled']))
         <section class="panel stack">
             <div class="panel-head">
