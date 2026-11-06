@@ -128,6 +128,7 @@ input[type=checkbox]:checked::after { transform: translateX(1.05rem); }
 .subnav-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; margin-left: .35rem; padding: 0 .3rem; font-size: .75rem; font-weight: 700; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
 .today-search input { width: 17rem; }
 .filter-fields [data-date-range] { display: flex; align-items: center; gap: .5rem; }
+.filter-top [data-date-range] .picker-trigger { width: auto; max-width: 100%; min-height: 2.6rem; padding-block: 0; white-space: nowrap; }
 .filter-fields [data-date-range] .field-label { color: var(--ink-soft); font-weight: 400; }
 .filter-fields [data-date-range] .picker-trigger { width: auto; min-height: 2.6rem; padding-block: 0; }
 .arrive-btn { min-height: 2.75rem; white-space: nowrap; }
@@ -239,7 +240,12 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .row-link { position: relative; }
 .row-link .row-name a::after,
 .row-link .booking-main > a::after { content: ""; position: absolute; inset: 0; }
-.booking-phone { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.booking-phone { display: inline-flex; align-items: center; gap: .3rem; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.booking-phone svg { flex: none; width: .9rem; height: .9rem; }
+.filter-bar.is-split { justify-content: space-between; }
+.list-search { display: flex; justify-content: flex-end; margin-top: .75rem; }
+.list-search input { width: 17rem; }
+.list-search label { display: block; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .row-link a { color: inherit; font-weight: 600; text-decoration: none; }
 .row-link:hover { background: var(--ground); }
@@ -664,6 +670,7 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
     .filter-fields [data-date-range] .picker-trigger { width: 100%; min-height: 3rem; }
     .filter-top .today-search { flex: 1 1 auto; min-width: 0; }
     .today-search input { width: 100%; }
+    .list-search label, .list-search input { width: 100%; }
     /* Cụm nút cuối dính đáy bảng, đệm trên dưới rộng cho dễ bấm. */
     .filter-foot { position: sticky; bottom: 0; display: flex; gap: .75rem; margin: 0 -1rem; padding: 1.25rem 1rem calc(1.75rem + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
     .filter-foot > * { flex: 1; justify-content: center; min-height: 3rem; text-align: center; }

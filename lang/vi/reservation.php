@@ -40,6 +40,7 @@ return [
     'all_statuses' => 'Tất cả',
     'all_areas' => 'Tất cả',
     'empty' => 'Ngày này chưa có đặt bàn.',
+    'manage_empty' => 'Không có đặt bàn nào khớp bộ lọc.',
     'party' => ':count khách',
     'seats' => ':count chỗ',
     'customer_name' => 'Tên khách',

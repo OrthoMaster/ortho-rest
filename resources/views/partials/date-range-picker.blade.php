@@ -30,7 +30,9 @@
         <div class="calendar-foot">
             <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="0">{{ __('ui.calendar.today') }}</button>
             <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="6">{{ __('ui.calendar.last_days', ['days' => 7]) }}</button>
-            <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="{{ $maxDays - 1 }}">{{ __('ui.calendar.last_days', ['days' => $maxDays]) }}</button>
+            @if ($longShortcut ?? true)
+                <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="{{ $maxDays - 1 }}">{{ __('ui.calendar.last_days', ['days' => $maxDays]) }}</button>
+            @endif
             @isset($placeholder)
                 <button class="btn btn-quiet btn-sm" type="button" data-range-clear>{{ __('ui.calendar.clear_range') }}</button>
             @endisset

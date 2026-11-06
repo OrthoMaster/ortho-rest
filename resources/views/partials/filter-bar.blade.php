@@ -6,7 +6,7 @@
 --}}
 @php($panelId = 'filter-panel-'.($id ?? 'list'))
 @php($count = count($pills ?? []))
-<div class="filter-bar" data-filter-bar>
+<div @class(['filter-bar', $class ?? '']) data-filter-bar>
     <div class="filter-top">
         {{ $date ?? '' }}
         @unless ($noPanel ?? false)

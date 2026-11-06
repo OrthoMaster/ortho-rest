@@ -20,24 +20,33 @@
     @endif
     @php($pills = [...$pills, ...filter_pills('status', $statusOptions, $statuses)])
 
-    @component('partials.filter-bar', ['id' => 'reservation-manage', 'pills' => $pills, 'clearUrl' => url()->current()])
+    {{-- Hàng trên: ngày bên trái, trạng thái bên phải; rồi các pill; ô tìm ở hàng dưới, sát phải. --}}
+    @component('partials.filter-bar', ['id' => 'reservation-manage', 'class' => 'is-split', 'pills' => $pills, 'clearUrl' => url()->current()])
         @slot('date')
-            {{-- Gõ là lọc ngay trên trang; Enter thì tìm trong toàn bộ đặt bàn. --}}
-            <label class="today-search">
-                <span class="visually-hidden">{{ __('reservation.today_search') }}</span>
-                <input type="search" name="q" value="{{ $search }}" form="filter-panel-reservation-manage" data-search-input placeholder="{{ __('reservation.today_search') }}" autocomplete="off">
-            </label>
+            <form method="get" onchange="this.submit()">
+                @include('partials.query-hidden', ['except' => ['from', 'to', 'page']])
+                @include('partials.date-range-picker', ['label' => __('reservation.date_filter'), 'from' => $from, 'to' => $to, 'max' => null,
+                    'maxDays' => \App\Modules\Reservation\Http\ReservationController::MAX_RANGE_DAYS, 'longShortcut' => false, 'placeholder' => __('reservation.upcoming')])
+            </form>
         @endslot
-        @include('partials.date-range-picker', ['label' => __('reservation.date_filter'), 'showLabel' => true, 'from' => $from, 'to' => $to, 'max' => null,
-            'maxDays' => \App\Modules\Reservation\Http\ReservationController::MAX_RANGE_DAYS, 'placeholder' => __('reservation.upcoming')])
+        @include('partials.query-hidden', ['except' => ['status', 'page']])
         @include('partials.filter-multi', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'options' => $statusOptions, 'values' => $statuses])
     @endcomponent
+
+    {{-- Gõ là lọc ngay trên trang; Enter thì tìm trong toàn bộ đặt bàn. --}}
+    <form method="get" class="list-search">
+        @include('partials.query-hidden', ['except' => ['q', 'page']])
+        <label>
+            <span class="visually-hidden">{{ __('reservation.today_search') }}</span>
+            <input type="search" name="q" value="{{ $search }}" data-search-input placeholder="{{ __('reservation.today_search') }}" autocomplete="off">
+        </label>
+    </form>
 
     <p class="lead">{{ $upcoming ? __('reservation.manage_summary_upcoming', ['count' => $reservations->total()]) : __('reservation.manage_summary', ['count' => $reservations->total()]) }}</p>
     <p class="empty" data-search-empty hidden>{{ __('reservation.today_search_empty') }}</p>
 
     @if ($reservations->isEmpty())
-        <p class="empty">{{ __('reservation.empty') }}</p>
+        <p class="empty">{{ __('reservation.manage_empty') }}</p>
     @else
         @foreach ($reservations->getCollection()->groupBy(fn ($reservation) => $reservation->reserved_at->toDateString()) as $day => $rows)
             <section class="day-group" data-search-group="">

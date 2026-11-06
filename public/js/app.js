@@ -87,7 +87,7 @@
                 found += visible;
             });
 
-            empty.hidden = words.length === 0 || found > 0;
+            empty.hidden = words.length === 0 || found > 0 || groups.length === 0;
         };
 
         search.addEventListener('input', run);

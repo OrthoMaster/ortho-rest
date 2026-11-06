@@ -248,6 +248,8 @@ class ReservationTest extends TestCase
         $manage = "$this->base/manage";
 
         $this->get($manage)
+            ->assertSeeInOrder(['data-date-range', 'name="status[]"', 'class="list-search"'], false)
+            ->assertDontSee('data-range-shortcut="91"', false)
             ->assertSeeInOrder(['Hôm nay, Thứ ba 01/12', 'Khách hôm nay', 'Thứ năm 03/12', 'Khách chờ'])
             ->assertDontSee('Khách tuần trước')
             ->assertSee('<span class="subnav-count">1</span>', false)
