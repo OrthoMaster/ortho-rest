@@ -874,6 +874,27 @@
     var toIso = function (date) {
         return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
     };
+    // Nhãn ngày có hai bản: đầy đủ cho màn hình rộng, gọn (T6 06/11) cho điện thoại.
+    var setDateText = function (element, full, short) {
+        var fullSpan = document.createElement('span');
+        var shortSpan = document.createElement('span');
+
+        fullSpan.className = 'date-full';
+        fullSpan.textContent = full;
+        shortSpan.className = 'date-short';
+        shortSpan.textContent = short;
+        element.textContent = '';
+        element.appendChild(fullSpan);
+        element.appendChild(shortSpan);
+    };
+    var shortDay = function (picker, iso, todayIso) {
+        var date = fromIso(iso);
+        var dayMonth = pad(date.getDate()) + '/' + pad(date.getMonth() + 1);
+
+        return iso === todayIso
+            ? picker.dataset.todayLabel + ' ' + dayMonth
+            : JSON.parse(picker.dataset.weekdaysShort)[(date.getDay() + 6) % 7] + ' ' + dayMonth;
+    };
     var fromIso = function (iso) {
         var parts = iso.split('-').map(Number);
 
@@ -938,6 +959,7 @@
             value.value = iso;
             text.textContent = label(iso);
             shown = fromIso(iso);
+            setDateText(text, label(iso), shortDay(picker, iso, picker.dataset.today));
             value.dispatchEvent(new Event('change', { bubbles: true }));
             dialog.close();
         };
@@ -969,7 +991,7 @@
             }
         });
 
-        text.textContent = label(value.value);
+        setDateText(text, label(value.value), shortDay(picker, value.value, picker.dataset.today));
     });
 
     // Chọn khoảng ngày: bấm ngày đầu rồi ngày cuối, không dài quá data-max-days.
@@ -1043,7 +1065,7 @@
         var commit = function (from, to) {
             fromInput.value = from;
             toInput.value = to;
-            text.textContent = label(from, to);
+            render();
             start = null;
             dialog.close();
             toInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1080,7 +1102,14 @@
             }
         });
 
-        text.textContent = label(fromInput.value, toInput.value);
+        var render = function () {
+            var from = fromInput.value;
+            var to = toInput.value;
+
+            setDateText(text, label(from, to), from === to ? shortDay(picker, from, todayIso) : short(from) + ' – ' + short(to));
+        };
+
+        render();
     });
 
     // Thanh lọc: máy tính đổi là lọc ngay; điện thoại mở bảng lọc rồi bấm Áp dụng.

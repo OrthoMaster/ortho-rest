@@ -453,6 +453,7 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
 .date-nav form { min-width: 0; }
 .date-nav .field { display: block; }
 .date-nav .picker-trigger { min-height: 0; padding-block: .45rem; white-space: nowrap; }
+.date-short { display: none; }
 .date-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
 .day-group { display: grid; gap: .5rem; }
 .day-group h2 { margin: 0; font-size: 1rem; }
@@ -566,10 +567,9 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .filter-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; min-width: 0; }
 .filter-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .filter-toggle, .filter-head, .filter-foot, .filter-backdrop { display: none; }
-/* Mọi điều kiện đang lọc nằm trên một hàng, dài thì vuốt ngang. */
-.filter-pills { flex: 1 1 100%; display: flex; gap: .4rem; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.filter-pills::-webkit-scrollbar { display: none; }
-.filter-pill { flex: none; display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: 0 .5rem 0 .8rem; font-size: .875rem; white-space: nowrap; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
+/* Điều kiện đang lọc: nhiều thì xuống dòng, không cuộn ngang. */
+.filter-pills { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: .4rem; min-width: 0; }
+.filter-pill { flex: none; display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; min-height: 2.25rem; padding: 0 .5rem 0 .8rem; font-size: .875rem; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
 .filter-pill span { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; font-size: .75rem; color: var(--ink-soft); border-radius: 50%; }
 .filter-pill:hover span { color: var(--ink); background: var(--surface); }
 .multi { position: relative; }
@@ -606,7 +606,12 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 @media (max-width: 760px) {
     .filter-bar { display: block; }
     .filter-pills { margin-top: .65rem; }
-    .filter-top .date-nav { flex: 1 1 auto; min-width: 0; }
+    .filter-top .date-nav { flex: 0 1 auto; min-width: 0; }
+    .filter-top .date-nav form { flex: 0 1 auto; }
+    .filter-top .date-nav .picker-trigger { width: auto; max-width: 100%; }
+    .filter-top .date-full { display: none; }
+    .filter-top .date-short { display: inline; }
+    .filter-toggle { margin-left: auto; }
     .filter-toggle { position: relative; display: grid; flex: none; width: 2.75rem; height: 2.75rem; }
     .filter-toggle svg { width: 1.3rem; height: 1.3rem; }
     .filter-count { position: absolute; top: -.4rem; right: -.4rem; display: grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 .3rem; font-size: .75rem; font-weight: 700; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }

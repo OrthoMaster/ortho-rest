@@ -1,7 +1,7 @@
 {{--
     Ô lọc chọn nhiều. Máy tính: bấm mở danh sách nổi, đóng lại thì lọc.
     Điện thoại (trong bảng lọc): bấm mở danh sách ngay bên dưới.
-    Nhiều lựa chọn thì có ô tìm, gõ không dấu cũng tìm được.
+    Luôn có ô tìm ở đầu danh sách, gõ không dấu cũng tìm được.
     $options: [value => label], $values: các giá trị đang chọn, $all: chữ khi chưa chọn gì.
 --}}
 @php($values = array_map('strval', $values ?? []))
@@ -13,9 +13,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
     </button>
     <div class="multi-panel" data-multi-panel hidden>
-        @if (count($options) > 6)
-            <input class="multi-search" type="search" placeholder="{{ __('ui.filter.search') }}" aria-label="{{ __('ui.filter.search_in', ['label' => $label]) }}" autocomplete="off" data-multi-search>
-        @endif
+        <input class="multi-search" type="search" placeholder="{{ __('ui.filter.search') }}" aria-label="{{ __('ui.filter.search_in', ['label' => $label]) }}" autocomplete="off" data-multi-search>
         <ul class="multi-options" aria-label="{{ $label }}">
             @foreach ($options as $optionValue => $optionLabel)
                 <li data-multi-option="{{ $optionLabel }}">

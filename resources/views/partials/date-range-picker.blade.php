@@ -1,6 +1,7 @@
 {{-- Chọn khoảng ngày trên lịch: bấm ngày đầu rồi ngày cuối. $maxDays giới hạn độ dài, $max là ngày lớn nhất. --}}
 <div class="field" data-date-range data-today="{{ today()->toDateString() }}" data-max="{{ $max ?? '' }}" data-max-days="{{ $maxDays }}"
      data-weekdays="{{ json_encode(array_values(__('ui.calendar.weekdays')), JSON_UNESCAPED_UNICODE) }}"
+     data-weekdays-short="{{ json_encode(array_values(__('ui.calendar.weekdays_short')), JSON_UNESCAPED_UNICODE) }}"
      data-month-label="{{ __('ui.calendar.month') }}" data-today-label="{{ __('ui.calendar.today') }}"
      data-start-hint="{{ __('ui.calendar.range_start') }}" data-end-hint="{{ __('ui.calendar.range_end', ['days' => $maxDays]) }}">
     <span class="field-label visually-hidden" id="range-label">{{ $label }}</span>
