@@ -246,6 +246,9 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .list-search { display: flex; justify-content: flex-end; margin-top: .75rem; }
 .list-search input { width: 17rem; }
 .list-search label { display: block; }
+@media (min-width: 761px) {
+    .list-search { margin-top: 0; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+}
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .row-link a { color: inherit; font-weight: 600; text-decoration: none; }
 .row-link:hover { background: var(--ground); }
