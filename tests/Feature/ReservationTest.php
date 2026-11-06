@@ -795,4 +795,16 @@ class ReservationTest extends TestCase
             ->assertSeeInOrder(['class="chip" href="http://localhost'.$this->base.'?shift_set=1"', 'class="chip is-active" href="http://localhost'.$this->base.'?shift_set=1"', 'aria-current'], false)
             ->assertSee(e("$this->base?shift_set=1&shift%5B0%5D=Tr%C6%B0a&shift%5B1%5D=T%E1%BB%91i"), false);
     }
+
+    public function test_status_actions_ask_for_confirmation(): void
+    {
+        $this->book(['customer_name' => 'Chị Hoa', 'reserved_at' => '2026-12-01T12:00', 'party_size' => 3]);
+
+        $this->get($this->base)
+            ->assertSee('id="confirm-dialog"', false)
+            ->assertSee('data-confirm="'.e(__('reservation.confirm_status', ['name' => 'Chị Hoa', 'time' => '12:00 01/12', 'party' => 3, 'status' => ReservationStatus::Seated->label()])).'"', false)
+            ->assertSee('data-confirm-danger', false)
+            ->assertSee('class="is-danger"', false);
+        $this->assertSame(substr_count($this->get($this->base)->getContent(), 'data-confirm='), substr_count($this->get($this->base)->getContent(), 'name="status"'));
+    }
 }

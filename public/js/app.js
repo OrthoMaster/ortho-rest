@@ -197,6 +197,60 @@
         }
     });
 
+    // Xác nhận trước khi gửi: form có data-confirm (nội dung), data-confirm-title, data-confirm-ok,
+    // data-confirm-danger. Nghe ở pha capture để chặn trước các xử lý submit khác.
+    var confirmDialog = document.getElementById('confirm-dialog');
+    var pendingConfirm = null;
+
+    if (confirmDialog) {
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+
+            if (!form.matches || !form.matches('form[data-confirm]') || form.dataset.confirmed === '1') {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            closeKebabs(null);
+            pendingConfirm = { form: form, submitter: event.submitter || null };
+
+            var ok = confirmDialog.querySelector('[data-confirm-ok]');
+
+            confirmDialog.querySelector('[data-confirm-title]').textContent = form.dataset.confirmTitle || '';
+            confirmDialog.querySelector('[data-confirm-body]').textContent = form.dataset.confirm;
+            ok.textContent = form.dataset.confirmOk || ok.dataset.defaultLabel || 'OK';
+            ok.classList.toggle('btn-danger', 'confirmDanger' in form.dataset);
+            confirmDialog.showModal();
+        }, true);
+
+        confirmDialog.querySelector('[data-confirm-ok]').addEventListener('click', function () {
+            var target = pendingConfirm;
+
+            confirmDialog.close();
+
+            if (target) {
+                pendingConfirm = null;
+                target.form.dataset.confirmed = '1';
+                target.form.requestSubmit(target.submitter);
+            }
+        });
+
+        confirmDialog.addEventListener('close', function () {
+            pendingConfirm = null;
+        });
+    }
+
+    // Thông báo thành công tự tắt sau vài giây; lỗi và cảnh báo thì giữ lại.
+    document.querySelectorAll('.flash[data-autohide]').forEach(function (flash) {
+        setTimeout(function () {
+            flash.classList.add('is-leaving');
+            setTimeout(function () {
+                flash.remove();
+            }, 400);
+        }, 4000);
+    });
+
     // Hộp thoại.
     document.querySelectorAll('[data-open-dialog]').forEach(function (button) {
         button.addEventListener('click', function () {

@@ -23,20 +23,14 @@
             @if ($arrive || $nextSteps !== [])
                 <div class="row-tools">
                     @if ($arrive)
-                        <form method="post" action="{{ route('tenant.admin.reservation.status', $reservation) }}">
-                            @csrf
-                            <input type="hidden" name="status" value="{{ \App\Modules\Reservation\ReservationStatus::Seated->value }}">
-                            <button class="arrive-btn" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>{{ __('reservation.status.seated') }}</button>
-                        </form>
+                        @component('modules.reservation.status-form', ['reservation' => $reservation, 'next' => \App\Modules\Reservation\ReservationStatus::Seated, 'class' => 'arrive-btn'])
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>{{ __('reservation.status.seated') }}
+                        @endcomponent
                     @endif
                     @if ($nextSteps !== [])
                     @component('partials.kebab', ['label' => __('reservation.actions_for', ['name' => $reservation->customer->name])])
                         @foreach ($nextSteps as $next)
-                            <form method="post" action="{{ route('tenant.admin.reservation.status', $reservation) }}">
-                                @csrf
-                                <input type="hidden" name="status" value="{{ $next->value }}">
-                                <button type="submit">{{ $next->actionLabel() }}</button>
-                            </form>
+                            @include('modules.reservation.status-form', ['reservation' => $reservation, 'next' => $next, 'menu' => true])
                         @endforeach
                     @endcomponent
                     @endif

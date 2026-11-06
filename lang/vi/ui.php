@@ -66,6 +66,7 @@ return [
         'save' => 'Lưu thay đổi',
         'back_home' => 'Về trang chủ',
         'close' => 'Đóng',
+        'cancel' => 'Huỷ, quay lại',
         'back' => 'Quay lại',
     ],
 

@@ -1,5 +1,5 @@
 @if (session('status'))
-    <p class="flash" role="status">{{ session('status') }}</p>
+    <p class="flash" role="status" data-autohide>{{ session('status') }}</p>
 @endif
 @if (session('warning'))
     <p class="flash flash-warn" role="status">{{ session('warning') }}</p>

@@ -418,6 +418,8 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .flash { padding: .6rem .8rem; color: var(--ok-ink); background: var(--ok-bg); border-radius: var(--radius); }
 .flash-error { color: var(--bad-ink); background: var(--bad-bg); }
 .flash-warn { color: var(--warn-ink); background: var(--warn-bg); }
+.flash[data-autohide] { transition: opacity .4s ease; }
+.flash.is-leaving { opacity: 0; }
 
 .impersonation { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; padding: .45rem 1rem; color: var(--on-secondary); background: var(--secondary); font-weight: 500; }
 .impersonation button { font: inherit; font-weight: 600; text-decoration: underline; background: none; border: 0; cursor: pointer; color: inherit; padding: 0; }

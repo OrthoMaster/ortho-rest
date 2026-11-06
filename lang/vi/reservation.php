@@ -77,6 +77,7 @@ return [
     'day_closed_reason' => 'Quán đóng cửa ngày này: :reason',
     'weekday_closed' => 'Quán không mở cửa vào :day.',
     'time_closed' => 'Giờ này quán không mở cửa. Giờ mở cửa ngày này: :hours.',
+    'confirm_status' => 'Đặt bàn của :name lúc :time, :party khách sẽ chuyển sang “:status”.',
     'overbook_title' => 'Chỗ đang đầy',
     'overbook_question' => 'Bạn có chắc muốn nhận đặt bàn này khi chỗ đang đầy không?',
     'overbook_area' => 'Khu vực đã chọn không đủ chỗ cho số khách này.',
