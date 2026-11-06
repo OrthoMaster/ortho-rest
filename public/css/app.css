@@ -580,10 +580,16 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .time-separator { flex: none; font-size: 1.25rem; font-weight: 700; color: var(--ink-soft); }
 .field small.time-warning { color: var(--bad-ink); font-weight: 500; }
 .section-hint { display: block; margin-top: .2rem; color: var(--ink-soft); font-size: .8125rem; }
-.availability { display: grid; gap: .2rem; padding: .7rem .9rem; border-radius: var(--radius); font-weight: 500; color: var(--ink-soft); background: var(--ground); }
-.availability.is-ok { color: var(--ok-ink); background: var(--ok-bg); }
-.availability.is-full { color: var(--bad-ink); background: var(--bad-bg); }
-.availability small { color: var(--ink-soft); font-weight: 400; }
+.availability { display: grid; gap: .35rem; padding: .85rem 1rem; border-radius: var(--radius); color: var(--ink-soft); background: var(--ground); border: 1px solid var(--line); }
+.availability.is-ok { color: var(--ok-ink); background: var(--ok-bg); border-color: transparent; }
+.availability.is-full { color: var(--bad-ink); background: var(--bad-bg); border-color: transparent; }
+.seat-count { display: grid; gap: .3rem; }
+.seat-count > span { font-size: .8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.seat-count strong { font-size: 2.5rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.seat-count small { margin-left: .1rem; font-size: 1.25rem; font-weight: 600; opacity: .75; }
+.availability-note { font-size: .875rem; font-weight: 500; }
+.availability-note:empty { display: none; }
+.availability.is-checking { opacity: .6; }
 .reservation-grid { display: grid; gap: 1rem; align-items: start; }
 @media (min-width: 761px) {
     .reservation-grid { grid-template-columns: minmax(0, 23rem) minmax(0, 1fr); }

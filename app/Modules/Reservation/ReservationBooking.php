@@ -23,7 +23,8 @@ use Illuminate\Validation\ValidationException;
  *
  * Chỗ còn tính trên tổng chỗ ngồi của quán, chỉ đếm đặt bàn đã được nhận
  * (đã xác nhận, đã đến), mỗi lượt giữ chỗ theo thời lượng lượt bàn đang cài.
- * Chọn khu vực thì khu vực đó cũng phải còn đủ chỗ. Nhân viên được nhận quá
+ * Một bàn khách ngồi chung một khu vực: không chọn khu vực thì phải có ít
+ * nhất một khu vực còn đủ chỗ cho cả nhóm, chọn thì khu vực đó phải đủ. Nhân viên được nhận quá
  * chỗ khi đã xác nhận ($data['overbook']), khách online thì không.
  */
 class ReservationBooking
@@ -171,7 +172,7 @@ class ReservationBooking
      * Chỗ còn vào giờ này: tổng của quán và từng khu vực đang mở. Chỗ của khu
      * vực không vượt chỗ còn của cả quán.
      *
-     * @return array{total: int, left: int, end: CarbonImmutable, turn: int, areas: list<array{id: int, name: string, left: int}>}
+     * @return array{total: int, left: int, largest: int, areas: list<array{id: int, name: string, left: int}>}
      */
     public function availability(CarbonImmutable $start, ?Reservation $ignore = null): array
     {
@@ -179,14 +180,30 @@ class ReservationBooking
         $total = Area::totalSeats();
         $left = max(0, $total - $this->peak(Reservation::query(), $start, $end, $ignore));
 
-        $areas = Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
+        $areas = $this->areasLeft($start, $end, $left, $ignore);
+
+        return ['total' => $total, 'left' => $left, 'largest' => (int) max([0, ...array_column($areas, 'left')]), 'areas' => $areas];
+    }
+
+    /**
+     * Chỗ còn từng khu vực đang mở, không vượt chỗ còn của cả quán (đặt bàn
+     * chưa chọn khu vực cũng chiếm chỗ của quán).
+     *
+     * @return list<array{id: int, name: string, left: int}>
+     */
+    private function areasLeft(CarbonImmutable $start, CarbonImmutable $end, int $totalLeft, ?Reservation $ignore): array
+    {
+        return Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
             ->map(fn (Area $area) => [
                 'id' => $area->getKey(),
                 'name' => $area->name,
-                'left' => min($left, max(0, $area->capacity - $this->peak(Reservation::where('area_id', $area->getKey()), $start, $end, $ignore))),
+                'left' => min(max(0, $totalLeft), max(0, $area->capacity - $this->peak(Reservation::where('area_id', $area->getKey()), $start, $end, $ignore))),
             ])->all();
+    }
 
-        return ['total' => $total, 'left' => $left, 'end' => $end, 'turn' => $this->turn(), 'areas' => $areas];
+    private function largestAreaLeft(CarbonImmutable $start, CarbonImmutable $end, int $totalLeft, ?Reservation $ignore): int
+    {
+        return (int) max([0, ...array_column($this->areasLeft($start, $end, $totalLeft, $ignore), 'left')]);
     }
 
     /** Nhân viên nhập tay: giờ đến phải nằm trong giờ mở cửa của quán. */
@@ -251,6 +268,12 @@ class ReservationBooking
         }
 
         if ($area === null) {
+            $largest = $this->largestAreaLeft($start, $end, $total - $peak, $ignore);
+
+            if ($largest < $party) {
+                throw ValidationException::withMessages(['reserved_at' => __('reservation.split', ['left' => $total - $peak, 'party' => $party])]);
+            }
+
             return;
         }
 

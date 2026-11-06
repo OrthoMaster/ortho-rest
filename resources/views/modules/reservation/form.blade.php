@@ -36,8 +36,11 @@
                             'value' => $reservation->party_size, 'min' => 1, 'max' => 1000, 'suffix' => __('reservation.unit_guests')])
 
                         <div class="availability" data-availability-status role="status" aria-live="polite" hidden>
-                            <span data-availability-text></span>
-                            <small data-availability-hours hidden></small>
+                            <p class="seat-count" data-seat-count hidden>
+                                <span>{{ __('reservation.seats_free') }}</span>
+                                <strong><span data-seat-left></span><small>/<span data-seat-total></span></small></strong>
+                            </p>
+                            <p class="availability-note" data-availability-text></p>
                         </div>
                         @error('reserved_at')<small class="error">{{ $message }}</small>@enderror
                     </section>

@@ -1461,7 +1461,7 @@
     document.querySelectorAll('form[data-availability]').forEach(function (form) {
         var status = form.querySelector('[data-availability-status]');
         var text = form.querySelector('[data-availability-text]');
-        var hours = form.querySelector('[data-availability-hours]');
+        var count = form.querySelector('[data-seat-count]');
         var steps = form.querySelectorAll('[data-after-check]');
         var overbook = form.querySelector('[data-overbook]');
         var dialog = form.querySelector('[data-overbook-dialog]');
@@ -1497,11 +1497,16 @@
         var apply = function (data) {
             state = data;
             areaFits = {};
+            status.classList.remove('is-checking');
             status.classList.toggle('is-ok', data.state === 'ok');
             status.classList.toggle('is-full', data.state !== 'ok');
-            text.textContent = data.message;
-            hours.textContent = data.hours || '';
-            hours.hidden = !data.hours;
+            text.textContent = data.message || '';
+            count.hidden = data.state === 'closed';
+
+            if (data.state !== 'closed') {
+                count.querySelector('[data-seat-left]').textContent = data.left;
+                count.querySelector('[data-seat-total]').textContent = data.total;
+            }
 
             data.areas.forEach(function (area) {
                 var choice = form.querySelector('[data-area-choice="' + area.id + '"]');
@@ -1532,9 +1537,12 @@
 
             state = null;
             status.hidden = false;
-            status.classList.remove('is-ok', 'is-full');
-            text.textContent = form.dataset.checking;
-            hours.hidden = true;
+            status.classList.add('is-checking');
+
+            // Lần đầu chưa có số thì báo đang kiểm tra; các lần sau giữ số cũ, làm mờ cho tới khi có số mới.
+            if (count.hidden) {
+                text.textContent = form.dataset.checking;
+            }
 
             fetch(form.dataset.availability + '?' + params.toString(), { headers: { Accept: 'application/json' } })
                 .then(function (response) {
@@ -1551,6 +1559,8 @@
                 })
                 .catch(function () {
                     if (current === request) {
+                        status.classList.remove('is-checking', 'is-ok', 'is-full');
+                        count.hidden = true;
                         text.textContent = form.dataset.checkFailed;
                         showSteps(true);
                     }

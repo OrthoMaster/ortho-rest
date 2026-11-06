@@ -177,26 +177,30 @@ class ReservationController extends Controller
         $start = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);
         $party = (int) $data['party_size'];
         $hours = tenant()->hoursOn($start);
-        $hoursText = $hours['periods'] !== [] ? __('reservation.open_hours', ['hours' => ReservationBooking::hoursText($hours['periods'])]) : null;
 
         // Ngày nghỉ hoặc giờ ngoài ca mở cửa: không nhận, chưa cần tính chỗ.
         if ($hours['closed'] !== null || ! tenant()->opensAt($start)) {
             return response()->json([
                 'state' => 'closed',
                 'message' => $hours['closed'] ?? __('reservation.time_closed', ['hours' => ReservationBooking::hoursText($hours['periods'])]),
-                'hours' => null,
                 'areas' => [],
             ]);
         }
 
         $result = $this->booking->availability($start, $ignore);
-        $fits = $result['left'] >= $party;
-        $window = ['from' => $start->format('H:i'), 'to' => $result['end']->format('H:i'), 'minutes' => $result['turn'], 'left' => $result['left'], 'total' => $result['total'], 'party' => $party];
+
+        // Cả nhóm ngồi chung một khu vực: đủ chỗ tổng mà không khu vực nào đủ thì vẫn là thiếu chỗ.
+        $message = match (true) {
+            $result['left'] < $party => __('reservation.over', ['party' => $party]),
+            $result['largest'] < $party => __('reservation.over_split', ['left' => $result['left'], 'party' => $party, 'largest' => $result['largest']]),
+            default => null,
+        };
 
         return response()->json([
-            'state' => $fits ? 'ok' : 'over',
-            'message' => __($fits ? 'reservation.available' : 'reservation.over', $window),
-            'hours' => $hoursText,
+            'state' => $message === null ? 'ok' : 'over',
+            'left' => $result['left'],
+            'total' => $result['total'],
+            'message' => $message,
             'areas' => array_map(fn ($area) => $area + [
                 'fits' => $area['left'] >= $party,
                 'label' => __('reservation.seats_left', ['count' => $area['left']]),

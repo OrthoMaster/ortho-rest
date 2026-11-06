@@ -69,9 +69,10 @@ return [
     'bad_transition' => 'Không chuyển được sang trạng thái này. Có thể người khác vừa đổi, hãy tải lại trang.',
 
     'full' => 'Giờ này không đủ chỗ, cả quán chỉ còn :left chỗ. Hãy chọn giờ khác hoặc bớt số khách.',
-    'available' => 'Từ :from đến :to (lượt bàn :minutes phút) còn :left/:total chỗ.',
-    'over' => 'Từ :from đến :to (lượt bàn :minutes phút) chỉ còn :left/:total chỗ, không đủ cho :party khách. Vẫn nhận được nhưng sẽ quá chỗ.',
-    'open_hours' => 'Giờ mở cửa ngày này: :hours',
+    'seats_free' => 'Chỗ còn trống',
+    'over' => 'Không đủ chỗ cho :party khách. Vẫn nhận được nhưng sẽ quá chỗ.',
+    'over_split' => 'Không khu vực nào còn đủ :party chỗ ngồi chung (nhiều nhất :largest chỗ). Vẫn nhận được nhưng phải xếp tách.',
+    'split' => 'Còn :left chỗ nhưng không khu vực nào đủ cho :party khách ngồi chung.',
     'day_closed' => 'Quán đóng cửa ngày này.',
     'day_closed_reason' => 'Quán đóng cửa ngày này: :reason',
     'weekday_closed' => 'Quán không mở cửa vào :day.',

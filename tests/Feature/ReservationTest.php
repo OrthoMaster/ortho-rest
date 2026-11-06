@@ -659,7 +659,8 @@ class ReservationTest extends TestCase
     {
         $patio = Area::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Ngoài sân', 'capacity' => 6, 'sort_order' => 2]);
 
-        $this->book(['area_id' => null, 'party_size' => 12]);
+        // Nhóm 12 lớn hơn mọi khu vực: chỉ nhận được khi đã xác nhận nhận quá chỗ.
+        $this->book(['area_id' => null, 'party_size' => 12, 'overbook' => true]);
         $this->book(['area_id' => $patio->id, 'party_size' => 2]);
 
         // 16 chỗ, đã giữ 14: còn 2 cho cả quán, dù Ngoài sân còn 4.
@@ -742,7 +743,7 @@ class ReservationTest extends TestCase
         $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=15:00&party_size=2")
             ->assertJsonPath('state', 'closed')->assertJsonPath('message', __('reservation.time_closed', ['hours' => '10:00–14:00, 17:00–22:00']));
         $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=21:30&party_size=2")
-            ->assertJsonPath('state', 'ok')->assertJsonPath('hours', 'Giờ mở cửa ngày này: 10:00–14:00, 17:00–22:00');
+            ->assertJsonPath('state', 'ok')->assertJsonPath('left', 10)->assertJsonPath('total', 10)->assertJsonMissingPath('hours');
 
         $this->post($this->base, $this->form(['reserved_at' => '2026-12-01T15:00']))->assertSessionHasErrors('reserved_at');
         $this->post($this->base, $this->form(['reserved_at' => '2026-12-07T19:00']))->assertSessionHasErrors('reserved_at');
@@ -755,5 +756,27 @@ class ReservationTest extends TestCase
             ->assertSee('data-overbook-dialog', false)
             ->assertSee('name="overbook" value="0"', false)
             ->assertSee(__('reservation.overbook_question'));
+    }
+
+    public function test_a_party_must_fit_in_one_area(): void
+    {
+        $patio = Area::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Ngoài sân', 'capacity' => 5, 'sort_order' => 2]);
+        $this->book(['area_id' => $this->area->id, 'party_size' => 9]);
+        $this->book(['area_id' => $patio->id, 'party_size' => 4, 'customer_phone' => '0905555555']);
+
+        // Còn 2 chỗ: mỗi khu vực 1 chỗ, nhóm 2 khách không ngồi chung được.
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=2")
+            ->assertJsonPath('state', 'over')
+            ->assertJsonPath('left', 2)
+            ->assertJsonPath('total', 15)
+            ->assertJsonPath('message', __('reservation.over_split', ['left' => 2, 'party' => 2, 'largest' => 1]));
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=1")
+            ->assertJsonPath('state', 'ok')
+            ->assertJsonPath('message', null);
+
+        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 2, 'customer_phone' => '0906666666']))
+            ->assertSessionHasErrors(['reserved_at' => __('reservation.split', ['left' => 2, 'party' => 2])]);
+        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 2, 'customer_phone' => '0906666666', 'overbook' => '1']))
+            ->assertSessionHasNoErrors();
     }
 }
