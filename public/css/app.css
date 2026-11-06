@@ -584,6 +584,10 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .availability.is-ok { color: var(--ok-ink); background: var(--ok-bg); }
 .availability.is-full { color: var(--bad-ink); background: var(--bad-bg); }
 .availability small { color: var(--warn-ink); font-weight: 500; }
+.reservation-grid { display: grid; gap: 1rem; align-items: start; }
+@media (min-width: 761px) {
+    .reservation-grid { grid-template-columns: minmax(0, 23rem) minmax(0, 1fr); }
+}
 .choice-list { display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .choice { display: flex; align-items: center; gap: .75rem; min-height: 3rem; padding: .55rem .9rem; cursor: pointer; }
 .choice + .choice { border-top: 1px solid var(--line); }
