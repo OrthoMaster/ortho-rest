@@ -9,12 +9,15 @@
 <div class="filter-bar" data-filter-bar>
     <div class="filter-top">
         {{ $date ?? '' }}
+        @unless ($noPanel ?? false)
         <button class="row-btn filter-toggle" type="button" data-filter-open aria-expanded="false" aria-controls="{{ $panelId }}" aria-label="{{ __('ui.filter.open') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg>
             @if ($count > 0)<span class="filter-count">{{ $count }}</span>@endif
         </button>
+        @endunless
     </div>
 
+    @unless ($noPanel ?? false)
     <div class="filter-backdrop" data-filter-close></div>
     <form method="get" class="filter-panel" id="{{ $panelId }}" data-filter-form aria-label="{{ __('ui.filter.title') }}">
         @foreach ($keep ?? [] as $keepName => $keepValue)
@@ -33,6 +36,7 @@
         </div>
         <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.filter.apply') }}</button></noscript>
     </form>
+    @endunless
 
     @if ($count > 0)
         <div class="filter-pills">

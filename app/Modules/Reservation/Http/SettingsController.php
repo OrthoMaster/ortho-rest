@@ -2,7 +2,6 @@
 
 namespace App\Modules\Reservation\Http;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
@@ -56,10 +55,6 @@ class SettingsController extends Controller
             'auto_confirm' => $online ? $request->boolean('auto_confirm') : (bool) $current['auto_confirm'],
             'online_seats' => $online ? (int) $data['online_seats'] : $current['online_seats'],
             'online_seats_total' => $online ? $total : $current['online_seats_total'],
-            // Chỉ chủ quán giao quyền quản lý đặt bàn.
-            'manage_roles' => $request->user()->role === UserRole::Owner
-                ? array_values(array_intersect((array) $request->input('manage_roles', []), [UserRole::Manager->value, UserRole::Staff->value]))
-                : $current['manage_roles'],
         ]);
 
         return back()->with('status', __('reservation.settings_saved'));

@@ -13,7 +13,7 @@ class Installer extends ModuleInstaller
     {
         return [
             'turn_minutes' => 90,
-            // Vai trò được nhận, từ chối đặt bàn ngoài chủ quán.
+            // Vai trò được nhận, từ chối đặt bàn ngoài chủ quán. Sẽ do phần vai trò và tài khoản quản lý.
             'manage_roles' => ['manager'],
             'online_enabled' => true,
             'min_notice_days' => 0,

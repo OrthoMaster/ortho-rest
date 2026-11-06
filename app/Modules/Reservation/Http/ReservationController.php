@@ -26,23 +26,64 @@ class ReservationController extends Controller
 
     public function __construct(private ReservationBooking $booking) {}
 
-    /** Đặt bàn hôm nay đã nhận, cho người đón khách. */
+    private const TODAY_SHIFTS_KEY = 'reservation_today_shifts';
+
+    /** Đặt bàn hôm nay đã nhận, cho người đón khách, nhóm theo ca mở cửa. */
     public function today(Request $request): View
     {
+        $periods = tenant()->periodsOn(today());
+        $names = array_column($periods, 'name');
+
+        // Ca đang lọc được nhớ trong phiên, để sau mỗi thao tác (tải lại trang) vẫn giữ.
+        if ($request->boolean('shift_set')) {
+            $request->session()->put(self::TODAY_SHIFTS_KEY, filter_values('shift', $names));
+        }
+
+        $chosen = array_values(array_intersect((array) $request->session()->get(self::TODAY_SHIFTS_KEY, []), $names));
+
         $reservations = Reservation::with(['customer', 'area'])
             ->whereIn('status', ReservationStatus::accepted())
             ->whereBetween('reserved_at', [today(), today()->endOfDay()])
             ->orderBy('reserved_at')
             ->get();
 
+        $groups = collect($periods)->map(fn (array $period) => [
+            'name' => $period['name'],
+            'range' => $period['start'].' – '.$period['end'],
+            'rows' => $reservations->filter(fn (Reservation $reservation) => $this->inPeriod($reservation, $period))->values(),
+        ]);
+
+        $outside = $reservations->reject(fn (Reservation $reservation) => $groups->contains(fn ($group) => $group['rows']->contains($reservation)));
+
+        if ($chosen !== []) {
+            $groups = $groups->whereIn('name', $chosen)->values();
+        } elseif ($outside->isNotEmpty()) {
+            $groups->push(['name' => $periods === [] ? null : __('reservation.outside_shifts'), 'range' => null, 'rows' => $outside->values()]);
+        }
+
+        $shown = $groups->flatMap(fn ($group) => $group['rows']);
+
         return view('modules.reservation.today', [
-            'reservations' => $reservations,
-            'guests' => $reservations->filter(fn ($reservation) => $reservation->status->holdsSeats())->sum('party_size'),
-            'seated' => $reservations->where('status', ReservationStatus::Seated)->count(),
+            'groups' => $groups,
+            'periods' => $periods,
+            'chosen' => $chosen,
+            'count' => $shown->count(),
+            'arrived' => $shown->whereIn('status', [ReservationStatus::Seated, ReservationStatus::Completed])->count(),
+            'guests' => $shown->where('status', '!=', ReservationStatus::NoShow)->sum('party_size'),
             'pendingToday' => $request->user()->can('reservation.manage')
                 ? Reservation::where('status', ReservationStatus::Pending)->whereBetween('reserved_at', [today(), today()->endOfDay()])->count()
                 : 0,
         ]);
+    }
+
+    /** @param array{name: string, start: string, end: string} $period */
+    private function inPeriod(Reservation $reservation, array $period): bool
+    {
+        $time = $reservation->reserved_at->format('H:i');
+
+        return $period['end'] > $period['start']
+            ? $time >= $period['start'] && $time < $period['end']
+            : $time >= $period['start'] || $time < $period['end'];
     }
 
     /** Toàn bộ đặt bàn: sắp tới (mặc định) hoặc một khoảng ngày, lọc và tìm khách. */

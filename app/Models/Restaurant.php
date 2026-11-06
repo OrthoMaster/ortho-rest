@@ -86,6 +86,34 @@ class Restaurant extends Model
         return $shifts->isEmpty() || $shifts->contains(fn (Shift $shift): bool => $shift->covers($start, $end));
     }
 
+    /**
+     * Các ca mở cửa của một ngày, đã tính ngày đặc biệt.
+     *
+     * @return list<array{name: string, start: string, end: string}>
+     */
+    public function periodsOn(CarbonInterface $date): array
+    {
+        $special = SpecialDay::forRestaurant($this)->whereDate('date', $date->toDateString())->first();
+
+        if ($special?->type === SpecialDayType::Open) {
+            return $special->periods;
+        }
+
+        if ($special?->isWholeDay()) {
+            return [];
+        }
+
+        return Shift::forRestaurant($this)
+            ->where('type', ShiftType::Opening)
+            ->where('weekday', $date->dayOfWeekIso)
+            ->orderBy('start_time')
+            ->get()
+            ->reject(fn (Shift $shift): bool => $special !== null && $special->includesShift($shift))
+            ->map(fn (Shift $shift): array => ['name' => $shift->name, 'start' => $shift->start_time, 'end' => $shift->end_time])
+            ->values()
+            ->all();
+    }
+
     public function isLocked(): bool
     {
         return $this->status === RestaurantStatus::Locked;
