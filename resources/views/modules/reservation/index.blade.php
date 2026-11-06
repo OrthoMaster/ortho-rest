@@ -16,12 +16,9 @@
     @if ($showAll)
         @php($pills[] = ['label' => __('reservation.all_days'), 'url' => request()->fullUrlWithQuery(['all' => null, 'page' => null])])
     @endif
-    @if ($status)
-        @php($pills[] = ['label' => $status->label(), 'url' => request()->fullUrlWithQuery(['status' => null, 'page' => null])])
-    @endif
-    @if ($areaId)
-        @php($pills[] = ['label' => $areas->firstWhere('id', $areaId)?->name, 'url' => request()->fullUrlWithQuery(['area' => null, 'page' => null])])
-    @endif
+    @php($statusOptions = collect(\App\Modules\Reservation\ReservationStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all())
+    @php($areaOptions = $areas->pluck('name', 'id')->all())
+    @php($pills = [...$pills, ...filter_pills('status', $statusOptions, $statuses), ...filter_pills('area', $areaOptions, $areaIds)])
     @component('partials.filter-bar', ['id' => 'reservation', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
         @slot('date')
             @if ($showAll)
@@ -34,10 +31,8 @@
             @endif
         @endslot
         <label class="check"><input type="checkbox" name="all" value="1" @checked($showAll)> {{ __('reservation.show_all') }}</label>
-        @include('partials.filter-field', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'value' => $status?->value,
-            'options' => collect(\App\Modules\Reservation\ReservationStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all()])
-        @include('partials.filter-field', ['name' => 'area', 'label' => __('reservation.filter_area'), 'all' => __('reservation.all_areas'), 'value' => $areaId,
-            'options' => $areas->pluck('name', 'id')->all()])
+        @include('partials.filter-multi', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'options' => $statusOptions, 'values' => $statuses])
+        @include('partials.filter-multi', ['name' => 'area', 'label' => __('reservation.filter_area'), 'all' => __('reservation.all_areas'), 'options' => $areaOptions, 'values' => $areaIds])
     @endcomponent
 
     @if ($showAll)

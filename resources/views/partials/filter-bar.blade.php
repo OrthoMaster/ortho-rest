@@ -1,7 +1,7 @@
 {{--
     Thanh lọc chung của danh sách. Máy tính: một hàng, đổi là lọc ngay.
     Điện thoại: hàng ngày + nút Lọc, bấm mở bảng lọc từ dưới lên.
-    $date: slot hàng ngày. $slot: các ô lọc (partials/filter-field). $keep: tham số giữ lại khi lọc.
+    $date: slot hàng ngày. $slot: các ô lọc (partials/filter-multi). $keep: tham số giữ lại khi lọc.
     $pills: [['label' => ..., 'url' => ...]] điều kiện đang lọc, bấm ✕ để bỏ. $clearUrl: bỏ hết lọc.
 --}}
 @php($panelId = 'filter-panel-'.($id ?? 'list'))

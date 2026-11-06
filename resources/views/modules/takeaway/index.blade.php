@@ -12,13 +12,13 @@
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
     @php($keep = ['date' => $date->toDateString()])
-    @php($pills = $status ? [['label' => $status->label(), 'url' => request()->fullUrlWithQuery(['status' => null])]] : [])
+    @php($statusOptions = collect(\App\Modules\Takeaway\OrderStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all())
+    @php($pills = filter_pills('status', $statusOptions, $statuses))
     @component('partials.filter-bar', ['id' => 'takeaway', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
         @slot('date')
             @include('partials.date-nav', ['date' => $date])
         @endslot
-        @include('partials.filter-field', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'value' => $status?->value,
-            'options' => collect(\App\Modules\Takeaway\OrderStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all()])
+        @include('partials.filter-multi', ['name' => 'status', 'label' => __('reservation.filter_status'), 'all' => __('reservation.all_statuses'), 'options' => $statusOptions, 'values' => $statuses])
     @endcomponent
 
     @if ($orders->isEmpty())

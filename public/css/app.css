@@ -563,9 +563,37 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--ink-soft); background: var(--surface); border: 1px dashed var(--field-line); border-radius: var(--radius); }
 
 /* Thanh lọc chung: máy tính một hàng, điện thoại hàng ngày + nút Lọc mở bảng từ dưới lên. */
-.filter-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; }
+.filter-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; min-width: 0; }
 .filter-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-.filter-toggle, .filter-head, .filter-foot, .filter-backdrop, .filter-pills { display: none; }
+.filter-toggle, .filter-head, .filter-foot, .filter-backdrop { display: none; }
+/* Mọi điều kiện đang lọc nằm trên một hàng, dài thì vuốt ngang. */
+.filter-pills { flex: 1 1 100%; display: flex; gap: .4rem; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.filter-pills::-webkit-scrollbar { display: none; }
+.filter-pill { flex: none; display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: 0 .5rem 0 .8rem; font-size: .875rem; white-space: nowrap; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
+.filter-pill span { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; font-size: .75rem; color: var(--ink-soft); border-radius: 50%; }
+.filter-pill:hover span { color: var(--ink); background: var(--surface); }
+.multi { position: relative; }
+.multi-trigger { display: flex; align-items: center; gap: .4rem; min-height: 2.6rem; padding: 0 .7rem 0 .85rem; font: inherit; font-size: .9375rem; color: var(--ink); background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); cursor: pointer; white-space: nowrap; }
+.multi-trigger:hover, .multi-trigger[aria-expanded=true] { border-color: var(--primary-ink); }
+.multi-label { color: var(--ink-soft); }
+.multi-label::after { content: ":"; }
+.multi-value { font-weight: 600; }
+.multi-trigger svg { width: 1rem; height: 1rem; color: var(--ink-soft); transition: transform .15s; }
+.multi-trigger[aria-expanded=true] svg { transform: rotate(180deg); }
+.multi-panel { position: absolute; top: calc(100% + .3rem); right: 0; z-index: 30; display: grid; gap: .4rem; width: 17rem; padding: .4rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(23 40 56 / .14); }
+.multi-panel[hidden] { display: none; }
+.multi-search { width: 100%; }
+.multi-options { display: grid; max-height: 16rem; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.multi-option { display: flex; align-items: center; gap: .6rem; min-height: 2.6rem; padding: 0 .65rem; border-radius: 6px; cursor: pointer; }
+.multi-option:hover { background: var(--primary-soft); }
+/* Danh sách chọn nhiều hiện dấu ✓, không phải toggle. Ô checkbox vẫn còn để bàn phím và trình đọc màn hình dùng. */
+.multi-option input[type=checkbox] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.multi-option span { flex: 1; overflow-wrap: anywhere; }
+.multi-option svg { flex: none; width: 1.1rem; height: 1.1rem; color: var(--primary-ink); visibility: hidden; }
+.multi-option:has(input:checked) { font-weight: 600; }
+.multi-option:has(input:checked) svg { visibility: visible; }
+.multi-option:has(input:focus-visible) { outline: 2px solid var(--primary-ink); outline-offset: -2px; }
+.multi-empty { margin: 0; padding: .5rem .65rem; font-size: .875rem; color: var(--ink-soft); }
 .filter-panel, .filter-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; }
 .filter-field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .filter-field select { width: auto; }
@@ -577,12 +605,13 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 
 @media (max-width: 760px) {
     .filter-bar { display: block; }
+    .filter-pills { margin-top: .65rem; }
     .filter-top .date-nav { flex: 1 1 auto; min-width: 0; }
-    .filter-toggle { position: relative; display: inline-flex; flex: none; }
+    .filter-toggle { position: relative; display: grid; flex: none; width: 2.75rem; height: 2.75rem; }
     .filter-toggle svg { width: 1.3rem; height: 1.3rem; }
     .filter-count { position: absolute; top: -.4rem; right: -.4rem; display: grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 .3rem; font-size: .75rem; font-weight: 700; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
     .filter-backdrop { position: fixed; inset: 0; z-index: 39; display: block; background: rgb(23 40 56 / .45); opacity: 0; pointer-events: none; transition: opacity .2s; }
-    .filter-panel { position: fixed; inset: auto 0 0; z-index: 40; display: grid; gap: 1rem; max-height: 85dvh; overflow: auto; padding: 1rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgb(23 40 56 / .18); transform: translateY(105%); visibility: hidden; transition: transform .22s ease, visibility 0s .22s; }
+    .filter-panel { position: fixed; inset: auto 0 0; z-index: 40; display: grid; gap: 1rem; max-height: 85dvh; overflow: auto; padding: 1rem 1rem 0; background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgb(23 40 56 / .18); transform: translateY(105%); visibility: hidden; transition: transform .22s ease, visibility 0s .22s; }
     .filter-bar.is-open .filter-panel { transform: none; visibility: visible; transition: transform .22s ease; }
     .filter-bar.is-open .filter-backdrop { opacity: 1; pointer-events: auto; }
     body.filter-open { overflow: hidden; }
@@ -592,11 +621,16 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
     .filter-field { display: grid; gap: .35rem; }
     .filter-field > span { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: .875rem; font-weight: 600; }
     .filter-field select { width: 100%; }
-    .filter-foot { display: flex; gap: .6rem; }
-    .filter-foot > * { flex: 1; justify-content: center; text-align: center; }
-    .filter-pills { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .65rem; }
-    .filter-pill { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: 0 .75rem; font-size: .875rem; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
-    .filter-pill span { font-size: .75rem; color: var(--ink-soft); }
+    /* Cụm nút cuối dính đáy bảng, đệm trên dưới rộng cho dễ bấm. */
+    .filter-foot { position: sticky; bottom: 0; display: flex; gap: .75rem; margin: 0 -1rem; padding: 1.25rem 1rem calc(1.75rem + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
+    .filter-foot > * { flex: 1; justify-content: center; min-height: 3rem; text-align: center; }
+    .filter-fields .multi { display: grid; }
+    .filter-fields .multi-trigger { justify-content: space-between; width: 100%; min-height: 3rem; }
+    .filter-fields .multi-label { margin-right: auto; font-weight: 600; color: var(--ink); }
+    .filter-fields .multi-label::after { content: none; }
+    .filter-fields .multi-value { font-weight: 400; color: var(--ink-soft); }
+    .filter-fields .multi-panel { position: static; width: auto; margin-top: .35rem; box-shadow: none; }
+    .filter-fields .multi-options { max-height: 15rem; }
 
     .shell { position: relative; flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
 

@@ -58,6 +58,38 @@ if (! function_exists('day_label')) {
     }
 }
 
+if (! function_exists('filter_values')) {
+    /**
+     * Giá trị của một bộ lọc chọn nhiều trên URL, chỉ giữ giá trị hợp lệ.
+     *
+     * @param  list<string|int>  $allowed
+     * @return list<string>
+     */
+    function filter_values(string $name, array $allowed): array
+    {
+        $allowed = array_map('strval', $allowed);
+
+        return array_values(array_unique(array_intersect(array_map('strval', array_filter((array) request()->query($name), 'is_scalar')), $allowed)));
+    }
+}
+
+if (! function_exists('filter_pills')) {
+    /**
+     * Mỗi giá trị đang lọc thành một pill, bấm ✕ thì bỏ đúng giá trị đó.
+     *
+     * @param  array<string|int, string>  $options
+     * @param  list<string>  $values
+     * @return list<array{label: string, url: string}>
+     */
+    function filter_pills(string $name, array $options, array $values): array
+    {
+        return array_values(array_map(fn (string $value) => [
+            'label' => $options[$value],
+            'url' => request()->fullUrlWithQuery([$name => array_values(array_diff($values, [$value])) ?: null, 'page' => null]),
+        ], array_filter($values, fn (string $value) => isset($options[$value]))));
+    }
+}
+
 if (! function_exists('tenant_route')) {
     /**
      * Sinh link của nhà hàng, đúng kiểu URL: domain riêng nếu quán có domain đã

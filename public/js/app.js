@@ -1127,6 +1127,102 @@
         });
     });
 
+    // Ô lọc chọn nhiều. Máy tính: chọn xong, đóng danh sách thì lọc. Điện thoại: bấm Áp dụng.
+    var plain = function (text) {
+        return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase();
+    };
+    var multis = [];
+
+    document.querySelectorAll('[data-multi]').forEach(function (multi) {
+        var trigger = multi.querySelector('[data-multi-trigger]');
+        var panel = multi.querySelector('[data-multi-panel]');
+        var search = multi.querySelector('[data-multi-search]');
+        var empty = multi.querySelector('[data-multi-empty]');
+        var valueText = multi.querySelector('[data-multi-value]');
+        var boxes = Array.prototype.slice.call(multi.querySelectorAll('input[type=checkbox]'));
+        var form = multi.closest('form');
+        var state = function () {
+            return boxes.filter(function (box) { return box.checked; }).map(function (box) { return box.value; }).join(',');
+        };
+        var opened = state();
+
+        var setOpen = function (open) {
+            if (open === !panel.hidden) {
+                return;
+            }
+
+            panel.hidden = !open;
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+            if (open) {
+                opened = state();
+                multis.forEach(function (other) {
+                    if (other !== api) {
+                        other.close();
+                    }
+                });
+
+                if (search && !narrow.matches) {
+                    search.focus();
+                }
+            } else if (!narrow.matches && state() !== opened) {
+                form.submit();
+            }
+        };
+        var api = { root: multi, close: function () { setOpen(false); } };
+
+        multis.push(api);
+
+        trigger.addEventListener('click', function () {
+            setOpen(panel.hidden);
+        });
+
+        // Chọn từng mục không gửi form ngay (thanh lọc gửi khi có change).
+        multi.addEventListener('change', function (event) {
+            event.stopPropagation();
+            var picked = boxes.filter(function (box) { return box.checked; }).map(function (box) { return box.dataset.label; });
+
+            valueText.textContent = picked.length === 0
+                ? multi.dataset.all
+                : picked[0] + (picked.length > 1 ? ' +' + (picked.length - 1) : '');
+        });
+
+        if (search) {
+            search.addEventListener('input', function () {
+                var query = plain(search.value.trim());
+                var shown = 0;
+
+                multi.querySelectorAll('[data-multi-option]').forEach(function (item) {
+                    var match = plain(item.dataset.multiOption).indexOf(query) !== -1;
+
+                    item.hidden = !match;
+                    shown += match ? 1 : 0;
+                });
+                empty.hidden = shown > 0;
+            });
+            search.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                }
+            });
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        multis.forEach(function (multi) {
+            if (!narrow.matches && !multi.root.contains(event.target)) {
+                multi.close();
+            }
+        });
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !narrow.matches) {
+            multis.forEach(function (multi) {
+                multi.close();
+            });
+        }
+    });
+
     // Chọn giờ: giờ và phút riêng, phút mặc định bước 10.
     document.querySelectorAll('[data-time-picker]').forEach(function (picker) {
         var value = picker.querySelector('[data-time-value]');

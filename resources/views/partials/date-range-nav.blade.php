@@ -4,9 +4,7 @@
 <div class="date-nav">
     <a class="btn btn-quiet" href="{{ $shift(-$length) }}" aria-label="{{ __('ui.calendar.previous_range') }}">‹</a>
     <form method="get" onchange="this.submit()">
-        @foreach (request()->except(['from', 'to', 'page']) as $key => $queryValue)
-            <input type="hidden" name="{{ $key }}" value="{{ $queryValue }}">
-        @endforeach
+        @include('partials.query-hidden', ['except' => ['from', 'to', 'page']])
         @include('partials.date-range-picker', ['label' => __('ui.calendar.range'), 'from' => $from, 'to' => $to, 'max' => $max ?? null, 'maxDays' => $maxDays])
     </form>
     @if ($max && $to->toDateString() >= $max)

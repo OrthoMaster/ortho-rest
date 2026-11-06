@@ -3,8 +3,8 @@
 return [
     'title' => 'Nhật ký thay đổi',
     'lead' => 'Ai đã thay đổi gì trong quán, lúc nào. Nhật ký chỉ ghi thêm, không sửa hay xoá được.',
-    'all_areas' => 'Mọi phần',
-    'all_users' => 'Mọi người',
+    'all_areas' => 'Tất cả',
+    'all_users' => 'Tất cả',
     'filter_area' => 'Phần',
     'filter_user' => 'Người làm',
     'empty' => '(trống)',

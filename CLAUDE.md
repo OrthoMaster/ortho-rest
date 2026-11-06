@@ -18,7 +18,7 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
 - Nút + và − của ô số dùng chung class `spin-group`, giống ô Giờ nhận.
 - Chỗ tải ảnh dùng `partials/image-upload`.
-- Lọc danh sách dùng `partials/filter-bar` + `partials/filter-field`: máy tính một hàng, đổi là lọc ngay; điện thoại chỉ còn hàng ngày và nút Lọc mở bảng từ dưới lên, điều kiện đang lọc hiện thành pill bấm ✕ để bỏ. Không xếp nhiều hàng nút và ô chọn.
+- Lọc danh sách dùng `partials/filter-bar` + `partials/filter-multi` (chọn nhiều, trên 6 lựa chọn thì có ô tìm): máy tính một hàng; điện thoại chỉ còn hàng ngày và nút Lọc mở bảng từ dưới lên. Mỗi giá trị đang lọc là một pill trên một hàng (`filter_pills()`), bấm ✕ để bỏ. Không xếp nhiều hàng nút và ô chọn.
 - Chọn ngày dùng lịch `partials/date-picker`, hiện thứ và không hiện năm. Giờ và phút là hai ô riêng, phút bước 10, riêng giờ ca bước 5 (`partials/time-picker`).
 - Trang con (ví dụ Sửa món là con của Menu) luôn có nút icon quay lại trang cha ở header: `partials/page-title`.
 - Form chỉnh sửa thêm `data-guard`: có thay đổi chưa lưu thì hỏi lại trước khi rời trang.

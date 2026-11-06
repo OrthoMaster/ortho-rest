@@ -33,15 +33,15 @@ class OrderController extends Controller
             $date = CarbonImmutable::today();
         }
 
-        $status = OrderStatus::tryFrom((string) $request->query('status'));
+        $statuses = filter_values('status', array_column(OrderStatus::cases(), 'value'));
 
         return view('modules.takeaway.index', [
             'date' => $date,
-            'status' => $status,
+            'statuses' => $statuses,
             'orders' => TakeawayOrder::with(['customer', 'items'])
                 ->withCount('edits')
                 ->whereBetween('pickup_at', [$date, $date->endOfDay()])
-                ->when($status, fn ($query) => $query->where('status', $status))
+                ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
                 ->orderBy('pickup_at')
                 ->get(),
         ]);

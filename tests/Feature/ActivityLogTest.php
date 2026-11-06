@@ -134,8 +134,16 @@ class ActivityLogTest extends TestCase
             ->assertSee('Báo hết món Phở bò')
             ->assertSee('Quản lý Lan');
 
-        $this->get("$this->admin/restaurant/activity?area=reservation")->assertDontSee('Báo hết món Phở bò');
-        $this->get("$this->admin/restaurant/activity?user={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
+        $page = "$this->admin/restaurant/activity";
+        $this->get("$page?area[]=reservation")->assertDontSee('Báo hết món Phở bò');
+        $this->get("$page?area[]=reservation&area[]=menu")->assertSee('Báo hết món Phở bò')->assertSee('Đặt bàn');
+        $this->get("$page?user[]={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
+        $this->get("$page?user[]={$this->owner->id}&user[]={$this->manager->id}")->assertSee('Báo hết món Phở bò');
+
+        // Mỗi giá trị đang lọc là một pill, link của pill bỏ đúng giá trị đó.
+        $this->get("$page?area[]=reservation&area[]=menu")
+            ->assertSee('class="filter-pill"', false)
+            ->assertSee(e(url($page).'?area%5B0%5D=menu'), false);
     }
 
     public function test_logs_show_today_by_default_and_a_range_up_to_31_days(): void

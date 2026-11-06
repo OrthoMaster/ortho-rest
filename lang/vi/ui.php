@@ -37,6 +37,9 @@ return [
         'apply' => 'Áp dụng',
         'clear' => 'Xoá lọc',
         'remove' => 'Bỏ lọc :label',
+        'search' => 'Tìm…',
+        'search_in' => 'Tìm trong :label',
+        'no_match' => 'Không có lựa chọn nào khớp.',
     ],
 
     'time' => [

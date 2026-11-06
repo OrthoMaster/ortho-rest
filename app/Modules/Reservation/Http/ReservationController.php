@@ -26,17 +26,18 @@ class ReservationController extends Controller
 
     public function index(Request $request): View
     {
-        $status = ReservationStatus::tryFrom((string) $request->query('status'));
-        $areaId = $request->integer('area') ?: null;
+        $areas = Area::orderBy('name')->get();
+        $statuses = filter_values('status', array_column(ReservationStatus::cases(), 'value'));
+        $areaIds = filter_values('area', $areas->pluck('id')->all());
 
         $query = Reservation::with(['customer', 'area'])
-            ->when($status, fn ($query) => $query->where('status', $status))
-            ->when($areaId, fn ($query) => $query->where('area_id', $areaId));
+            ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
+            ->when($areaIds, fn ($query) => $query->whereIn('area_id', $areaIds));
 
         $filters = [
-            'status' => $status,
-            'areaId' => $areaId,
-            'areas' => Area::orderBy('name')->get(),
+            'statuses' => $statuses,
+            'areaIds' => $areaIds,
+            'areas' => $areas,
         ];
 
         if ($request->boolean('all')) {

@@ -10,21 +10,15 @@
     <p class="lead">{{ __('activity.lead') }}</p>
 
     @php($keep = ['from' => $from->toDateString(), 'to' => $to->toDateString()])
-    @php($pills = [])
-    @if ($area)
-        @php($pills[] = ['label' => __('activity.areas.'.$area), 'url' => request()->fullUrlWithQuery(['area' => null, 'page' => null])])
-    @endif
-    @if ($userId)
-        @php($pills[] = ['label' => $users->firstWhere('id', $userId)->name, 'url' => request()->fullUrlWithQuery(['user' => null, 'page' => null])])
-    @endif
+    @php($areaOptions = collect(\App\Models\ActivityLog::AREAS)->mapWithKeys(fn ($key) => [$key => __('activity.areas.'.$key)])->all())
+    @php($userOptions = $users->pluck('name', 'id')->all())
+    @php($pills = [...filter_pills('area', $areaOptions, $areas), ...filter_pills('user', $userOptions, $userIds)])
     @component('partials.filter-bar', ['id' => 'activity', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
         @slot('date')
             @include('partials.date-range-nav', ['from' => $from, 'to' => $to, 'max' => today()->toDateString(), 'maxDays' => \App\Http\Controllers\Admin\ActivityController::MAX_DAYS])
         @endslot
-        @include('partials.filter-field', ['name' => 'area', 'label' => __('activity.filter_area'), 'all' => __('activity.all_areas'), 'value' => $area,
-            'options' => collect(\App\Models\ActivityLog::AREAS)->mapWithKeys(fn ($key) => [$key => __('activity.areas.'.$key)])->all()])
-        @include('partials.filter-field', ['name' => 'user', 'label' => __('activity.filter_user'), 'all' => __('activity.all_users'), 'value' => $userId,
-            'options' => $users->pluck('name', 'id')->all()])
+        @include('partials.filter-multi', ['name' => 'area', 'label' => __('activity.filter_area'), 'all' => __('activity.all_areas'), 'options' => $areaOptions, 'values' => $areas])
+        @include('partials.filter-multi', ['name' => 'user', 'label' => __('activity.filter_user'), 'all' => __('activity.all_users'), 'options' => $userOptions, 'values' => $userIds])
     @endcomponent
 
     @if ($logs->isEmpty())

@@ -18,24 +18,24 @@ class ActivityController extends Controller
 
     public function index(Request $request): View
     {
-        $area = in_array($request->query('area'), ActivityLog::AREAS, true) ? $request->query('area') : null;
+        $areas = filter_values('area', ActivityLog::AREAS);
         $users = tenant()->users()->orderBy('name')->get();
-        $userId = $users->contains('id', $request->integer('user')) ? $request->integer('user') : null;
+        $userIds = filter_values('user', $users->pluck('id')->all());
         [$from, $to] = $this->range($request);
 
         $logs = ActivityLog::with(['user', 'impersonator'])
             ->whereBetween('created_at', [$from, $to->endOfDay()])
-            ->when($area, fn ($query) => $query->where('area', $area))
-            ->when($userId, fn ($query) => $query->where('user_id', $userId))
+            ->when($areas, fn ($query) => $query->whereIn('area', $areas))
+            ->when($userIds, fn ($query) => $query->whereIn('user_id', $userIds))
             ->latest('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
 
         return view('admin.activity', [
             'logs' => $logs,
-            'area' => $area,
+            'areas' => $areas,
             'users' => $users,
-            'userId' => $userId,
+            'userIds' => $userIds,
             'from' => $from,
             'to' => $to,
         ]);
