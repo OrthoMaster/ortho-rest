@@ -13,6 +13,8 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.
 - Dòng có nhiều thao tác thì gom vào nút 3 chấm dọc ở cuối dòng (`partials/kebab`).
 - Thao tác Xoá luôn có chữ màu danger: `is-danger` trong menu 3 chấm, `link-danger` cho link, `btn-danger` cho nút.
+- Thao tác đổi trạng thái (nhận, đã đến, huỷ...) luôn hỏi lại bằng hộp thoại chung: thêm `data-confirm` (nội dung), `data-confirm-title`, `data-confirm-ok`, `data-confirm-danger` vào form. Không dùng `confirm()` của trình duyệt cho thao tác mới.
+- Thông báo thành công tự tắt sau vài giây; lỗi và cảnh báo thì giữ lại.
 - Nút chỉ có icon phải có nền hoặc viền thấy rõ vùng chạm, tối thiểu 44px trên điện thoại (class `row-btn`).
 - Đổi thứ tự bằng kéo thả, không dùng nút lên xuống: thêm `data-sortable`, `data-sort-url`, `data-sort-id` và `partials/drag-handle`. Trên điện thoại giữ lâu vào dòng cũng kéo được.
 - Lựa chọn bật/tắt luôn là toggle: `input[type=checkbox]` đã tự hiển thị thành toggle, không làm kiểu checkbox khác.
