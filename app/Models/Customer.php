@@ -24,9 +24,16 @@ class Customer extends Model
         return $this->hasMany(TakeawayOrder::class);
     }
 
-    /** Tìm theo số điện thoại trong quán hiện tại, cập nhật tên và email mới nhất. */
-    public static function remember(string $name, string $phone, ?string $email = null): self
+    /**
+     * Tìm theo số điện thoại trong quán hiện tại, cập nhật tên và email mới nhất.
+     * Không có số điện thoại thì không nhận ra được khách cũ, nên tạo khách mới.
+     */
+    public static function remember(string $name, ?string $phone, ?string $email = null): self
     {
+        if ($phone === null || $phone === '') {
+            return static::create(['name' => $name, 'email' => $email]);
+        }
+
         return static::updateOrCreate(['phone' => $phone], array_filter([
             'name' => $name,
             'email' => $email,

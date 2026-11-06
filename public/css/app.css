@@ -579,6 +579,21 @@ dialog.picker[open] { display: flex; flex-direction: column; }
 .time-unit input { flex: 1; min-width: 0; width: 100%; padding: 0; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; background: none; border: 0; border-radius: 0; outline: none; }
 .time-separator { flex: none; font-size: 1.25rem; font-weight: 700; color: var(--ink-soft); }
 .field small.time-warning { color: var(--bad-ink); font-weight: 500; }
+.section-hint { display: block; margin-top: .2rem; color: var(--ink-soft); font-size: .8125rem; }
+.availability { display: grid; gap: .2rem; padding: .7rem .9rem; border-radius: var(--radius); font-weight: 500; color: var(--ink-soft); background: var(--ground); }
+.availability.is-ok { color: var(--ok-ink); background: var(--ok-bg); }
+.availability.is-full { color: var(--bad-ink); background: var(--bad-bg); }
+.availability small { color: var(--warn-ink); font-weight: 500; }
+.choice-list { display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.choice { display: flex; align-items: center; gap: .75rem; min-height: 3rem; padding: .55rem .9rem; cursor: pointer; }
+.choice + .choice { border-top: 1px solid var(--line); }
+.choice input { width: 1.15rem; height: 1.15rem; margin: 0; flex: none; accent-color: var(--primary-ink); }
+.choice span { flex: 1; }
+.choice small { color: var(--ok-ink); font-size: .8125rem; font-weight: 500; }
+.choice.is-full { cursor: not-allowed; }
+.choice.is-full span { color: var(--ink-soft); }
+.choice.is-full small { color: var(--bad-ink); }
+.choice:has(input:checked) { background: var(--ground); }
 
 dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .calendar-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .6rem; }

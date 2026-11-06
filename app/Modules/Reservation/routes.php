@@ -14,6 +14,7 @@ Route::middleware('module:reservation')
         Route::get('manage', [ReservationController::class, 'manage'])->middleware('can:reservation.manage')->name('manage');
         Route::get('create', [ReservationController::class, 'create'])->name('create');
         Route::post('/', [ReservationController::class, 'store'])->name('store');
+        Route::get('availability', [ReservationController::class, 'availability'])->name('availability');
 
         Route::get('customers', [CustomerController::class, 'index'])->name('customers');
 

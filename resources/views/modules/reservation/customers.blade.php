@@ -30,7 +30,7 @@
                     @foreach ($customers as $customer)
                         <tr>
                             <td>{{ $customer->name }}</td>
-                            <td><a href="tel:{{ $customer->phone }}">{{ $customer->phone }}</a></td>
+                            <td>@if ($customer->phone)<a href="tel:{{ $customer->phone }}">{{ $customer->phone }}</a>@else — @endif</td>
                             <td>{{ $customer->reservations_count }}</td>
                             <td>{{ $customer->cancelled_count }}</td>
                             <td>{{ $customer->no_show_count }}</td>

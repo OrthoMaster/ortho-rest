@@ -11,6 +11,7 @@ use App\Modules\Reservation\ReservationStatus;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -161,6 +162,35 @@ class ReservationController extends Controller
         return redirect()->route('tenant.admin.reservation.show', $reservation)->with('status', __('reservation.saved'));
     }
 
+    /** Chỗ còn theo ngày, giờ, số khách: form đặt bàn gọi sau mỗi lần đổi. */
+    public function availability(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'reserved_date' => ['required', 'date_format:Y-m-d'],
+            'reserved_time' => ['required', 'date_format:H:i'],
+            'party_size' => ['required', 'integer', 'min:1', 'max:1000'],
+            'ignore' => ['nullable', 'integer'],
+        ]);
+
+        $ignore = filled($data['ignore'] ?? null) ? Reservation::find($data['ignore']) : null;
+        $start = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);
+        $party = (int) $data['party_size'];
+        $result = $this->booking->availability($start, $ignore);
+        $fits = $result['left'] >= $party;
+
+        return response()->json([
+            'fits' => $fits,
+            'message' => $fits
+                ? __('reservation.available', ['left' => $result['left'], 'total' => $result['total']])
+                : __('reservation.full', ['left' => $result['left']]),
+            'warning' => $result['closed'] ? __('reservation.outside_hours') : null,
+            'areas' => array_map(fn ($area) => $area + [
+                'fits' => $area['left'] >= $party,
+                'label' => __('reservation.seats_left', ['count' => $area['left']]),
+            ], $result['areas']),
+        ]);
+    }
+
     public function show(Reservation $reservation): View
     {
         $reservation->load(['customer', 'area', 'creator', 'statusLogs.user', 'edits.user']);
@@ -218,9 +248,9 @@ class ReservationController extends Controller
     {
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
-            'customer_phone' => ['required', 'string', Phone::RULE],
+            'customer_phone' => ['nullable', 'string', Phone::RULE],
             'customer_email' => ['nullable', 'email', 'max:255'],
-            'area_id' => ['required', 'integer', Rule::exists('areas', 'id')->where('restaurant_id', tenant()->getKey())->where('is_active', true)],
+            'area_id' => ['nullable', 'integer', Rule::exists('areas', 'id')->where('restaurant_id', tenant()->getKey())->where('is_active', true)],
             'reserved_date' => ['required', 'date_format:Y-m-d'],
             'reserved_time' => ['required', 'date_format:H:i'],
             'party_size' => ['required', 'integer', 'min:1', 'max:1000'],
@@ -228,8 +258,8 @@ class ReservationController extends Controller
         ]);
 
         $data['reserved_at'] = CarbonImmutable::parse($data['reserved_date'].' '.$data['reserved_time']);
-        $data['customer_phone'] = Phone::normalize($data['customer_phone']);
-        $data['area_id'] = (int) $data['area_id'];
+        $data['customer_phone'] = filled($data['customer_phone'] ?? null) ? Phone::normalize($data['customer_phone']) : null;
+        $data['area_id'] = filled($data['area_id'] ?? null) ? (int) $data['area_id'] : null;
 
         return $data;
     }

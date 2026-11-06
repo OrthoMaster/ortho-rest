@@ -57,6 +57,12 @@ enum ReservationStatus: string
         return in_array($this, self::active(), true);
     }
 
+    /** Đang giữ chỗ khi tính số chỗ còn: chỉ đặt bàn đã được nhận, đặt online đang chờ chưa giữ chỗ. */
+    public static function holding(): array
+    {
+        return [self::Confirmed, self::Seated];
+    }
+
     /** Đã được quán nhận: hiện ở tab Hôm nay cho người đón khách. */
     public static function accepted(): array
     {

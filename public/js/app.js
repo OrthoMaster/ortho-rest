@@ -1357,6 +1357,7 @@
         var hasLimits = 'opens' in picker.dataset;
         var dateValue = hasLimits ? picker.closest('form').querySelector('[name=pickup_date]') : null;
         var today = dateValue ? dateValue.closest('[data-date-picker]').dataset.today : null;
+        var ready = false;
         var parts = value.value.split(':').map(Number);
         var hour = parts[0];
         var minute = parts[1];
@@ -1364,9 +1365,15 @@
         var render = function () {
             var time = pad(hour) + ':' + pad(minute);
 
+            var changed = value.value !== time;
+
             hourInput.value = pad(hour);
             minuteInput.value = pad(minute);
             value.value = time;
+
+            if (changed && ready) {
+                value.dispatchEvent(new Event('change', { bubbles: true }));
+            }
 
             if (!hasLimits) {
                 return;
@@ -1446,5 +1453,106 @@
         }
 
         render();
+        ready = true;
+    });
+
+    // Form đặt bàn: đổi ngày, giờ, số khách thì hỏi chỗ còn, rồi mới hiện khu vực và thông tin khách.
+    document.querySelectorAll('form[data-availability]').forEach(function (form) {
+        var status = form.querySelector('[data-availability-status]');
+        var text = form.querySelector('[data-availability-text]');
+        var warning = form.querySelector('[data-availability-warning]');
+        var steps = form.querySelectorAll('[data-after-check]');
+        var fields = ['reserved_date', 'reserved_time', 'party_size'];
+        var timer = null;
+        var request = 0;
+
+        var showSteps = function (show) {
+            steps.forEach(function (step) {
+                step.hidden = !show;
+            });
+        };
+
+        var apply = function (data) {
+            status.classList.toggle('is-ok', data.fits);
+            status.classList.toggle('is-full', !data.fits);
+            text.textContent = data.message;
+            warning.textContent = data.warning || '';
+            warning.hidden = !data.warning;
+
+            data.areas.forEach(function (area) {
+                var choice = form.querySelector('[data-area-choice="' + area.id + '"]');
+
+                if (!choice) {
+                    return;
+                }
+
+                var input = choice.querySelector('input');
+
+                choice.querySelector('[data-area-left]').textContent = area.label;
+                choice.classList.toggle('is-full', !area.fits);
+                input.disabled = !area.fits && !input.checked;
+            });
+
+            showSteps(data.fits);
+        };
+
+        var check = function () {
+            var params = new URLSearchParams();
+
+            fields.forEach(function (name) {
+                params.set(name, form.elements[name].value);
+            });
+
+            if (form.dataset.ignore) {
+                params.set('ignore', form.dataset.ignore);
+            }
+
+            var current = ++request;
+
+            status.hidden = false;
+            status.classList.remove('is-ok', 'is-full');
+            text.textContent = form.dataset.checking;
+            warning.hidden = true;
+
+            fetch(form.dataset.availability + '?' + params.toString(), { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (current === request) {
+                        apply(data);
+                    }
+                })
+                .catch(function () {
+                    if (current === request) {
+                        text.textContent = form.dataset.checkFailed;
+                        showSteps(true);
+                    }
+                });
+        };
+
+        form.addEventListener('change', function (event) {
+            if (fields.indexOf(event.target.name) !== -1) {
+                clearTimeout(timer);
+                timer = setTimeout(check, 250);
+            }
+        });
+        form.addEventListener('input', function (event) {
+            if (event.target.name === 'party_size') {
+                clearTimeout(timer);
+                timer = setTimeout(check, 400);
+            }
+        });
+
+        // Có lỗi từ lần lưu trước thì giữ mọi phần đang hiện, còn lại chờ kiểm tra xong.
+        if (!form.querySelector('.error')) {
+            showSteps(false);
+        }
+
+        check();
     });
 })();

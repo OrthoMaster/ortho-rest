@@ -626,4 +626,79 @@ class ReservationTest extends TestCase
         $this->put("$this->base/settings/areas/{$otherArea->id}", ['name' => 'X', 'capacity' => 1])->assertNotFound();
         $this->post($this->base, $this->form(['area_id' => $otherArea->id]))->assertSessionHasErrors('area_id');
     }
+
+    public function test_form_goes_time_then_area_then_customer(): void
+    {
+        $this->get("$this->base/create")->assertOk()->assertSeeInOrder([
+            'name="reserved_date"', 'name="reserved_time"', 'name="party_size"', 'data-availability-status',
+            'name="area_id" value=""', 'name="area_id" value="'.$this->area->id.'"',
+            'name="source"', 'name="customer_name"', 'name="customer_phone"', 'name="customer_email"', 'name="notes"',
+        ], false);
+    }
+
+    public function test_area_and_phone_are_optional(): void
+    {
+        $this->post($this->base, $this->form(['area_id' => '', 'customer_phone' => '', 'customer_name' => 'Chú Sáu']))->assertSessionHasNoErrors();
+        $this->post($this->base, $this->form(['area_id' => '', 'customer_phone' => '', 'customer_name' => 'Cô Bảy']))->assertSessionHasNoErrors();
+
+        $this->actingInTenant($this->restaurant);
+        $reservation = Reservation::with('customer')->latest('id')->first();
+        $this->assertNull($reservation->area_id);
+        $this->assertNull($reservation->customer->phone);
+        // Không có số điện thoại thì mỗi khách là một người riêng.
+        $this->assertSame(2, Customer::whereNull('phone')->count());
+
+        $this->get("$this->base/{$reservation->id}")->assertOk()->assertSee(__('reservation.no_area'));
+        $this->get("$this->base/manage")->assertOk()->assertSee('Cô Bảy');
+    }
+
+    public function test_seats_are_counted_for_the_whole_restaurant(): void
+    {
+        $patio = Area::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Ngoài sân', 'capacity' => 6, 'sort_order' => 2]);
+
+        $this->book(['area_id' => null, 'party_size' => 12]);
+        $this->book(['area_id' => $patio->id, 'party_size' => 2]);
+
+        // 16 chỗ, đã giữ 14: còn 2 cho cả quán, dù Ngoài sân còn 4.
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:30&party_size=3")
+            ->assertOk()
+            ->assertJsonPath('fits', false)
+            ->assertJsonPath('areas.1.left', 2)
+            ->assertJsonPath('areas.1.fits', false);
+
+        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 3, 'reserved_at' => '2026-12-01T19:30']))
+            ->assertSessionHasErrors('reserved_at');
+        $this->post($this->base, $this->form(['area_id' => '', 'party_size' => 2, 'reserved_at' => '2026-12-01T19:30']))
+            ->assertSessionHasNoErrors();
+
+        // Ngoài giờ lượt bàn thì chỗ được trả lại.
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=21:00&party_size=3")
+            ->assertJsonPath('fits', true)
+            ->assertJsonPath('areas.0.left', 10)
+            ->assertJsonPath('areas.1.left', 6);
+    }
+
+    public function test_pending_online_holds_no_seats_until_accepted(): void
+    {
+        $pending = $this->book(['party_size' => 8], ReservationSource::Online);
+        $this->assertSame(ReservationStatus::Pending, $pending->status);
+
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10")
+            ->assertJsonPath('fits', true);
+
+        $this->book(['party_size' => 5]);
+
+        // Nhận lúc đã hết chỗ thì bị chặn.
+        $this->post("$this->base/{$pending->id}/status", ['status' => 'confirmed'])->assertSessionHasErrors('reserved_at');
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame(ReservationStatus::Pending, $pending->fresh()->status);
+    }
+
+    public function test_availability_ignores_the_booking_being_edited(): void
+    {
+        $booking = $this->book(['party_size' => 10]);
+
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10")->assertJsonPath('fits', false);
+        $this->getJson("$this->base/availability?reserved_date=2026-12-01&reserved_time=19:00&party_size=10&ignore={$booking->id}")->assertJsonPath('fits', true);
+    }
 }
