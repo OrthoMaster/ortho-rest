@@ -15,19 +15,29 @@ class ShiftController extends Controller
 {
     public function index(ShiftType $type): View
     {
-        return view('admin.restaurant.shifts', [
-            'type' => $type,
-            'days' => Shift::where('type', $type)->orderBy('start_time')->get()->groupBy('weekday'),
-        ]);
+        // Mỗi tên ca là một cột, xếp theo giờ bắt đầu sớm nhất của ca đó trong tuần.
+        $columns = Shift::where('type', $type)->orderBy('start_time')->get()
+            ->groupBy('name')
+            ->sortBy(fn ($shifts) => $shifts->min('start_time'));
+
+        return view('admin.restaurant.shifts', ['type' => $type, 'columns' => $columns]);
     }
 
     public function create(Request $request, ShiftType $type): View
     {
         $day = $request->integer('day');
+        $name = (string) $request->query('name');
+
+        // Bấm ô trống trong bảng: lấy giờ của cùng ca ở ngày khác cho nhanh.
+        $sample = $name === '' ? null : Shift::where('type', $type)->where('name', $name)->first();
 
         return view('admin.restaurant.shift-form', [
             'type' => $type,
-            'shift' => new Shift(['start_time' => '10:00', 'end_time' => '14:00']),
+            'shift' => new Shift([
+                'name' => $sample?->name,
+                'start_time' => $sample->start_time ?? '10:00',
+                'end_time' => $sample->end_time ?? '14:00',
+            ]),
             'selectedDays' => old('weekdays', $day >= 1 && $day <= 7 ? [$day] : []),
         ]);
     }

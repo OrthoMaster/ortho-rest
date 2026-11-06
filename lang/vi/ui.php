@@ -119,7 +119,7 @@ return [
     ],
 
     'restaurant' => [
-        'title' => 'Thông tin nhà hàng',
+        'title' => 'Cài đặt chung',
     ],
 
     'logo' => [

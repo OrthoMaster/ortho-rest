@@ -95,6 +95,30 @@ class ShiftTest extends TestCase
         $this->assertSame(1, $this->shiftCount(ShiftType::Opening));
     }
 
+    public function test_list_is_a_table_of_days_by_shift_name(): void
+    {
+        $this->shift(['name' => 'Tối', 'start_time' => '17:00', 'end_time' => '22:00']);
+        $this->shift(['weekday' => 2]);
+
+        $this->get("$this->base/opening")
+            ->assertOk()
+            ->assertSee('<table>', false)
+            ->assertSeeInOrder(['<th scope="col">Trưa</th>', '<th scope="col">Tối</th>'], false)
+            ->assertSee(__('shifts.add_to', ['name' => 'Tối', 'day' => 'Thứ ba']))
+            ->assertSee('class="is-danger"', false);
+    }
+
+    public function test_adding_from_an_empty_cell_copies_the_times_of_that_shift(): void
+    {
+        $this->shift(['name' => 'Tối', 'start_time' => '17:15', 'end_time' => '22:45']);
+
+        $this->get("$this->base/opening/create?day=2&name=T%E1%BB%91i")
+            ->assertOk()
+            ->assertSee('value="Tối"', false)
+            ->assertSee('value="17:15"', false)
+            ->assertSee('value="22:45"', false);
+    }
+
     public function test_edit_and_delete(): void
     {
         $shift = $this->shift();

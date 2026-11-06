@@ -102,7 +102,7 @@ return [
     'show_by_day' => 'Xem theo ngày',
     'all_summary' => ':count lượt đặt, từ hôm nay trở đi rồi đến các ngày đã qua',
     'actions_for' => 'Thao tác đặt bàn của :name',
-    'hours_moved' => 'Giờ mở cửa theo từng ca trong tuần nằm ở Thông tin nhà hàng.',
+    'hours_moved' => 'Giờ mở cửa theo từng ca trong tuần nằm ở Cài đặt chung.',
     'hours_open' => 'Cài giờ mở cửa',
 
     'closed_dates' => 'Ngày đóng cửa đặc biệt',

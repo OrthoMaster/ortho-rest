@@ -144,6 +144,38 @@
     document.addEventListener('click', function (event) {
         closeKebabs(event.target.closest ? event.target.closest('.kebab') : null);
     });
+
+    // Trong khung cuộn ngang (bảng), menu nổi lên trên để không bị cắt.
+    kebabs.forEach(function (kebab) {
+        if (!kebab.closest('.table-wrap')) {
+            return;
+        }
+
+        var menu = kebab.querySelector('.kebab-menu');
+
+        kebab.addEventListener('toggle', function () {
+            menu.classList.toggle('is-floating', kebab.open);
+
+            if (!kebab.open) {
+                return;
+            }
+
+            var box = kebab.querySelector('summary').getBoundingClientRect();
+            var left = Math.min(box.left, window.innerWidth - menu.offsetWidth - 8);
+            var top = box.bottom + 4 + menu.offsetHeight > window.innerHeight ? box.top - 4 - menu.offsetHeight : box.bottom + 4;
+
+            menu.style.left = Math.max(8, left) + 'px';
+            menu.style.top = Math.max(8, top) + 'px';
+        });
+    });
+
+    window.addEventListener('scroll', function () {
+        kebabs.forEach(function (kebab) {
+            if (kebab.open && kebab.closest('.table-wrap')) {
+                kebab.open = false;
+            }
+        });
+    }, true);
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeKebabs(null);

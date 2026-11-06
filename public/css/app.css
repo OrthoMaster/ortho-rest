@@ -187,8 +187,15 @@ dialog::backdrop { background: rgb(23 40 56 / .45); }
 body.drag-active { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 body.drag-active .drag-handle { cursor: grabbing; }
 .kebab-menu { position: absolute; top: calc(100% + .25rem); right: 0; display: grid; min-width: 11rem; padding: .3rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(23 40 56 / .14); }
-.kebab-menu button { width: 100%; min-height: 2.5rem; padding: 0 .7rem; font: inherit; font-size: .9375rem; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.kebab-menu form { display: contents; }
+.kebab-menu > a,
+.kebab-menu button { display: flex; align-items: center; width: 100%; min-height: 2.5rem; padding: 0 .7rem; font: inherit; font-size: .9375rem; font-weight: 400; text-align: left; text-decoration: none; color: var(--ink); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.kebab-menu > a:hover,
 .kebab-menu button:hover { background: var(--primary-soft); }
+/* Mọi thao tác xoá dùng màu danger: is-danger trong menu, link-danger cho link, btn-danger cho nút. */
+.kebab-menu .is-danger { color: var(--bad-ink); }
+.kebab-menu .is-danger:hover { background: var(--bad-bg); }
+.kebab-menu.is-floating { position: fixed; right: auto; z-index: 30; }
 
 .tag { display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .45rem; font-size: .75rem; font-weight: 400; color: var(--on-secondary); background: var(--secondary); border-radius: 999px; }
 .tag img { width: 1rem; height: 1rem; object-fit: contain; }
@@ -392,6 +399,21 @@ th, td { padding: .65rem .85rem; text-align: left; white-space: nowrap; }
 th { font-size: .875rem; font-weight: 600; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 tbody tr + tr td { border-top: 1px solid var(--line); }
 
+.shift-table th[scope=row] { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+tbody tr + tr th[scope=row] { border-top: 1px solid var(--line); }
+.shift-table th[scope=row] small { display: block; font-weight: 400; color: var(--ink-soft); }
+.shift-table thead th { color: var(--ink); }
+.shift-table td { vertical-align: middle; }
+.shift-table td .kebab + .kebab { margin-top: .35rem; }
+.day-short { display: none; }
+.cell-btn, .cell-add { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 .75rem; font-size: .9375rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.cell-btn { gap: .3rem; list-style: none; font-variant-numeric: tabular-nums; }
+.cell-btn small { font-size: .8125rem; color: var(--ink-soft); }
+.shift-table tbody tr:last-child th[scope=row] { border-bottom-left-radius: var(--radius); }
+.cell-btn:hover, .kebab[open] .cell-btn { background: var(--primary-soft); border-color: var(--primary-ink); }
+.cell-add { min-width: 2.75rem; font-size: 1.25rem; color: var(--ink-soft); text-decoration: none; border-style: dashed; }
+.cell-add:hover { color: var(--ink); background: var(--primary-soft); border-color: var(--primary-ink); }
+
 h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-soft); }
 
 .btn-sm { padding: .3rem .65rem; font-size: .875rem; }
@@ -583,6 +605,13 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
     .filters .inline-form select { flex: 1 1 0; min-width: 0; }
     .date-nav { flex: 1 1 100%; }
     .date-nav form { flex: 1; }
+    .day-full { display: none; }
+    .day-short { display: inline; }
+    .shift-table th, .shift-table td { padding: .5rem .35rem; }
+    .shift-table th[scope=row] { padding-left: .6rem; }
+    .cell-btn { flex-direction: column; gap: 0; min-width: 4.25rem; padding: .35rem .5rem; line-height: 1.25; }
+    .cell-btn .time-dash { display: none; }
+    .cell-btn small { font-size: .6875rem; }
     .date-tools { flex: 1 1 100%; }
     .booking-list .row-tools { margin-left: auto; }
     .date-nav .picker-trigger { width: 100%; }
