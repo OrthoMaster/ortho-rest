@@ -9,7 +9,19 @@
 
     <p class="lead">{{ __('activity.lead') }}</p>
 
-    <form method="get" class="inline-form filters">
+    <div class="filters">
+    <div class="date-tools">
+        @if ($date)
+            @include('partials.date-nav', ['date' => $date])
+            <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['date' => null, 'page' => null]) }}">{{ __('activity.all_days') }}</a>
+        @else
+            <a class="btn btn-quiet" href="{{ request()->fullUrlWithQuery(['date' => today()->toDateString(), 'page' => null]) }}">{{ __('activity.by_day') }}</a>
+        @endif
+    </div>
+    <form method="get" class="inline-form">
+        @if ($date)
+            <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+        @endif
         <select name="area" aria-label="{{ __('activity.filter_area') }}" onchange="this.form.submit()">
             <option value="">{{ __('activity.all_areas') }}</option>
             @foreach (\App\Models\ActivityLog::AREAS as $key)
@@ -24,6 +36,7 @@
         </select>
         <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.super.search_submit') }}</button></noscript>
     </form>
+    </div>
 
     @if ($logs->isEmpty())
         <p class="empty">{{ __('activity.none') }}</p>

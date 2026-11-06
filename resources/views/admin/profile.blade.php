@@ -5,7 +5,9 @@
 @section('content')
     <h1>{{ __('ui.profile.title') }}</h1>
 
-    <section class="panel narrow">
+    <div class="profile-grid">
+    <div class="profile-col">
+    <section class="panel">
         <h2>{{ __('ui.profile.info') }}</h2>
         <form method="post" action="{{ route('tenant.admin.profile.update') }}" class="stack" data-guard>
             @csrf
@@ -16,7 +18,7 @@
         </form>
     </section>
 
-    <section class="panel narrow">
+    <section class="panel">
         <h2>{{ __('ui.profile.change_password') }}</h2>
         <form method="post" action="{{ route('tenant.admin.profile.password') }}" class="stack" data-guard>
             @csrf
@@ -28,7 +30,9 @@
         </form>
     </section>
 
-    <section class="panel narrow" id="devices">
+    </div>
+
+    <section class="panel" id="devices">
         <h2>{{ __('ui.devices.title') }}</h2>
         @if ($impersonating)
             <p class="row-note">{{ __('ui.devices.impersonating') }}</p>
@@ -61,4 +65,5 @@
             <noscript><button class="btn btn-quiet" type="submit">{{ __('ui.common.save') }}</button></noscript>
         </form>
     </section>
+    </div>
 @endsection

@@ -131,6 +131,21 @@
         });
     });
 
+    // Tab đang chọn bị khuất bên phải (điện thoại): cuộn thanh tab cho thấy.
+    document.querySelectorAll('.subnav').forEach(function (nav) {
+        var active = nav.querySelector('.active');
+
+        if (!active) {
+            return;
+        }
+
+        var left = active.getBoundingClientRect().left - nav.getBoundingClientRect().left;
+
+        if (left + active.offsetWidth > nav.clientWidth) {
+            nav.scrollLeft = left - (nav.clientWidth - active.offsetWidth) / 2;
+        }
+    });
+
     // Menu 3 chấm: chỉ mở một cái, bấm ra ngoài hoặc Esc thì đóng.
     var kebabs = Array.prototype.slice.call(document.querySelectorAll('.kebab'));
     var closeKebabs = function (except) {

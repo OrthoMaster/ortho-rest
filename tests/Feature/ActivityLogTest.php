@@ -138,6 +138,25 @@ class ActivityLogTest extends TestCase
         $this->get("$this->admin/restaurant/activity?user={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
     }
 
+    public function test_logs_can_be_filtered_by_day(): void
+    {
+        $this->travelTo(now()->subDays(2));
+        ActivityLog::record($this->restaurant->id, 'menu', 'Việc hôm kia');
+        $this->travelBack();
+        ActivityLog::record($this->restaurant->id, 'menu', 'Việc hôm nay');
+        $page = "$this->admin/restaurant/activity";
+
+        $this->actingAs($this->owner)->get($page)->assertSee('Việc hôm kia')->assertSee('Việc hôm nay')->assertSee(__('activity.by_day'));
+
+        $this->get("$page?date=".now()->subDays(2)->toDateString())
+            ->assertSee('Việc hôm kia')
+            ->assertDontSee('Việc hôm nay')
+            ->assertSee('data-date-picker', false)
+            ->assertSee(__('activity.all_days'));
+
+        $this->get("$page?date=khong-phai-ngay")->assertOk()->assertSee('Việc hôm nay');
+    }
+
     public function test_logs_of_another_restaurant_are_not_shown(): void
     {
         $other = Restaurant::factory()->create();

@@ -5,6 +5,8 @@ return [
     'lead' => 'Ai đã thay đổi gì trong quán, lúc nào. Nhật ký chỉ ghi thêm, không sửa hay xoá được.',
     'all_areas' => 'Mọi phần',
     'all_users' => 'Mọi người',
+    'all_days' => 'Mọi ngày',
+    'by_day' => 'Chọn ngày',
     'filter_area' => 'Lọc theo phần',
     'filter_user' => 'Lọc theo người làm',
     'empty' => '(trống)',
