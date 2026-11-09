@@ -3,6 +3,7 @@
 // Phần quản lý của một quán: domain-chinh/{slug}/admin/...
 
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\CapacityController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeviceController;
@@ -29,6 +30,14 @@ Route::get('activity', [ActivityController::class, 'index'])->middleware('can:ac
 Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
     Route::get('activity', fn () => redirect()->route('tenant.admin.activity', status: 301));
+
+    Route::prefix('capacity')->name('capacity.')->group(function () {
+        Route::get('/', [CapacityController::class, 'index'])->name('index');
+        Route::post('/', [CapacityController::class, 'store'])->name('store');
+        Route::post('reorder', [CapacityController::class, 'reorder'])->name('reorder');
+        Route::put('{area}', [CapacityController::class, 'update'])->whereNumber('area')->name('update');
+        Route::delete('{area}', [CapacityController::class, 'destroy'])->whereNumber('area')->name('destroy');
+    });
 
     Route::get('special-days', [SpecialDayController::class, 'index'])->name('special-days.index');
     Route::get('special-days/create', [SpecialDayController::class, 'create'])->name('special-days.create');

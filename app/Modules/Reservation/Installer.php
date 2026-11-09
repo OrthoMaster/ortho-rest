@@ -29,7 +29,7 @@ class Installer extends ModuleInstaller
         parent::install($restaurant, $state);
 
         if (! Area::forRestaurant($restaurant)->exists()) {
-            Area::create(['restaurant_id' => $restaurant->getKey(), 'name' => __('reservation.default_area'), 'capacity' => 40, 'sort_order' => 1]);
+            Area::create(['restaurant_id' => $restaurant->getKey(), 'name' => __('reservation.default_area'), 'code' => 'A', 'table_count' => 10, 'capacity' => 40, 'sort_order' => 1]);
         }
     }
 }

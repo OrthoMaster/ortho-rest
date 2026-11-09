@@ -561,18 +561,27 @@ class ReservationTest extends TestCase
 
     public function test_area_management(): void
     {
-        $areas = "$this->base/areas";
+        $areas = "/{$this->restaurant->slug}/admin/restaurant/capacity";
 
-        $this->get($areas)->assertOk()->assertSee('<table>', false)->assertSee(__('reservation.area_capacity'));
+        // Khu vực đã chuyển sang Cài đặt chung → Sức chứa.
+        $this->get("$this->base/areas")->assertRedirect("http://localhost$areas");
+        $this->get($areas)->assertOk()->assertSee('<table>', false)->assertSee(__('reservation.area_capacity'))->assertSee(__('reservation.area_code'));
 
-        $this->post($areas, ['name' => 'Lầu 1', 'capacity' => 20])->assertSessionHasNoErrors();
+        // Mã khu: 1–2 chữ cái, tự viết hoa, không trùng.
+        $this->post($areas, ['name' => 'Lầu 1', 'code' => 'L12', 'table_count' => 6, 'capacity' => 20])->assertSessionHasErrors('code');
+        $this->post($areas, ['_dialog' => 'area-dialog-new', 'name' => 'Lầu 1', 'code' => $this->area->code, 'table_count' => 6, 'capacity' => 20])->assertSessionHasErrors(['code' => __('reservation.area_code_taken')]);
+        $this->followingRedirects()->post($areas, ['_dialog' => 'area-dialog-new', 'name' => 'Lầu 1', 'code' => $this->area->code, 'table_count' => 6, 'capacity' => 20])->assertSee('data-auto-open', false)->assertSee(__('reservation.area_code_taken'));
+        $this->post($areas, ['name' => 'Lầu 1', 'code' => ' l ', 'table_count' => 0, 'capacity' => 20])->assertSessionHasErrors('table_count');
+        $this->post($areas, ['name' => 'Lầu 1', 'code' => ' l ', 'table_count' => 6, 'capacity' => 20])->assertSessionHasNoErrors();
         $upstairs = Area::forRestaurant($this->restaurant)->where('name', 'Lầu 1')->sole();
         $this->assertSame(2, $upstairs->sort_order);
+        $this->assertSame('L', $upstairs->code);
+        $this->assertSame(6, $upstairs->table_count);
 
         $this->post("$areas/reorder", ['ids' => [$upstairs->id, $this->area->id]])->assertNoContent();
         $this->get($areas)->assertSeeInOrder(['Lầu 1', $this->area->name]);
 
-        $this->put("$areas/{$this->area->id}", ['name' => 'Trong nhà', 'capacity' => 5])->assertSessionHasNoErrors();
+        $this->put("$areas/{$this->area->id}", ['name' => 'Trong nhà', 'code' => 'TN', 'table_count' => 2, 'capacity' => 5])->assertSessionHasNoErrors();
         $this->assertSame('Trong nhà', $this->area->fresh()->name);
 
         // Còn đặt bàn sắp tới: không xoá được.
@@ -583,6 +592,7 @@ class ReservationTest extends TestCase
         $this->travelTo(Carbon::parse('2026-12-03 09:00'));
         $this->delete("$areas/{$this->area->id}")->assertSessionHas('status');
         $this->assertFalse($this->area->fresh()->is_active);
+        $this->assertNull($this->area->fresh()->code, 'Ẩn khu vực thì trả mã lại');
         $this->get($areas)->assertDontSee('Trong nhà');
 
         // Chưa có đặt bàn: xoá hẳn.
@@ -596,16 +606,17 @@ class ReservationTest extends TestCase
     {
         $this->settings(['online_seats' => 8, 'online_seats_total' => 10]);
 
-        $this->put("$this->base/areas/{$this->area->id}", ['name' => $this->area->name, 'capacity' => 6])
+        $capacity = "/{$this->restaurant->slug}/admin/restaurant/capacity";
+        $this->put("$capacity/{$this->area->id}", ['name' => $this->area->name, 'code' => 'A', 'table_count' => 3, 'capacity' => 6])
             ->assertSessionHas('warning', __('reservation.total_changed_over', ['from' => 10, 'to' => 6, 'online' => 8]));
 
         $this->settings(['online_enabled' => false]);
-        $this->put("$this->base/areas/{$this->area->id}", ['name' => $this->area->name, 'capacity' => 12])->assertSessionMissing('warning');
+        $this->put("$capacity/{$this->area->id}", ['name' => $this->area->name, 'code' => 'A', 'table_count' => 3, 'capacity' => 12])->assertSessionMissing('warning');
     }
 
     public function test_staff_cannot_manage_areas(): void
     {
-        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/areas")->assertForbidden();
+        $this->actingAs($this->member($this->restaurant, 'manager'))->get("/{$this->restaurant->slug}/admin/restaurant/capacity")->assertForbidden();
     }
 
     public function test_staff_can_book_but_not_change_settings(): void
@@ -627,7 +638,7 @@ class ReservationTest extends TestCase
 
         $this->get("$this->base/{$otherBooking->id}")->assertNotFound();
         $this->post("$this->base/{$otherBooking->id}/status", ['status' => 'cancelled'])->assertNotFound();
-        $this->put("$this->base/settings/areas/{$otherArea->id}", ['name' => 'X', 'capacity' => 1])->assertNotFound();
+        $this->put("/{$this->restaurant->slug}/admin/restaurant/capacity/{$otherArea->id}", ['name' => 'X', 'code' => 'X', 'table_count' => 1, 'capacity' => 1])->assertNotFound();
         $this->post($this->base, $this->form(['area_id' => $otherArea->id]))->assertSessionHasErrors('area_id');
     }
 

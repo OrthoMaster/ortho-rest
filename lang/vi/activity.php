@@ -15,7 +15,7 @@ return [
     'no' => 'Không',
     'areas' => [
         'menu' => 'Menu',
-        'reservation' => 'Đặt bàn',
+        'reservation' => 'Đặt bàn trước',
         'takeaway' => 'Đặt mang đi',
         'settings' => 'Cài đặt',
         'customers' => 'Khách hàng',

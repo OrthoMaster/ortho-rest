@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\Reservation\Http\AreaController;
 use App\Modules\Reservation\Http\ReservationController;
 use App\Modules\Reservation\Http\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -27,13 +26,8 @@ Route::middleware('module:reservation')
             Route::put('booking', [SettingsController::class, 'updateBooking'])->name('booking');
         });
 
-        Route::middleware('can:reservation.settings')->prefix('areas')->name('areas.')->group(function () {
-            Route::get('/', [AreaController::class, 'index'])->name('index');
-            Route::post('/', [AreaController::class, 'store'])->name('store');
-            Route::post('reorder', [AreaController::class, 'reorder'])->name('reorder');
-            Route::put('{area}', [AreaController::class, 'update'])->whereNumber('area')->name('update');
-            Route::delete('{area}', [AreaController::class, 'destroy'])->whereNumber('area')->name('destroy');
-        });
+        // Khu vực đã chuyển sang Cài đặt chung → Sức chứa.
+        Route::get('areas', fn () => redirect()->route('tenant.admin.restaurant.capacity.index', status: 301));
 
         Route::get('{reservation}', [ReservationController::class, 'show'])->whereNumber('reservation')->middleware('can:reservation.view')->name('show');
         Route::post('{reservation}/status', [ReservationController::class, 'changeStatus'])->whereNumber('reservation')->name('status');

@@ -66,7 +66,7 @@ class ActivityLogTest extends TestCase
     {
         // Bốn dòng bật module (Nội bộ bật khi tạo quản lý), rồi hai dòng của dữ liệu tạo trong setUp; không có dữ liệu mẫu hay chức vụ mặc định.
         $this->assertSame(
-            ['Bật module Menu', 'Bật module Đặt bàn', 'Bật module Đặt mang đi', 'Bật module Nội bộ', 'Thêm danh mục Món chính', 'Thêm món Phở bò'],
+            ['Bật module Menu', 'Bật module Đặt bàn trước', 'Bật module Đặt mang đi', 'Bật module Nội bộ', 'Thêm danh mục Món chính', 'Thêm món Phở bò'],
             $this->logs()->reorder()->oldest('id')->pluck('summary')->all(),
         );
     }
@@ -135,7 +135,7 @@ class ActivityLogTest extends TestCase
 
         $page = "$this->admin/activity";
         $this->get("$page?area[]=reservation")->assertDontSee('Báo hết món Phở bò');
-        $this->get("$page?area[]=reservation&area[]=menu")->assertSee('Báo hết món Phở bò')->assertSee('Đặt bàn');
+        $this->get("$page?area[]=reservation&area[]=menu")->assertSee('Báo hết món Phở bò')->assertSee('Đặt bàn trước');
         $this->get("$page?user[]={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
         $this->get("$page?user[]={$this->owner->id}&user[]={$this->manager->id}")->assertSee('Báo hết món Phở bò');
 

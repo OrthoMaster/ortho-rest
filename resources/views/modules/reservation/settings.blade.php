@@ -40,7 +40,7 @@
                 <p class="flash flash-warn" role="status">{{ __('reservation.total_changed_since', ['from' => $totalChangedFrom, 'to' => $total]) }}</p>
             @endif
             @if ($total === 0)
-                <p class="row-note">{{ __('reservation.need_area_seats') }} <a href="{{ route('tenant.admin.reservation.areas.index') }}">{{ __('reservation.areas') }}</a></p>
+                <p class="row-note">{{ __('reservation.need_area_seats') }} <a href="{{ route('tenant.admin.restaurant.capacity.index') }}">{{ __('ui.restaurant.title') }} → {{ __('reservation.capacity') }}</a></p>
             @else
                 @include('partials.number-stepper', ['name' => 'online_seats', 'label' => __('reservation.online_seats_label'), 'value' => $onlineSeats,
                     'min' => 1, 'max' => $total, 'suffix' => __('reservation.of_total', ['total' => $total]), 'hint' => __('reservation.online_seats_hint')])

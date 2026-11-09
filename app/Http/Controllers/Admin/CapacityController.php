@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Reservation\Http;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleManager;
@@ -10,15 +10,20 @@ use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-class AreaController extends Controller
+/**
+ * Sức chứa (Cài đặt chung): các khu vực của quán, mỗi khu có mã, số bàn và số
+ * chỗ ngồi. Dùng chung cho đặt bàn trước và lấy đơn tại bàn.
+ */
+class CapacityController extends Controller
 {
     public function __construct(private ModuleManager $modules) {}
 
     public function index(): View
     {
-        return view('modules.reservation.areas', [
+        return view('admin.restaurant.capacity', [
             'areas' => Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
@@ -35,7 +40,7 @@ class AreaController extends Controller
     {
         abort_unless($area->is_active, 404);
 
-        return $this->saved(fn () => $area->update($this->validated($request)));
+        return $this->saved(fn () => $area->update($this->validated($request, $area)));
     }
 
     /** Khu vực đã có đặt bàn thì ẩn đi để giữ lịch sử, chưa có thì xoá hẳn. */
@@ -50,8 +55,9 @@ class AreaController extends Controller
             return back()->with('error', __('reservation.area_has_upcoming', ['count' => $upcoming]));
         }
 
+        // Ẩn thì trả mã khu lại để dùng cho khu khác.
         return $this->saved(fn () => $area->reservations()->exists()
-            ? $area->update(['is_active' => false])
+            ? $area->update(['is_active' => false, 'code' => null])
             : $area->delete(), __('reservation.area_deleted'));
     }
 
@@ -72,9 +78,14 @@ class AreaController extends Controller
         $after = Area::totalSeats();
 
         $response = back()->with('status', $message ?? __('reservation.area_saved'));
+
+        if ($before === $after || ! $this->modules->isEnabled(tenant(), 'reservation')) {
+            return $response;
+        }
+
         $settings = $this->modules->settings(tenant(), 'reservation');
 
-        if ($before !== $after && $settings['online_enabled']) {
+        if ($settings['online_enabled']) {
             $online = (int) ($settings['online_seats'] ?? $after);
 
             $response->with('warning', __($online > $after ? 'reservation.total_changed_over' : 'reservation.total_changed', [
@@ -87,12 +98,19 @@ class AreaController extends Controller
         return $response;
     }
 
-    /** @return array{name: string, capacity: int} */
-    private function validated(Request $request): array
+    /** @return array{name: string, code: string, table_count: int, capacity: int} */
+    private function validated(Request $request, ?Area $area = null): array
     {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'regex:/^[A-Z]{1,2}$/', Rule::unique('areas')->where('restaurant_id', tenant()->getKey())->ignore($area)],
+            'table_count' => ['required', 'integer', 'min:1', 'max:500'],
             'capacity' => ['required', 'integer', 'min:1', 'max:10000'],
+        ], [
+            'code.regex' => __('reservation.area_code_invalid'),
+            'code.unique' => __('reservation.area_code_taken'),
         ]);
     }
 }

@@ -4,7 +4,7 @@ return [
     'core' => 'Lõi',
     'website' => 'Website',
     'menu' => 'Menu',
-    'reservation' => 'Đặt bàn',
+    'reservation' => 'Đặt bàn trước',
     'takeaway' => 'Đặt mang đi',
     'staff' => 'Nội bộ',
     'schedule' => 'Lịch làm',

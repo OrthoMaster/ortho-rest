@@ -31,7 +31,13 @@ class Area extends Model
 
     public function activityArea(): string
     {
-        return 'reservation';
+        return 'settings';
+    }
+
+    /** Bàn số $number của khu này, ví dụ A12. */
+    public function tableLabel(int $number): string
+    {
+        return $this->code.$number;
     }
 
     public function activityName(): string
@@ -41,6 +47,6 @@ class Area extends Model
 
     public function activityFields(): array
     {
-        return ['name' => 'text', 'capacity' => 'plain', 'is_active' => 'bool'];
+        return ['name' => 'text', 'code' => 'plain', 'table_count' => 'plain', 'capacity' => 'plain', 'is_active' => 'bool'];
     }
 }

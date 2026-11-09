@@ -158,7 +158,8 @@ input[type=checkbox]:checked::after { transform: translateX(1.05rem); }
 .area-table .col-handle, .area-table .col-tools { width: 1%; }
 .area-table tfoot th, .area-table tfoot td { border-top: 1px solid var(--line); border-bottom: 0; }
 .area-table tfoot th { color: var(--ink); }
-.area-table td:nth-child(2) { width: 100%; white-space: normal; }
+.area-table td:nth-child(3) { width: 100%; white-space: normal; }
+.area-table .col-code { width: 1%; white-space: nowrap; }
 .area-table tbody tr { position: relative; }
 .row-open { padding: 0; font: inherit; font-weight: 600; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
 .row-link .row-open::after { content: ""; position: absolute; inset: 0; }
@@ -864,3 +865,6 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .toggle-row:has(input:disabled) { cursor: default; }
 .toggle-row input:disabled { opacity: .55; cursor: default; }
 .nav-sep { margin: .45rem .5rem; border: 0; border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent); }
+.area-code { display: inline-grid; place-items: center; min-width: 2.25rem; height: 1.75rem; padding: 0 .4rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); background: var(--primary-soft); border-radius: var(--radius); }
+
+.code-input { max-width: 6rem; text-transform: uppercase; font-weight: 700; letter-spacing: .08em; }
