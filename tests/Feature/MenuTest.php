@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Position;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuTag;
+use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -434,5 +436,58 @@ class MenuTest extends TestCase
         $staff->positions()->detach(Position::where('name', 'Bếp')->value('id'));
         $staff->forgetPermissions();
         $this->get($this->base)->assertForbidden();
+    }
+
+    public function test_items_have_their_own_option_groups(): void
+    {
+        $category = $this->category();
+        $comTam = $this->item($category, ['name' => 'Cơm tấm']);
+        $banhUot = $this->item($category, ['name' => 'Bánh ướt']);
+        $url = "$this->base/items/{$comTam->id}/options";
+
+        $this->get("$this->base/items/{$comTam->id}/edit")->assertSee(__('menu.options'))->assertSee($url, false);
+        $this->get($url)->assertOk()->assertSee(__('menu.options_empty'))->assertDontSee(__('menu.options_copy_from'));
+
+        // Nhóm không có lựa chọn, giá âm: không cho.
+        $this->put($url, ['groups' => ['a' => ['name' => 'Thịt']]])->assertSessionHasErrors(['groups.a.options' => __('menu.options_need_one')]);
+        $this->put($url, ['groups' => ['a' => ['name' => 'Thịt', 'options' => [['name' => 'Sườn', 'price' => -1]]]]])->assertSessionHasErrors('groups.a.options.0.price');
+
+        $this->put($url, ['groups' => [
+            'a' => ['name' => 'Thịt', 'required' => '1', 'multiple' => '0', 'options' => [['name' => 'Sườn cọng', 'price' => 10000], ['name' => 'Trứng', 'price' => '']]],
+            'b' => ['name' => 'Nước chấm', 'required' => '0', 'multiple' => '1', 'options' => [['name' => 'Không ớt'], ['name' => 'Nhiều ớt']]],
+        ]])->assertRedirect()->assertSessionHasNoErrors();
+
+        $groups = $comTam->optionGroups()->with('options')->get();
+        $this->assertSame(['Thịt', 'Nước chấm'], $groups->pluck('name')->all());
+        $this->assertTrue($groups[0]->is_required);
+        $this->assertFalse($groups[0]->is_multiple);
+        $this->assertTrue($groups[1]->is_multiple);
+        $this->assertSame([10000, 0], $groups[0]->options->pluck('price')->all());
+
+        $log = ActivityLog::where('summary', __('menu.options_log', ['name' => 'Cơm tấm']))->sole();
+        $this->assertSame(['Thịt (Sườn cọng +'.vnd(10000).', Trứng)', 'Nước chấm (Không ớt, Nhiều ớt)'], $log->changes);
+        $this->get("$this->base/items/{$comTam->id}/edit")->assertSee(__('menu.options_summary', ['count' => 2]))->assertSee('Sườn cọng');
+
+        // Sao chép sang Bánh ướt: bản riêng, sửa không ảnh hưởng món gốc.
+        $this->get("$this->base/items/{$banhUot->id}/options")->assertSee(__('menu.options_copy_from'))->assertSee('Cơm tấm');
+        $this->post("$this->base/items/{$banhUot->id}/options/copy", ['from' => $comTam->id])->assertSessionHas('status');
+        $copy = $banhUot->optionGroups()->with('options')->get();
+        $this->assertSame(['Thịt', 'Nước chấm'], $copy->pluck('name')->all());
+        $this->assertNotEquals($groups[0]->id, $copy[0]->id);
+
+        $this->put("$this->base/items/{$banhUot->id}/options", ['groups' => ['x' => ['name' => 'Nước chấm', 'options' => [['name' => 'Ít ớt']]]]])->assertSessionHasNoErrors();
+        $this->assertSame(['Nước chấm'], $banhUot->optionGroups()->pluck('name')->all());
+        $this->assertSame(2, $comTam->optionGroups()->count());
+
+        // Món của quán khác không sao chép được.
+        $other = Restaurant::factory()->create();
+        $this->enableModules($other, 'menu');
+        $this->actingInTenant($other);
+        $foreign = $this->item($this->category('Khác', $other), ['name' => 'Món lạ']);
+        app(TenantContext::class)->forget();
+        $this->post("$this->base/items/{$banhUot->id}/options/copy", ['from' => $foreign->id])->assertNotFound();
+
+        // Nhân viên không có quyền sửa menu thì không vào được.
+        $this->actingAs($this->member($this->restaurant, 'staff'))->get($url)->assertForbidden();
     }
 }

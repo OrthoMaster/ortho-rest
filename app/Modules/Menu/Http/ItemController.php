@@ -123,7 +123,7 @@ class ItemController extends Controller
     private function form(MenuItem $item): View
     {
         return view('modules.menu.form', [
-            'item' => $item,
+            'item' => $item->load('optionGroups.options'),
             'categories' => MenuCategory::orderBy('sort_order')->orderBy('id')->get(),
             'tags' => MenuTag::orderBy('id')->get(),
         ]);

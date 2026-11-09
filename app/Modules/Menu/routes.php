@@ -2,6 +2,7 @@
 
 use App\Modules\Menu\Http\CategoryController;
 use App\Modules\Menu\Http\ItemController;
+use App\Modules\Menu\Http\ItemOptionController;
 use App\Modules\Menu\Http\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,9 @@ Route::middleware('module:menu')
             Route::post('items', [ItemController::class, 'store'])->name('items.store');
             Route::get('items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
             Route::put('items/{item}', [ItemController::class, 'update'])->name('items.update');
+            Route::get('items/{item}/options', [ItemOptionController::class, 'edit'])->name('items.options');
+            Route::put('items/{item}/options', [ItemOptionController::class, 'update'])->name('items.options.update');
+            Route::post('items/{item}/options/copy', [ItemOptionController::class, 'copy'])->name('items.options.copy');
             Route::delete('items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
         });
     });

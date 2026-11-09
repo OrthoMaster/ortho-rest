@@ -302,6 +302,68 @@
         sync();
     });
 
+    // Tuỳ chọn khi gọi món: thêm, xoá nhóm và lựa chọn ngay trên form, gửi một lần.
+    document.querySelectorAll('form[data-option-editor]').forEach(function (form) {
+        var list = form.querySelector('[data-option-groups]');
+        var empty = form.querySelector('[data-options-empty]');
+        var groupTemplate = form.querySelector('[data-group-template]').innerHTML;
+        var optionTemplate = form.querySelector('[data-option-template]').innerHTML;
+        var counter = 0;
+
+        var key = function (prefix) {
+            counter += 1;
+
+            return prefix + Date.now().toString(36) + counter;
+        };
+
+        var fromHtml = function (html) {
+            var holder = document.createElement('div');
+
+            holder.innerHTML = html.trim();
+
+            return holder.firstElementChild;
+        };
+
+        var changed = function () {
+            empty.hidden = list.querySelector('[data-option-group]') !== null;
+            form.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        form.addEventListener('click', function (event) {
+            var button = event.target.closest('button');
+
+            if (!button) {
+                return;
+            }
+
+            if (button.matches('[data-add-group]')) {
+                var group = fromHtml(groupTemplate.split('__G__').join(key('n')).split('__O__').join(key('p')));
+
+                list.appendChild(group);
+                group.querySelector('input').focus();
+                changed();
+            } else if (button.matches('[data-add-option]')) {
+                var owner = button.closest('[data-option-group]');
+                var row = fromHtml(optionTemplate.split('__G__').join(owner.dataset.key).split('__O__').join(key('p')));
+
+                owner.querySelector('[data-option-rows]').appendChild(row);
+                row.querySelector('input').focus();
+                changed();
+            } else if (button.matches('[data-remove-option]')) {
+                var rows = button.closest('[data-option-rows]');
+
+                // Nhóm luôn còn ít nhất một lựa chọn.
+                if (rows.querySelectorAll('[data-option-row]').length > 1) {
+                    button.closest('[data-option-row]').remove();
+                    changed();
+                }
+            } else if (button.matches('[data-remove-group]')) {
+                button.closest('[data-option-group]').remove();
+                changed();
+            }
+        });
+    });
+
     // Ẩn hiện mật khẩu.
     document.addEventListener('click', function (event) {
         var button = event.target.closest('[data-password-toggle]');

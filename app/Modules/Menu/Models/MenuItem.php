@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
@@ -29,6 +30,12 @@ class MenuItem extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(MenuCategory::class, 'menu_category_id');
+    }
+
+    /** Nhóm tuỳ chọn khi gọi món (riêng của món này). */
+    public function optionGroups(): HasMany
+    {
+        return $this->hasMany(MenuItemOptionGroup::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function tags(): BelongsToMany

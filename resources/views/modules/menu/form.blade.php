@@ -47,6 +47,20 @@
     </form>
 
     @if ($item->exists)
+        {{-- Tuỳ chọn khi gọi món ở trang con riêng, vì có nhiều nhóm và lựa chọn. --}}
+        <section class="panel narrow stack item-options">
+            <div class="item-options-head">
+                <div>
+                    <h2>{{ __('menu.options') }}</h2>
+                    <small class="section-hint">{{ $item->optionGroups->isEmpty() ? __('menu.options_empty') : __('menu.options_summary', ['count' => $item->optionGroups->count()]) }}</small>
+                </div>
+                <a class="btn btn-quiet" href="{{ route('tenant.admin.menu.items.options', $item) }}">{{ __('menu.options_edit') }}</a>
+            </div>
+            @foreach ($item->optionGroups as $group)
+                <p class="option-summary"><strong>{{ $group->name }}</strong> {{ $group->options->map(fn ($option) => $option->name.($option->price > 0 ? ' +'.vnd($option->price) : ''))->implode(' · ') }}</p>
+            @endforeach
+        </section>
+
         <form method="post" action="{{ route('tenant.admin.menu.items.destroy', $item) }}" data-confirm-danger data-confirm="{{ __('menu.item_delete_confirm', ['name' => $item->name]) }}">
             @csrf
             @method('delete')
