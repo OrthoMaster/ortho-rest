@@ -1,7 +1,6 @@
 <?php
 
 use App\Modules\Reservation\Http\AreaController;
-use App\Modules\Reservation\Http\CustomerController;
 use App\Modules\Reservation\Http\ReservationController;
 use App\Modules\Reservation\Http\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -16,11 +15,8 @@ Route::middleware('module:reservation')
         Route::post('/', [ReservationController::class, 'store'])->name('store');
         Route::get('availability', [ReservationController::class, 'availability'])->name('availability');
 
-        Route::get('customers', [CustomerController::class, 'index'])->name('customers');
-        Route::middleware('role:owner')->group(function () {
-            Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
-            Route::post('customers/{customer}/anonymize', [CustomerController::class, 'anonymize'])->whereNumber('customer')->name('customers.anonymize');
-        });
+        // Khách hàng đã thành mục riêng ở menu trái.
+        Route::get('customers', fn () => redirect()->route('tenant.admin.customers.index', status: 301));
 
         Route::middleware('role:owner,manager')->prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [SettingsController::class, 'edit'])->name('edit');

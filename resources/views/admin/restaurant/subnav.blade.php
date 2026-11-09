@@ -3,5 +3,4 @@
     @php($links[] = ['url' => route('tenant.admin.restaurant.shifts.index', $case), 'label' => $case->label(), 'active' => ($type ?? null) === $case])
 @endforeach
 @php($links[] = ['url' => route('tenant.admin.restaurant.special-days.index'), 'label' => __('special_days.title'), 'active' => request()->routeIs('tenant.admin.restaurant.special-days.*')])
-@php($links[] = ['url' => route('tenant.admin.restaurant.activity'), 'label' => __('activity.title'), 'active' => request()->routeIs('tenant.admin.restaurant.activity')])
 @include('partials.subnav', ['links' => $links])

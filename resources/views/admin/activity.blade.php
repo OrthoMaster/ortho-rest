@@ -3,9 +3,7 @@
 @section('title', __('activity.title'))
 
 @section('content')
-    <h1>{{ __('ui.restaurant.title') }}</h1>
-
-    @include('admin.restaurant.subnav')
+    <h1>{{ __('activity.title') }}</h1>
 
     <p class="lead">{{ __('activity.lead') }}</p>
 

@@ -259,6 +259,8 @@ body.drag-active .drag-handle { cursor: grabbing; }
 .list-tools .list-search { margin: 0 0 0 auto; }
 .list-tools .btn { display: inline-flex; align-items: center; gap: .4rem; }
 .list-tools .btn svg { width: 1.1rem; height: 1.1rem; }
+.customer-code { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+tr.is-muted td { color: var(--ink-soft); }
 @media (min-width: 761px) {
     .list-search.has-divider { margin-top: 0; padding-top: 1.25rem; border-top: 1px solid var(--line); }
 }
@@ -816,3 +818,16 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 }
 
 .dialog-delete { margin-top: .85rem; }
+
+/* Ô mật khẩu có nút ẩn hiện */
+.password-wrap { position: relative; }
+.password-wrap input { width: 100%; padding-right: 3rem; }
+.password-toggle { position: absolute; top: 50%; right: .25rem; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; color: var(--ink-soft); background: transparent; border: 0; border-radius: var(--radius); cursor: pointer; transform: translateY(-50%); }
+.password-toggle:hover { color: var(--ink); background: var(--ground); }
+.password-toggle svg { width: 1.25rem; height: 1.25rem; }
+.password-toggle [data-eye-closed],
+.password-toggle[aria-pressed="true"] [data-eye-open] { display: none; }
+.password-toggle[aria-pressed="true"] [data-eye-closed] { display: block; }
+@media (max-width: 760px) {
+    .password-toggle { width: 2.75rem; height: 2.75rem; }
+}

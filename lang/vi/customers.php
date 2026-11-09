@@ -12,6 +12,8 @@ return [
     'retention_hint' => 'Tính từ lần cuối khách đặt bàn hoặc nhận đơn mang đi. Hết hạn thì hệ thống xoá tên, số điện thoại, email và ghi chú của khách; các lượt đặt vẫn giữ để thống kê.',
     'retention_saved' => 'Đã lưu thời hạn giữ thông tin khách.',
 
+    'code' => 'Mã khách',
+    'deleted_on' => 'Đã xoá :date',
     'delete_date' => 'Ngày xoá thông tin',
     'export' => 'Xuất Excel',
     'export_file' => 'khach-hang',

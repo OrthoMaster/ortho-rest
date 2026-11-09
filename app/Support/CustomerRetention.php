@@ -39,11 +39,11 @@ class CustomerRetention
         return in_array((int) $restaurant->customer_retention_days, self::DAYS, true) ? (int) $restaurant->customer_retention_days : self::DEFAULT_DAYS;
     }
 
-    /** Khách còn thông tin, kèm lần cuối có việc với quán (last_seen_at). */
-    public static function query(): Builder
+    /** Khách còn thông tin (hoặc mọi khách), kèm lần cuối có việc với quán (last_seen_at). */
+    public static function query(bool $withAnonymized = false): Builder
     {
         return Customer::query()
-            ->whereNull('anonymized_at')
+            ->when(! $withAnonymized, fn ($query) => $query->whereNull('anonymized_at'))
             ->select('customers.*')
             ->selectRaw(self::lastSeenSql().' as last_seen_at');
     }

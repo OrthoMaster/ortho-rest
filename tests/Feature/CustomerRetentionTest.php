@@ -29,6 +29,8 @@ class CustomerRetentionTest extends TestCase
 
     private string $base;
 
+    private string $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,6 +41,7 @@ class CustomerRetentionTest extends TestCase
         $this->enableModules($this->restaurant, 'reservation');
         $this->owner = User::factory()->owner($this->restaurant)->create();
         $this->base = "/{$this->restaurant->slug}/admin/reservations";
+        $this->admin = "/{$this->restaurant->slug}/admin";
         $this->actingAs($this->owner);
     }
 
@@ -131,7 +134,7 @@ class CustomerRetentionTest extends TestCase
         $this->customer('Chị Hoa', '0901111111', '2026-10-05 19:00');
         $this->customer('Anh Long', '0902222222', '2026-11-20 19:00');
 
-        $this->get("$this->base/customers")
+        $this->get("$this->admin/customers")
             ->assertSee(__('customers.delete_date'))
             ->assertSee('04/12/2026')
             ->assertSee('19/01/2027')
@@ -146,7 +149,7 @@ class CustomerRetentionTest extends TestCase
         $anonymous = $this->customer('Anh Long', '0902222222', '2026-11-20 19:00');
         CustomerRetention::anonymize($anonymous);
 
-        $response = $this->get("$this->base/customers/export")->assertOk();
+        $response = $this->get("$this->admin/customers/export")->assertOk();
         $this->assertStringContainsString('spreadsheetml', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('khach-hang-2026-12-01.xlsx', $response->headers->get('Content-Disposition'));
 
@@ -167,13 +170,13 @@ class CustomerRetentionTest extends TestCase
     {
         $customer = $this->customer('Chị Hoa', '0901111111', '2026-11-20 19:00');
 
-        $this->get("$this->base/customers")->assertSee('data-confirm="'.e(__('customers.anonymize_confirm', ['name' => 'Chị Hoa'])).'"', false);
-        $this->post("$this->base/customers/{$customer->id}/anonymize")->assertRedirect();
+        $this->get("$this->admin/customers")->assertSee('data-confirm="'.e(__('customers.anonymize_confirm', ['name' => 'Chị Hoa'])).'"', false);
+        $this->post("$this->admin/customers/{$customer->id}/anonymize")->assertRedirect();
 
         $this->actingInTenant($this->restaurant);
         $this->assertNotNull($customer->fresh()->anonymized_at);
-        $this->get("$this->base/customers")->assertDontSee('Chị Hoa')->assertDontSee(__('customers.anonymous'));
-        $this->post("$this->base/customers/{$customer->id}/anonymize")->assertNotFound();
+        $this->get("$this->admin/customers")->assertDontSee('Chị Hoa')->assertDontSee(__('customers.anonymous'));
+        $this->post("$this->admin/customers/{$customer->id}/anonymize")->assertNotFound();
     }
 
     public function test_only_the_owner_exports_or_anonymizes(): void
@@ -181,14 +184,63 @@ class CustomerRetentionTest extends TestCase
         $customer = $this->customer('Chị Hoa', '0901111111', '2026-11-20 19:00');
         $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
 
-        $this->actingAs($staff)->get("$this->base/customers")->assertOk()->assertDontSee(__('customers.export'))->assertDontSee(__('customers.anonymize'));
-        $this->actingAs($staff)->get("$this->base/customers/export")->assertForbidden();
-        $this->actingAs($staff)->post("$this->base/customers/{$customer->id}/anonymize")->assertForbidden();
+        $this->actingAs($staff)->get("$this->admin/customers")->assertOk()->assertDontSee(__('customers.export'))->assertDontSee(__('customers.anonymize'));
+        $this->actingAs($staff)->get("$this->admin/customers/export")->assertForbidden();
+        $this->actingAs($staff)->post("$this->admin/customers/{$customer->id}/anonymize")->assertForbidden();
 
         $other = Restaurant::factory()->create();
         $this->enableModules($other, 'reservation');
         $otherOwner = User::factory()->owner($other)->create();
-        $this->actingAs($otherOwner)->post("/{$other->slug}/admin/reservations/customers/{$customer->id}/anonymize")->assertNotFound();
+        $this->actingAs($otherOwner)->post("/{$other->slug}/admin/customers/{$customer->id}/anonymize")->assertNotFound();
         $this->assertNull($customer->fresh()->anonymized_at);
+    }
+
+    public function test_customers_and_activity_have_their_own_menu_entries(): void
+    {
+        $this->get($this->admin)
+            ->assertSee('href="http://localhost'.$this->admin.'/customers"', false)
+            ->assertSee('href="http://localhost'.$this->admin.'/activity"', false);
+        $this->get("$this->base/customers")->assertRedirect("http://localhost$this->admin/customers")->assertStatus(301);
+        $this->get("$this->admin/restaurant/activity")->assertRedirect("http://localhost$this->admin/activity");
+        $this->get("$this->base")->assertDontSee('href="http://localhost'.$this->base.'/customers"', false);
+        $this->get("$this->admin/restaurant")->assertDontSee('href="http://localhost'.$this->admin.'/activity" aria-current', false);
+
+        // Nhân viên thấy Khách hàng nhưng không thấy Nhật ký.
+        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $this->actingAs($staff)->get($this->admin)
+            ->assertSee('href="http://localhost'.$this->admin.'/customers"', false)
+            ->assertDontSee('href="http://localhost'.$this->admin.'/activity"', false);
+    }
+
+    public function test_customer_code_is_in_the_list_export_and_findable_after_anonymizing(): void
+    {
+        $customer = $this->customer('Chị Hoa', '0901111111', '2026-11-20 19:00');
+        $code = str_pad((string) $customer->id, 4, '0', STR_PAD_LEFT);
+
+        $this->get("$this->admin/customers")->assertSee(__('customers.code'))->assertSee('>'.$code.'<', false);
+
+        $path = $this->get("$this->admin/customers/export")->baseResponse->getFile()->getPathname();
+        $zip = new ZipArchive;
+        $zip->open($path);
+        $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        $this->assertStringContainsString('>'.__('customers.code').'<', $sheet);
+        $this->assertStringContainsString('>'.$code.'<', $sheet);
+
+        CustomerRetention::anonymize($customer);
+
+        // Mất thông tin thì không hiện trong danh sách, nhưng tìm theo mã vẫn ra.
+        $this->get("$this->admin/customers")->assertDontSee('>'.$code.'<', false);
+        $this->get("$this->admin/customers?q=$code")
+            ->assertSee('>'.$code.'<', false)
+            ->assertSee(__('customers.anonymous'))
+            ->assertSee(__('customers.deleted_on', ['date' => '01/12/2026']))
+            ->assertDontSee(__('customers.anonymize'));
+        $this->get("$this->admin/customers?q=%23{$customer->id}")->assertSee('>'.$code.'<', false);
+        $this->get("$this->admin/customers?q=Hoa")->assertDontSee('>'.$code.'<', false);
+
+        $this->actingInTenant($this->restaurant);
+        $reservation = Reservation::where('customer_id', $customer->id)->sole();
+        $this->get("$this->base/{$reservation->id}")->assertSee(__('customers.code'))->assertSee($code);
     }
 }

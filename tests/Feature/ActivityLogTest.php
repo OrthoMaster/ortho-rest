@@ -127,14 +127,14 @@ class ActivityLogTest extends TestCase
     {
         $this->actingAs($this->manager)->post("$this->admin/menu/items/{$this->pho->id}/toggle", ['field' => 'is_sold_out']);
 
-        $this->get("$this->admin/restaurant/activity")->assertForbidden();
+        $this->get("$this->admin/activity")->assertForbidden();
 
-        $this->actingAs($this->owner)->get("$this->admin/restaurant/activity")
+        $this->actingAs($this->owner)->get("$this->admin/activity")
             ->assertOk()
             ->assertSee('Báo hết món Phở bò')
             ->assertSee('Quản lý Lan');
 
-        $page = "$this->admin/restaurant/activity";
+        $page = "$this->admin/activity";
         $this->get("$page?area[]=reservation")->assertDontSee('Báo hết món Phở bò');
         $this->get("$page?area[]=reservation&area[]=menu")->assertSee('Báo hết món Phở bò')->assertSee('Đặt bàn');
         $this->get("$page?user[]={$this->owner->id}")->assertDontSee('Báo hết món Phở bò');
@@ -154,7 +154,7 @@ class ActivityLogTest extends TestCase
             $this->travelBack();
         }
         ActivityLog::record($this->restaurant->id, 'menu', 'Việc hôm nay');
-        $page = "$this->admin/restaurant/activity";
+        $page = "$this->admin/activity";
         $day = fn (int $ago) => now()->subDays($ago)->toDateString();
 
         $this->actingAs($this->owner)->get($page)
@@ -181,7 +181,7 @@ class ActivityLogTest extends TestCase
         $other = Restaurant::factory()->create();
         ActivityLog::record($other->id, 'menu', 'Việc của quán khác');
 
-        $this->actingAs($this->owner)->get("$this->admin/restaurant/activity")->assertDontSee('Việc của quán khác');
+        $this->actingAs($this->owner)->get("$this->admin/activity")->assertDontSee('Việc của quán khác');
     }
 
     public function test_impersonated_changes_name_the_super_admin(): void

@@ -151,7 +151,7 @@ class SpecialDayTest extends TestCase
     {
         $this->post($this->base, ['date' => '2026-12-07', 'type' => 'closed', 'whole_day' => 1]);
 
-        $this->get("/{$this->restaurant->slug}/admin/restaurant/activity")->assertSee('Thêm ngày đặc biệt 07/12/2026');
+        $this->get("/{$this->restaurant->slug}/admin/activity")->assertSee('Thêm ngày đặc biệt 07/12/2026');
     }
 
     public function test_only_owner_and_only_own_restaurant(): void

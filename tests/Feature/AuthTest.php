@@ -208,4 +208,16 @@ class AuthTest extends TestCase
 
         $this->assertTrue(Hash::check('mat-khau-moi', $owner->fresh()->password));
     }
+
+    public function test_password_fields_have_a_show_hide_button(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+
+        foreach (['/login', "/{$restaurant->slug}/login"] as $page) {
+            $this->get($page)->assertOk()
+                ->assertSee('data-password-toggle', false)
+                ->assertSee('aria-controls="f-password"', false)
+                ->assertSee('aria-label="'.__('ui.password.show').'"', false);
+        }
+    }
 }

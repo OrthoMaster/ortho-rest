@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Reservation\Http;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
@@ -21,17 +21,24 @@ class CustomerController extends Controller
     {
         $search = trim((string) $request->query('q'));
 
-        $customers = $this->customers()
-            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
-                ->where('name', 'like', "%$search%")
-                ->orWhere('phone', 'like', "%$search%")))
+        $id = Customer::idFromCode($search);
+
+        // Tìm theo mã thì ra cả khách đã bị xoá thông tin, để tra lại từ file Excel cũ.
+        $customers = $this->customers(withAnonymized: true)
+            ->where(fn ($query) => $query
+                ->where(fn ($query) => $query
+                    ->whereNull('anonymized_at')
+                    ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                        ->where('name', 'like', "%$search%")
+                        ->orWhere('phone', 'like', "%$search%"))))
+                ->when($id !== null, fn ($query) => $query->orWhere('customers.id', $id)))
             ->latest('id')
             ->paginate(25)
             ->withQueryString();
 
         $soon = CustomerRetention::dueBefore(tenant(), CarbonImmutable::now()->addDays(CustomerRetention::NOTICE_DAYS))->count();
 
-        return view('modules.reservation.customers', [
+        return view('admin.customers', [
             'customers' => $customers,
             'search' => $search,
             'soon' => $soon,
@@ -43,7 +50,8 @@ class CustomerController extends Controller
     public function export(): BinaryFileResponse
     {
         $restaurant = tenant();
-        $rows = $this->customers()->orderBy('name')->lazy()->map(fn (Customer $customer) => [
+        $rows = $this->customers()->orderBy('customers.id')->lazy()->map(fn (Customer $customer) => [
+            $customer->code(),
             $customer->name,
             (string) $customer->phone,
             (string) $customer->email,
@@ -55,6 +63,7 @@ class CustomerController extends Controller
         ]);
 
         return SimpleXlsx::download(__('customers.export_file').'-'.now()->format('Y-m-d'), [
+            __('customers.code'),
             __('reservation.customer_name'),
             __('reservation.customer_phone'),
             __('reservation.customer_email'),
@@ -76,9 +85,9 @@ class CustomerController extends Controller
         return back()->with('status', __('customers.anonymized'));
     }
 
-    private function customers(): Builder
+    private function customers(bool $withAnonymized = false): Builder
     {
-        return CustomerRetention::query()->withCount([
+        return CustomerRetention::query($withAnonymized)->withCount([
             'reservations',
             'reservations as cancelled_count' => fn ($query) => $query->where('status', ReservationStatus::Cancelled),
             'reservations as no_show_count' => fn ($query) => $query->where('status', ReservationStatus::NoShow),

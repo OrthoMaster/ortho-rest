@@ -202,7 +202,7 @@ class ReservationTest extends TestCase
 
         $this->assertSame(1, Customer::forRestaurant($this->restaurant)->count());
 
-        $this->get("$this->base/customers")->assertOk()->assertSeeInOrder(['Anh Minh', '0901234567', '3', '0', '1']);
+        $this->get("/{$this->restaurant->slug}/admin/customers")->assertOk()->assertSeeInOrder(['Anh Minh', '0901234567', '3', '0', '1']);
     }
 
     public function test_same_phone_in_two_restaurants_is_two_customers(): void

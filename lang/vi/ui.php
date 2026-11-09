@@ -79,6 +79,7 @@ return [
     'nav' => [
         'dashboard' => 'Tổng quan',
         'profile' => 'Tài khoản',
+        'customers' => 'Khách hàng',
         'logout' => 'Đăng xuất',
         'open_menu' => 'Mở menu',
         'close_menu' => 'Đóng menu',
@@ -122,6 +123,8 @@ return [
     ],
 
     'password' => [
+        'show' => 'Hiện mật khẩu',
+        'hide' => 'Ẩn mật khẩu',
         'forgot_title' => 'Quên mật khẩu',
         'forgot_lead' => 'Nhập email tài khoản, chúng tôi sẽ gửi link đặt lại mật khẩu.',
         'send_link' => 'Gửi link đặt lại',

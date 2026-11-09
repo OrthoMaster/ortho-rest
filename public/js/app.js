@@ -251,6 +251,22 @@
         }, 4000);
     });
 
+    // Ẩn hiện mật khẩu.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-password-toggle]');
+
+        if (!button) {
+            return;
+        }
+
+        var input = document.getElementById(button.getAttribute('aria-controls'));
+        var show = input.type === 'password';
+
+        input.type = show ? 'text' : 'password';
+        button.setAttribute('aria-pressed', show ? 'true' : 'false');
+        button.setAttribute('aria-label', show ? button.dataset.labelHide : button.dataset.labelShow);
+    });
+
     // Hộp thoại.
     document.querySelectorAll('[data-open-dialog]').forEach(function (button) {
         button.addEventListener('click', function () {

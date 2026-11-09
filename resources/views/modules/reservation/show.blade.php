@@ -30,6 +30,8 @@
             <dd>{{ $reservation->party_size }}</dd>
             <dt>{{ __('reservation.area') }}</dt>
             <dd>{{ $reservation->area?->name ?? __('reservation.no_area') }}</dd>
+            <dt>{{ __('customers.code') }}</dt>
+            <dd>{{ $reservation->customer->code() }}</dd>
             @if ($reservation->customer->phone)
                 <dt>{{ __('reservation.customer_phone') }}</dt>
                 <dd><a href="tel:{{ $reservation->customer->phone }}">{{ $reservation->customer->phone }}</a></dd>
