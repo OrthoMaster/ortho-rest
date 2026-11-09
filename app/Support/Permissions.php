@@ -51,6 +51,12 @@ class Permissions
         return array_filter(self::catalog(), fn (string $module) => self::moduleOn($restaurant, $module), ARRAY_FILTER_USE_KEY);
     }
 
+    /** @return list<string> các quyền của module đang bật ở quán này */
+    public static function visibleKeys(Restaurant $restaurant): array
+    {
+        return array_merge(...array_values(array_map('array_keys', self::groupsFor($restaurant))));
+    }
+
     /** @return list<string> */
     public static function defaults(string $preset, string $module): array
     {

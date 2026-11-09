@@ -19,6 +19,7 @@ return [
         'positions.manage' => 'Thêm, sửa chức vụ và quyền',
         'website.manage' => 'Sửa website',
         'menu.manage' => 'Thêm, sửa, xoá món, danh mục, nhãn; ẩn hiện món',
+        'menu.availability' => 'Báo hết món / còn món',
         'reservation.view' => 'Xem đặt bàn hôm nay',
         'reservation.create' => 'Thêm, sửa đặt bàn',
         'reservation.status' => 'Đổi trạng thái: đã đến, hoàn tất, huỷ, không đến',

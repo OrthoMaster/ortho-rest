@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Position;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
@@ -400,10 +401,38 @@ class MenuTest extends TestCase
         ])->assertSessionHasErrors('menu_category_id');
     }
 
-    public function test_staff_cannot_edit_the_menu(): void
+    public function test_staff_can_only_mark_sold_out(): void
     {
+        $category = $this->category();
+        $item = $this->item($category, ['name' => 'Phở bò']);
         $staff = $this->member($this->restaurant, 'staff');
 
+        // Nhân viên mặc định không vào Menu; giao chức vụ Bếp chỉ có quyền báo hết món.
         $this->actingAs($staff)->get($this->base)->assertForbidden();
+        $this->actingInTenant($this->restaurant);
+        $staff->positions()->attach(Position::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Bếp', 'permissions' => ['menu.availability']]));
+        $staff->forgetPermissions();
+
+        // Thấy menu, chỉ có nút Báo hết, không sửa được gì.
+        $this->get($this->base)->assertOk()
+            ->assertSee('Phở bò')
+            ->assertSee(__('menu.mark_sold_out'))
+            ->assertDontSee(__('menu.add_item'))
+            ->assertDontSee(route('tenant.admin.menu.items.edit', ['resto' => $this->restaurant->slug, 'item' => $item->id]))
+            ->assertDontSee(__('menu.hide'))
+            ->assertDontSee('data-sortable', false)
+            ->assertDontSee(__('menu.tags'));
+
+        $this->post("$this->base/items/{$item->id}/toggle", ['field' => 'is_sold_out'])->assertRedirect();
+        $this->assertTrue($item->fresh()->is_sold_out);
+        $this->post("$this->base/items/{$item->id}/toggle", ['field' => 'is_visible'])->assertForbidden();
+        $this->get("$this->base/items/create")->assertForbidden();
+        $this->get("$this->base/items/{$item->id}/edit")->assertForbidden();
+        $this->get("$this->base/tags")->assertForbidden();
+
+        // Bỏ chức vụ Bếp thì không vào được Menu nữa.
+        $staff->positions()->detach(Position::where('name', 'Bếp')->value('id'));
+        $staff->forgetPermissions();
+        $this->get($this->base)->assertForbidden();
     }
 }

@@ -37,7 +37,7 @@ class ActivityFormat
     }
 
     /** Quyền thêm và bỏ của một chức vụ, mỗi bên một dòng. */
-    private static function permissions(array $old, array $new): array
+    public static function permissions(array $old, array $new): array
     {
         $name = fn (string $key) => Permissions::label($key);
 

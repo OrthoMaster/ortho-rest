@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Position;
 use App\Models\User;
+use App\Support\Activity\ActivityFormat;
+use App\Support\Permissions;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,11 +46,13 @@ class AccountController extends Controller
         $account = new User(['name' => $data['name'], 'phone' => $data['phone'], 'email' => $data['email'], 'password' => $data['password']]);
         $account->restaurant_id = tenant()->getKey();
         $account->role = UserRole::Staff;
+        $account->permissions = $data['permissions'] ?: null;
         $account->save();
         $account->positions()->sync($data['positions']);
 
         ActivityLog::record(tenant()->getKey(), 'staff', __('staff.log_created', ['name' => $account->name]), [
             __('activity.fields.positions').': '.$this->positionNames($data['positions']),
+            ...ActivityFormat::permissions([], $data['permissions']),
         ]);
 
         return redirect()->route('tenant.admin.staff.accounts.index')->with('status', __('staff.account_saved', ['name' => $account->name]));
@@ -63,9 +67,13 @@ class AccountController extends Controller
     {
         $account = $this->find($account);
         $data = $this->validated($request, $account);
-        $before = ['name' => $account->name, 'phone' => $account->phone, 'email' => $account->email, 'positions' => $account->positions->pluck('id')->sort()->values()->all()];
+        $before = ['name' => $account->name, 'phone' => $account->phone, 'email' => $account->email, 'positions' => $account->positions->pluck('id')->sort()->values()->all(), 'permissions' => $account->permissions ?? []];
 
         $account->fill(['name' => $data['name'], 'phone' => $data['phone'], 'email' => $data['email']]);
+
+        // Quyền riêng của module đang tắt không hiện trên form: giữ nguyên.
+        $hidden = array_values(array_diff($before['permissions'], Permissions::visibleKeys(tenant())));
+        $account->permissions = array_values(array_unique([...$data['permissions'], ...$hidden])) ?: null;
 
         if (filled($data['password'])) {
             $account->password = $data['password'];
@@ -87,6 +95,8 @@ class AccountController extends Controller
         if ($before['positions'] !== $after) {
             $lines[] = __('activity.change', ['field' => __('activity.fields.positions'), 'from' => $this->positionNames($before['positions']), 'to' => $this->positionNames($after)]);
         }
+
+        $lines = [...$lines, ...ActivityFormat::permissions($before['permissions'], $account->permissions ?? [])];
 
         // Đặt mật khẩu mới thì đăng xuất mọi thiết bị đang dùng mật khẩu cũ.
         if (filled($data['password'])) {
@@ -131,10 +141,11 @@ class AccountController extends Controller
         return view('modules.staff.account-form', [
             'account' => $account,
             'positions' => Position::orderBy('sort_order')->orderBy('id')->get(),
+            'groups' => Permissions::groupsFor(tenant()),
         ]);
     }
 
-    /** @return array{name: string, phone: string, email: ?string, password: ?string, positions: list<int>} */
+    /** @return array{name: string, phone: string, email: ?string, password: ?string, positions: list<int>, permissions: list<string>} */
     private function validated(Request $request, ?User $account = null): array
     {
         $request->merge(['phone' => filled($request->input('phone')) ? Phone::normalize((string) $request->input('phone')) : null]);
@@ -146,6 +157,8 @@ class AccountController extends Controller
             'password' => [$account ? 'nullable' : 'required', 'string', Password::min(8)],
             'positions' => ['array'],
             'positions.*' => ['integer', Rule::exists('positions', 'id')->where('restaurant_id', tenant()->getKey())],
+            'permissions' => ['array'],
+            'permissions.*' => ['string', Rule::in(Permissions::visibleKeys(tenant()))],
         ]);
 
         return [
@@ -154,6 +167,7 @@ class AccountController extends Controller
             'email' => filled($data['email'] ?? null) ? Str::lower($data['email']) : null,
             'password' => $data['password'] ?? null,
             'positions' => array_values(array_unique(array_map('intval', $data['positions'] ?? []))),
+            'permissions' => array_values(array_unique($data['permissions'] ?? [])),
         ];
     }
 

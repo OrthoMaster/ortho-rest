@@ -37,7 +37,7 @@ return [
         'phase' => 1,
         'installer' => MenuInstaller::class,
         'routes' => 'Menu/routes.php',
-        'menu' => ['route' => 'menu.index', 'permission' => 'menu.manage'],
+        'menu' => ['route' => 'menu.index', 'permission' => ['menu.manage', 'menu.availability']],
     ],
     'reservation' => [
         'name' => 'modules.reservation',

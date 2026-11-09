@@ -850,3 +850,17 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
     .staff-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .permission-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.arrive-btn.is-sold-out-btn { color: var(--bad-ink); }
+.tag.is-extra { color: var(--warn-ink); background: var(--warn-bg); }
+.extra-perms > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.75rem; cursor: pointer; list-style: none; }
+.extra-perms > summary::-webkit-details-marker { display: none; }
+.extra-perms > summary > span { display: grid; gap: .15rem; }
+.extra-perms > summary small { color: var(--ink-soft); font-size: .8125rem; }
+.extra-perms > summary::after { content: ""; flex: none; width: .6rem; height: .6rem; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft); transform: rotate(45deg); transition: transform .15s ease; }
+.extra-perms[open] > summary::after { transform: rotate(-135deg); }
+.extra-perms[open] > summary { margin-bottom: 1rem; }
+.extra-perms .permission-group h3 { font-size: .9375rem; }
+.toggle-row:has(input:disabled) { cursor: default; }
+.toggle-row input:disabled { opacity: .55; cursor: default; }
+.nav-sep { margin: .45rem .5rem; border: 0; border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent); }

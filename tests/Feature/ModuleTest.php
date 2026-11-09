@@ -109,8 +109,9 @@ class ModuleTest extends TestCase
         $staff = $this->member($restaurant, 'staff');
 
         $this->actingAs($staff)->get("/{$restaurant->slug}/admin/menu")->assertForbidden();
+        $this->actingAs($staff)->get("/{$restaurant->slug}/admin/reservations/settings")->assertForbidden();
         $this->actingAs($staff)->get("/{$restaurant->slug}/admin/reservations")->assertOk();
         $this->actingAs($staff)->get("/{$restaurant->slug}/admin")
-            ->assertDontSee(route('tenant.admin.menu.index', ['resto' => $restaurant->slug]));
+            ->assertDontSee(route('tenant.admin.restaurant.edit', ['resto' => $restaurant->slug]));
     }
 }

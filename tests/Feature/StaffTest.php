@@ -235,4 +235,65 @@ class StaffTest extends TestCase
         $this->get($this->admin)->assertDontSee('href="http://localhost'.$this->admin.'/staff"', false);
         $this->get("$this->admin/staff/accounts")->assertNotFound();
     }
+
+    public function test_extra_permissions_are_exceptions_on_top_of_positions(): void
+    {
+        $staff = $this->member($this->restaurant, 'staff');
+        $this->assertFalse($staff->can('reservation.settings'));
+
+        // Form: quyền đã có từ chức vụ được đánh dấu để JS khoá lại.
+        $this->get("$this->admin/staff/accounts/{$staff->id}/edit")->assertOk()
+            ->assertSee(__('staff.extra_permissions'))
+            ->assertSee('data-position-perms', false)
+            ->assertSee('name="permissions[]" value="reservation.settings"', false);
+
+        $this->post("$this->admin/staff/accounts/{$staff->id}", [])->assertMethodNotAllowed();
+        $this->put("$this->admin/staff/accounts/{$staff->id}", [
+            'name' => $staff->name, 'phone' => '0903334444', 'positions' => [$this->position('staff')->id],
+            'permissions' => ['reservation.settings', 'takeaway.view'],
+        ])->assertSessionHasErrors('permissions.1');
+
+        $this->put("$this->admin/staff/accounts/{$staff->id}", [
+            'name' => $staff->name, 'phone' => '0903334444', 'positions' => [$this->position('staff')->id],
+            'permissions' => ['reservation.settings'],
+        ])->assertSessionHasNoErrors();
+
+        $staff->refresh();
+        $this->assertSame(['reservation.settings'], $staff->permissions);
+        $this->assertTrue($staff->can('reservation.settings'));
+        $this->assertFalse($staff->can('reservation.manage'));
+        $this->get("$this->admin/staff/accounts")->assertSee(__('staff.extra_count', ['count' => 1]));
+
+        $log = ActivityLog::where('area', 'staff')->latest('id')->first();
+        $this->assertContains(__('activity.permissions_added', ['list' => Permissions::label('reservation.settings')]), $log->changes);
+
+        // Quyền riêng của module đang tắt được giữ khi sửa; bỏ hết quyền riêng thì về null.
+        $staff->forceFill(['permissions' => ['reservation.settings', 'takeaway.view']])->save();
+        $this->put("$this->admin/staff/accounts/{$staff->id}", ['name' => $staff->name, 'phone' => '0903334444', 'positions' => []])->assertSessionHasNoErrors();
+        $this->assertSame(['takeaway.view'], $staff->fresh()->permissions);
+        $staff->forceFill(['permissions' => null])->save();
+        $this->assertFalse($staff->fresh()->can('reservation.settings'));
+    }
+
+    public function test_menu_has_its_own_sold_out_permission(): void
+    {
+        $this->enableModules($this->restaurant, 'menu');
+
+        $this->assertContains('menu.availability', $this->position('manager')->permissions);
+        $this->assertNotContains('menu.availability', $this->position('staff')->permissions);
+        $this->assertContains('menu.manage', $this->position('manager')->permissions);
+        $this->assertNotContains('menu.manage', $this->position('staff')->permissions);
+        $this->get("$this->admin/staff/positions/create")->assertSee(Permissions::label('menu.availability'));
+    }
+
+    public function test_left_menu_groups_daily_service_between_lines(): void
+    {
+        $this->enableModules($this->restaurant, 'menu', 'takeaway');
+
+        $this->get($this->admin)->assertSeeInOrder([
+            __('ui.nav.dashboard'),
+            'nav-sep', __('modules.reservation'), __('modules.takeaway'), __('modules.menu'), 'nav-sep',
+            __('ui.nav.customers'), __('activity.title'), __('modules.staff'), __('ui.restaurant.title'), __('ui.nav.profile'),
+        ], false);
+    }
 }

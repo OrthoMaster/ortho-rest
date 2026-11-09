@@ -30,6 +30,9 @@
                             @empty
                                 <span class="tag is-empty">{{ __('staff.no_position') }}</span>
                             @endforelse
+                            @if ($extra = count($account->permissions ?? []))
+                                <span class="tag is-extra">{{ __('staff.extra_count', ['count' => $extra]) }}</span>
+                            @endif
                         @endif
                     </span>
                 </span>

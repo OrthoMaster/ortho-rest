@@ -253,6 +253,55 @@
         }, 4000);
     });
 
+    // Quyền riêng của nhân viên: quyền đã có từ chức vụ đang chọn thì hiện bật sẵn, khoá lại.
+    document.querySelectorAll('form[data-extra-perms]').forEach(function (form) {
+        var extras = form.querySelectorAll('[data-extra-perm]');
+        var counter = form.querySelector('[data-extra-count]');
+
+        extras.forEach(function (input) {
+            input.dataset.own = input.checked ? '1' : '0';
+        });
+
+        var sync = function () {
+            var covered = {};
+            var count = 0;
+
+            form.querySelectorAll('[data-position-perms]').forEach(function (position) {
+                if (position.checked) {
+                    JSON.parse(position.dataset.positionPerms || '[]').forEach(function (key) {
+                        covered[key] = true;
+                    });
+                }
+            });
+
+            extras.forEach(function (input) {
+                var fromPosition = covered[input.value] === true;
+
+                input.disabled = fromPosition;
+                input.checked = fromPosition || input.dataset.own === '1';
+                input.closest('.toggle-row').querySelector('[data-from-position]').hidden = !fromPosition;
+                count += !fromPosition && input.checked ? 1 : 0;
+            });
+
+            if (counter) {
+                counter.textContent = count;
+                counter.hidden = count === 0;
+            }
+        };
+
+        form.addEventListener('change', function (event) {
+            if (event.target.matches('[data-extra-perm]')) {
+                event.target.dataset.own = event.target.checked ? '1' : '0';
+            }
+
+            if (event.target.matches('[data-extra-perm], [data-position-perms]')) {
+                sync();
+            }
+        });
+
+        sync();
+    });
+
     // Ẩn hiện mật khẩu.
     document.addEventListener('click', function (event) {
         var button = event.target.closest('[data-password-toggle]');

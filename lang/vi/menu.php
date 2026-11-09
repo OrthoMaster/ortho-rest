@@ -56,6 +56,8 @@ return [
     'hidden' => 'Đang ẩn',
     'sold_out' => 'Hết món',
     'mark_sold_out' => 'Báo hết',
+    'mark_sold_out_confirm' => 'Báo “:name” đã hết: khách không đặt được món này cho tới khi báo còn.',
+    'mark_available_confirm' => 'Báo “:name” đã có lại: khách đặt được món này.',
     'mark_available' => 'Còn món',
     'hide' => 'Ẩn',
     'show' => 'Hiện',

@@ -18,7 +18,7 @@ use Illuminate\Notifications\Notifiable;
  * nhập, session). Ranh giới giữa các quán do middleware tenant.member giữ, và
  * trong một quán thì luôn đi qua $restaurant->users().
  *
- * restaurant_id, role, is_super_admin, is_active cố ý không fillable.
+ * restaurant_id, role, is_super_admin, is_active, permissions cố ý không fillable.
  */
 #[Fillable(['name', 'email', 'phone', 'password', 'locale'])]
 #[Hidden(['password', 'remember_token'])]
@@ -36,6 +36,7 @@ class User extends Authenticatable
             'is_super_admin' => 'boolean',
             'devices_locked' => 'boolean',
             'is_active' => 'boolean',
+            'permissions' => 'array',
         ];
     }
 
@@ -55,12 +56,24 @@ class User extends Authenticatable
         return $this->role === UserRole::Owner;
     }
 
-    /** @return list<string> */
+    /**
+     * Quyền gộp từ các chức vụ, cộng quyền riêng giao thẳng cho người này (ngoại lệ).
+     *
+     * @return list<string>
+     */
     public function permissionKeys(): array
     {
-        return $this->permissionKeysCache ??= array_values(array_unique(
-            $this->positions()->withoutGlobalScopes()->pluck('permissions')->flatMap(fn ($keys) => is_array($keys) ? $keys : (json_decode($keys, true) ?? []))->all()
-        ));
+        return $this->permissionKeysCache ??= array_values(array_unique([
+            ...$this->positions()->withoutGlobalScopes()->pluck('permissions')->flatMap(fn ($keys) => is_array($keys) ? $keys : (json_decode($keys, true) ?? []))->all(),
+            ...($this->permissions ?? []),
+        ]));
+    }
+
+    public function refresh()
+    {
+        $this->permissionKeysCache = null;
+
+        return parent::refresh();
     }
 
     public function forgetPermissions(): void

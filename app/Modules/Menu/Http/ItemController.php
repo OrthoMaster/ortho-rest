@@ -95,6 +95,9 @@ class ItemController extends Controller
     {
         $field = $request->validate(['field' => ['required', Rule::in(['is_sold_out', 'is_visible'])]])['field'];
 
+        // Ẩn hiện món là sửa menu; báo hết món chỉ cần quyền báo hết món.
+        abort_unless($request->user()->can($field === 'is_visible' ? 'menu.manage' : 'menu.availability'), 403);
+
         $item->update([$field => ! $item->{$field}]);
 
         return back();

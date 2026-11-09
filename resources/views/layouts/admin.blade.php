@@ -6,18 +6,33 @@
 @endsection
 
 @section('nav')
+    {{-- Mục của một module: chỉ hiện khi module bật và người dùng có một trong các quyền của mục. --}}
+    @php($moduleLink = function (string $key) {
+        $module = config('modules.'.$key);
+
+        if (! isset($module['menu']) || ! has_module($key) || ! \Illuminate\Support\Facades\Gate::any((array) $module['menu']['permission'])) {
+            return '';
+        }
+
+        return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
+    })
+    {{-- Ba mục phục vụ khách hằng ngày đứng riêng một nhóm, có đường kẻ trên dưới. --}}
+    @php($service = implode('', array_map($moduleLink, ['reservation', 'takeaway', 'menu'])))
+
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard')])>{{ __('ui.nav.dashboard') }}</a>
-    @foreach (config('modules') as $key => $module)
-        @if (isset($module['menu']) && has_module($key) && \Illuminate\Support\Facades\Gate::any((array) $module['menu']['permission']))
-            <a href="{{ route('tenant.admin.'.$module['menu']['route']) }}" @class(['active' => request()->routeIs('tenant.admin.'.$key.'.*')])>{{ __($module['name']) }}</a>
-        @endif
-    @endforeach
+    {!! $moduleLink('website') !!}
+    @if ($service !== '')
+        <hr class="nav-sep">
+        {!! $service !!}
+        <hr class="nav-sep">
+    @endif
     @if ((has_module('reservation') || has_module('takeaway')) && auth()->user()->can('customers.view'))
         <a href="{{ route('tenant.admin.customers.index') }}" @class(['active' => request()->routeIs('tenant.admin.customers.*')])>{{ __('ui.nav.customers') }}</a>
     @endif
     @can('activity.view')
         <a href="{{ route('tenant.admin.activity') }}" @class(['active' => request()->routeIs('tenant.admin.activity')])>{{ __('activity.title') }}</a>
     @endcan
+    {!! $moduleLink('staff') !!}
     @can('settings.manage')
         <a href="{{ route('tenant.admin.restaurant.edit') }}" @class(['active' => request()->routeIs('tenant.admin.restaurant.*')])>{{ __('ui.restaurant.title') }}</a>
     @endcan

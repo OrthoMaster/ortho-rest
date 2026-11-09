@@ -3,9 +3,15 @@
 @section('title', __('modules.menu'))
 
 @section('content')
+    {{-- Chỉ có quyền báo hết món (bếp, phục vụ): xem menu và bấm Hết món / Còn món, không sửa gì khác. --}}
+    @php($canEdit = auth()->user()->can('menu.manage'))
+    @php($canSoldOut = auth()->user()->can('menu.availability'))
+
     <div class="page-head">
         <h1>{{ __('modules.menu') }}</h1>
-        <a class="btn" href="{{ route('tenant.admin.menu.items.create') }}">{{ __('menu.add_item') }}</a>
+        @if ($canEdit)
+            <a class="btn" href="{{ route('tenant.admin.menu.items.create') }}">{{ __('menu.add_item') }}</a>
+        @endif
     </div>
 
     @include('modules.menu.subnav', ['current' => $menu])
@@ -19,7 +25,7 @@
         <p class="empty" data-search-empty hidden>{{ __('menu.search_empty') }}</p>
     @endif
 
-    <div class="category-list" data-sortable data-sort-url="{{ route('tenant.admin.menu.categories.reorder') }}" data-sort-press=".category-head">
+    <div class="category-list" @if ($canEdit) data-sortable data-sort-url="{{ route('tenant.admin.menu.categories.reorder') }}" data-sort-press=".category-head" @endif>
     @foreach ($categories as $category)
         <section class="panel menu-category" data-sort-id="{{ $category->id }}" data-search-group="{{ $category->name }}" data-collapse-key="menu-category-{{ $category->id }}">
             <div class="category-head">
@@ -31,14 +37,17 @@
                     </button>
                 </h2>
                 @unless ($category->is_visible)<span class="badge">{{ __('menu.hidden') }}</span>@endunless
+                @if ($canEdit)
                 <div class="row-tools">
                     @include('partials.drag-handle', ['label' => __('menu.drag_category', ['name' => $category->name])])
                     @component('partials.kebab', ['label' => __('menu.category_actions', ['name' => $category->name])])
                         <button type="button" data-open-dialog="category-dialog-{{ $category->id }}">{{ __('menu.category_edit') }}</button>
                     @endcomponent
                 </div>
+                @endif
             </div>
 
+            @if ($canEdit)
             <dialog id="category-dialog-{{ $category->id }}">
                 <form method="post" action="{{ route('tenant.admin.menu.categories.update', $category) }}" class="stack" enctype="multipart/form-data">
                     @csrf
@@ -65,6 +74,7 @@
                     <button class="link link-danger" type="submit">{{ __('menu.category_delete') }}</button>
                 </form>
             </dialog>
+            @endif
 
             <div class="category-body" id="category-{{ $category->id }}">
                 @if ($category->image_path)
@@ -76,9 +86,9 @@
                 @if ($category->items->isEmpty())
                     <p class="row-note" data-search-hide>{{ __('menu.category_empty') }}</p>
                 @else
-                    <ul class="rows menu-items" data-sortable data-sort-url="{{ route('tenant.admin.menu.items.reorder', $category) }}">
+                    <ul class="rows menu-items" @if ($canEdit) data-sortable data-sort-url="{{ route('tenant.admin.menu.items.reorder', $category) }}" @endif>
                         @foreach ($category->items as $item)
-                            <li @class(['row-link', 'is-dim' => ! $item->is_visible, 'is-sold-out' => $item->is_sold_out]) data-sort-id="{{ $item->id }}" data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
+                            <li @class(['row-link' => $canEdit, 'is-dim' => ! $item->is_visible, 'is-sold-out' => $item->is_sold_out]) data-sort-id="{{ $item->id }}" data-search-item="{{ collect([$item->name, $item->description, ...$item->tags->pluck('name')])->filter()->join(' ') }}">
                                 <span class="thumb">
                                     @if ($item->imageUrl())
                                         <img src="{{ $item->imageUrl() }}" alt="">
@@ -92,7 +102,11 @@
                                     @endunless
                                 </span>
                                 <span class="row-name">
-                                    <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
+                                    @if ($canEdit)
+                                        <a href="{{ route('tenant.admin.menu.items.edit', $item) }}">{{ $item->name }}</a>
+                                    @else
+                                        <strong>{{ $item->name }}</strong>
+                                    @endif
                                     <small>
                                         @if ($menu === 'all')
                                             @if ($item->price_dine_in !== null){{ __('menu.dine_in') }}: {{ vnd($item->price_dine_in) }}@endif
@@ -103,20 +117,31 @@
                                         @endif
                                     </small>
                                 </span>
+                                @php($soldOutConfirm = ['data-confirm' => __($item->is_sold_out ? 'menu.mark_available_confirm' : 'menu.mark_sold_out_confirm', ['name' => $item->name]), 'data-confirm-ok' => $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out')])
                                 <div class="row-tools">
-                                    @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
-                                    @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
-                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                    @if ($canEdit)
+                                        @include('partials.drag-handle', ['label' => __('menu.drag_item', ['name' => $item->name])])
+                                        @component('partials.kebab', ['label' => __('menu.item_actions', ['name' => $item->name])])
+                                            @if ($canSoldOut)
+                                                <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}" data-confirm="{{ $soldOutConfirm['data-confirm'] }}" data-confirm-title="{{ $soldOutConfirm['data-confirm-ok'] }}?" data-confirm-ok="{{ $soldOutConfirm['data-confirm-ok'] }}">
+                                                    @csrf
+                                                    <input type="hidden" name="field" value="is_sold_out">
+                                                    <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
+                                                </form>
+                                            @endif
+                                            <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
+                                                @csrf
+                                                <input type="hidden" name="field" value="is_visible">
+                                                <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
+                                            </form>
+                                        @endcomponent
+                                    @elseif ($canSoldOut)
+                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}" data-confirm="{{ $soldOutConfirm['data-confirm'] }}" data-confirm-title="{{ $soldOutConfirm['data-confirm-ok'] }}?" data-confirm-ok="{{ $soldOutConfirm['data-confirm-ok'] }}">
                                             @csrf
                                             <input type="hidden" name="field" value="is_sold_out">
-                                            <button type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
+                                            <button @class(['arrive-btn', 'is-sold-out-btn' => ! $item->is_sold_out]) type="submit">{{ $item->is_sold_out ? __('menu.mark_available') : __('menu.mark_sold_out') }}</button>
                                         </form>
-                                        <form method="post" action="{{ route('tenant.admin.menu.items.toggle', $item) }}">
-                                            @csrf
-                                            <input type="hidden" name="field" value="is_visible">
-                                            <button type="submit">{{ $item->is_visible ? __('menu.hide') : __('menu.show') }}</button>
-                                        </form>
-                                    @endcomponent
+                                    @endif
                                 </div>
                                 @if ($item->tags->isNotEmpty() || $item->is_sold_out || ! $item->is_visible)
                                     <div class="row-meta">
@@ -138,7 +163,9 @@
                         @endforeach
                     </ul>
                 @endif
-                <p data-search-hide><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
+                @if ($canEdit)
+                    <p data-search-hide><a class="link" href="{{ route('tenant.admin.menu.items.create', ['category' => $category->id]) }}">{{ __('menu.add_item_here') }}</a></p>
+                @endif
             </div>
         </section>
     @endforeach

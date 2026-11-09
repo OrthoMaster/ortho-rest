@@ -25,6 +25,7 @@ return [
     ],
     'menu' => [
         'menu.manage' => ['manager'],
+        'menu.availability' => ['manager'],
     ],
     'reservation' => [
         'reservation.view' => ['manager', 'staff'],
