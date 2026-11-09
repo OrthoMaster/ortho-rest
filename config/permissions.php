@@ -16,6 +16,14 @@ return [
         'activity.view' => [],
         'settings.manage' => [],
     ],
+    'dinein' => [
+        'dinein.order' => ['manager', 'staff'],
+        'dinein.close' => ['manager', 'staff'],
+        'dinein.cancel' => ['manager'],
+        'dinein.stations' => ['manager'],
+        'dinein.assign' => ['manager'],
+        'dinein.settings' => ['manager'],
+    ],
     'staff' => [
         'staff.manage' => [],
         'positions.manage' => [],

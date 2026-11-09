@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\DineIn\Duty;
 use App\Modules\ModuleManager;
 use App\Support\Permissions;
 use App\Tenancy\TenantContext;
@@ -27,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Quyền trong config/permissions.php: chủ quán luôn có, người khác theo chức vụ.
         Gate::before(fn (User $user, string $ability) => Permissions::exists($ability) ? Permissions::allows($user, $ability) : null);
+
+        // Màn hình khu (bếp, bar): người có quyền, hoặc người đang được phân công ở một khu.
+        Gate::define('dinein.screen', fn (User $user) => $user->restaurant?->hasModule('dinein')
+            && ($user->can('dinein.stations') || Duty::stationIds($user) !== []));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
             Str::lower((string) $request->input('login', $request->input('email'))).'|'.$request->ip(),

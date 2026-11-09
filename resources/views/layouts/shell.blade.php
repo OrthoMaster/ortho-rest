@@ -44,6 +44,7 @@
         </div>
     </div>
 </dialog>
+@stack('overlays')
 <dialog id="unsaved-dialog">
     <div class="stack">
         <h2>{{ __('ui.unsaved.title') }}</h2>

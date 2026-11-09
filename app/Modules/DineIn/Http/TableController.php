@@ -1,0 +1,284 @@
+<?php
+
+namespace App\Modules\DineIn\Http;
+
+use App\Http\Controllers\Controller;
+use App\Modules\DineIn\LineStatus;
+use App\Modules\DineIn\Models\DiningTable;
+use App\Modules\DineIn\Models\OrderLine;
+use App\Modules\DineIn\Models\Station;
+use App\Modules\Menu\Models\MenuCategory;
+use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Menu\Models\MenuItemOptionGroup;
+use App\Modules\Reservation\Models\Area;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class TableController extends Controller
+{
+    /** Mục Lấy đơn tại bàn ở menu trái: mở trang đầu tiên người này dùng được. */
+    public function home(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        return redirect()->route(match (true) {
+            $user->can('dinein.order') => 'tenant.admin.dinein.tables.index',
+            Gate::allows('dinein.screen') => 'tenant.admin.dinein.screens.index',
+            $user->can('dinein.assign') => 'tenant.admin.dinein.assign.index',
+            $user->can('dinein.settings') => 'tenant.admin.dinein.stations.index',
+            default => abort(403),
+        });
+    }
+
+    public function index(): View
+    {
+        $open = DiningTable::open()
+            ->with(['lines' => fn ($query) => $query->where('status', '!=', LineStatus::Cancelled)])
+            ->get()
+            ->keyBy(fn (DiningTable $table) => $table->area_id.'-'.$table->table_number);
+
+        return view('modules.dinein.tables', [
+            'areas' => $this->areas(),
+            'open' => $open,
+        ]);
+    }
+
+    /** Ô nhập nhanh số bàn: gõ A12 (không phân biệt hoa thường) rồi mở. */
+    public function go(Request $request): RedirectResponse
+    {
+        $label = strtoupper(trim((string) $request->input('label')));
+
+        if (! preg_match('/^[A-Z]{1,2}[0-9]{1,3}$/', $label)) {
+            throw ValidationException::withMessages(['label' => __('dinein.table_invalid')]);
+        }
+
+        $this->resolve($label, 'label');
+
+        return redirect()->route('tenant.admin.dinein.tables.show', $label);
+    }
+
+    public function show(string $label): View
+    {
+        [$area, $number] = $this->resolve($label);
+        $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener']);
+
+        return view('modules.dinein.table', [
+            'area' => $area,
+            'number' => $number,
+            'label' => $area->tableLabel($number),
+            'table' => $table,
+            'rounds' => $table?->lines->groupBy('round') ?? collect(),
+        ]);
+    }
+
+    public function create(string $label): View
+    {
+        [$area, $number] = $this->resolve($label);
+
+        $categories = MenuCategory::with(['items' => fn ($query) => $query
+            ->whereNotNull('price_dine_in')
+            ->where('is_visible', true)
+            ->with('optionGroups.options')])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty());
+
+        return view('modules.dinein.order', [
+            'area' => $area,
+            'number' => $number,
+            'label' => $area->tableLabel($number),
+            'categories' => $categories,
+            'menu' => $categories->flatMap(fn (MenuCategory $category) => $category->items)->map(fn (MenuItem $item) => [
+                'id' => $item->id,
+                'name' => $item->name,
+                'price' => $item->price_dine_in,
+                'groups' => $item->optionGroups->map(fn (MenuItemOptionGroup $group) => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'required' => $group->is_required,
+                    'multiple' => $group->is_multiple,
+                    'options' => $group->options->map->only(['id', 'name', 'price'])->values(),
+                ])->values(),
+            ])->values(),
+        ]);
+    }
+
+    public function store(Request $request, string $label): RedirectResponse
+    {
+        [$area, $number] = $this->resolve($label);
+
+        $data = $request->validate([
+            'lines' => ['required', 'array', 'min:1', 'max:100'],
+            'lines.*.item' => ['required', 'integer'],
+            'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'lines.*.options' => ['array'],
+            'lines.*.options.*' => ['integer'],
+            'lines.*.note' => ['nullable', 'string', 'max:200'],
+        ], ['lines.required' => __('dinein.order_empty')]);
+
+        $lines = $this->buildLines($data['lines']);
+
+        $count = DB::transaction(function () use ($request, $area, $number, $lines) {
+            // Khoá các lượt của bàn này để hai người gọi cùng lúc không mở hai lượt.
+            $table = DiningTable::open()->where('area_id', $area->id)->where('table_number', $number)->lockForUpdate()->first()
+                ?? DiningTable::create([
+                    'area_id' => $area->id,
+                    'table_number' => $number,
+                    'label' => $area->tableLabel($number),
+                    'opened_by' => $request->user()->id,
+                ]);
+
+            $round = $table->nextRound();
+
+            foreach ($lines as $line) {
+                $table->lines()->create([...$line, 'round' => $round, 'status' => LineStatus::New, 'ordered_by' => $request->user()->id]);
+            }
+
+            return array_sum(array_column($lines, 'quantity'));
+        });
+
+        return redirect()->route('tenant.admin.dinein.tables.show', $area->tableLabel($number))
+            ->with('status', __('dinein.order_sent', ['count' => $count]));
+    }
+
+    public function serve(OrderLine $line): RedirectResponse
+    {
+        abort_unless($line->status === LineStatus::Done, 422);
+
+        $line->update(['status' => LineStatus::Served, 'served_at' => now()]);
+
+        return back()->with('status', __('dinein.served', ['name' => $line->name]));
+    }
+
+    public function cancel(Request $request, OrderLine $line): RedirectResponse
+    {
+        abort_unless(in_array($line->status, [LineStatus::New, LineStatus::Done], true), 422);
+        // Khu đã làm xong thì cần quyền riêng mới huỷ.
+        abort_if($line->status === LineStatus::Done && ! $request->user()->can('dinein.cancel'), 403);
+
+        $line->update(['status' => LineStatus::Cancelled, 'cancelled_by' => $request->user()->id, 'cancelled_at' => now()]);
+
+        return back()->with('status', __('dinein.cancelled', ['name' => $line->name]));
+    }
+
+    public function close(Request $request, DiningTable $table): RedirectResponse
+    {
+        abort_unless($table->isOpen(), 404);
+
+        if ($table->hasPendingLines()) {
+            return back()->with('error', __('dinein.close_pending'));
+        }
+
+        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id]);
+
+        return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
+    }
+
+    /** @return Collection<int, Area> khu vực đang dùng và có mã */
+    private function areas()
+    {
+        return Area::where('is_active', true)->whereNotNull('code')->orderBy('sort_order')->orderBy('id')->get();
+    }
+
+    /**
+     * Tách A12 thành khu vực A và bàn số 12, bàn phải nằm trong số bàn của khu.
+     *
+     * @return array{Area, int}
+     */
+    private function resolve(string $label, ?string $errorKey = null): array
+    {
+        preg_match('/^([A-Za-z]{1,2})([0-9]{1,3})$/', $label, $match);
+        $area = $match ? Area::where('is_active', true)->where('code', strtoupper($match[1]))->first() : null;
+        $number = (int) ($match[2] ?? 0);
+
+        if ($area === null || $number < 1 || $number > $area->table_count) {
+            if ($errorKey === null) {
+                abort(404);
+            }
+
+            throw ValidationException::withMessages([$errorKey => $area === null
+                ? __('dinein.table_unknown_area', ['code' => strtoupper($match[1] ?? $label)])
+                : __('dinein.table_out_of_range', ['area' => $area->name, 'count' => $area->table_count, 'code' => $area->code])]);
+        }
+
+        return [$area, $number];
+    }
+
+    private function openTable(Area $area, int $number): ?DiningTable
+    {
+        return DiningTable::open()->where('area_id', $area->id)->where('table_number', $number)->first();
+    }
+
+    /**
+     * Kiểm tra món và tuỳ chọn, chép tên và giá lúc gọi.
+     *
+     * @param  list<array{item: int, quantity: int, options?: list<int>, note?: ?string}>  $input
+     * @return list<array<string, mixed>>
+     */
+    private function buildLines(array $input): array
+    {
+        $items = MenuItem::with('optionGroups.options')
+            ->whereKey(array_column($input, 'item'))
+            ->get()
+            ->keyBy('id');
+        $fallback = Station::fallback()?->id;
+        $lines = [];
+
+        foreach (array_values($input) as $index => $row) {
+            $item = $items->get((int) $row['item']);
+            $fail = fn (string $message) => throw ValidationException::withMessages(["lines.$index" => $message]);
+
+            if ($item === null || $item->price_dine_in === null || ! $item->is_visible) {
+                $fail(__('dinein.item_unavailable'));
+            }
+
+            if ($item->is_sold_out) {
+                $fail(__('dinein.item_sold_out', ['name' => $item->name]));
+            }
+
+            $picked = array_map('intval', $row['options'] ?? []);
+            $chosen = [];
+
+            foreach ($item->optionGroups as $group) {
+                $inGroup = $group->options->filter(fn ($option) => in_array($option->id, $picked, true));
+
+                if ($group->is_required && $inGroup->isEmpty()) {
+                    $fail(__('dinein.option_required', ['name' => $item->name, 'group' => $group->name]));
+                }
+
+                if (! $group->is_multiple && $inGroup->count() > 1) {
+                    $fail(__('dinein.option_single', ['name' => $item->name, 'group' => $group->name]));
+                }
+
+                foreach ($inGroup as $option) {
+                    $chosen[] = ['group' => $group->name, 'name' => $option->name, 'price' => $option->price];
+                }
+            }
+
+            // Tuỳ chọn không thuộc món này.
+            if (count($chosen) !== count(array_unique($picked))) {
+                $fail(__('dinein.item_unavailable'));
+            }
+
+            $note = trim((string) ($row['note'] ?? ''));
+
+            $lines[] = [
+                'menu_item_id' => $item->id,
+                'dinein_station_id' => $item->dinein_station_id ?? $fallback,
+                'name' => $item->name,
+                'unit_price' => $item->price_dine_in + array_sum(array_column($chosen, 'price')),
+                'quantity' => (int) $row['quantity'],
+                'options' => $chosen ?: null,
+                'note' => $note === '' ? null : $note,
+            ];
+        }
+
+        return $lines;
+    }
+}

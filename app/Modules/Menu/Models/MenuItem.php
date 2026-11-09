@@ -2,6 +2,7 @@
 
 namespace App\Modules\Menu\Models;
 
+use App\Modules\DineIn\Models\Station;
 use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,6 +37,12 @@ class MenuItem extends Model
     public function optionGroups(): HasMany
     {
         return $this->hasMany(MenuItemOptionGroup::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** Khu làm món này khi gọi tại bàn (Bếp, Bar...). */
+    public function dineinStation(): BelongsTo
+    {
+        return $this->belongsTo(Station::class, 'dinein_station_id');
     }
 
     public function tags(): BelongsToMany

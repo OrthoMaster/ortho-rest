@@ -364,6 +364,568 @@
         });
     });
 
+    // Âm thanh báo món: trình duyệt chỉ cho phát sau khi người dùng bấm vào trang một lần.
+    var sound = { ctx: null };
+    var unlockSound = function () {
+        var Context = window.AudioContext || window.webkitAudioContext;
+
+        if (!Context) {
+            return null;
+        }
+
+        if (!sound.ctx) {
+            sound.ctx = new Context();
+        }
+
+        return sound.ctx.state === 'suspended' ? sound.ctx.resume() : Promise.resolve();
+    };
+    var beep = function () {
+        if (!sound.ctx || sound.ctx.state !== 'running') {
+            return;
+        }
+
+        var start = sound.ctx.currentTime;
+
+        [[880, 0], [1175, 0.18], [1568, 0.36]].forEach(function (note) {
+            var oscillator = sound.ctx.createOscillator();
+            var gain = sound.ctx.createGain();
+            var at = start + note[1];
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = note[0];
+            gain.gain.setValueAtTime(0.0001, at);
+            gain.gain.exponentialRampToValueAtTime(0.35, at + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.3);
+            oscillator.connect(gain);
+            gain.connect(sound.ctx.destination);
+            oscillator.start(at);
+            oscillator.stop(at + 0.32);
+        });
+    };
+    ['pointerdown', 'keydown'].forEach(function (name) {
+        document.addEventListener(name, function () {
+            if (document.querySelector('[data-dine-alerts], [data-board]')) {
+                unlockSound();
+            }
+        }, true);
+    });
+    var confirmOpen = function () {
+        var dialog = document.getElementById('confirm-dialog');
+
+        return !!(dialog && dialog.open);
+    };
+
+    var soundToggle = document.querySelector('[data-sound-toggle]');
+
+    if (soundToggle) {
+        var syncSound = function () {
+            var on = !!(sound.ctx && sound.ctx.state === 'running');
+
+            soundToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+            soundToggle.textContent = on ? soundToggle.dataset.on : soundToggle.dataset.off;
+        };
+
+        soundToggle.addEventListener('click', function () {
+            var waiting = unlockSound();
+
+            if (waiting) {
+                waiting.then(function () {
+                    beep();
+                    syncSound();
+                });
+            }
+        });
+        document.addEventListener('pointerdown', function () {
+            window.setTimeout(syncSound, 200);
+        });
+        syncSound();
+    }
+
+    // Màn hình khu (bếp, bar): tải lại danh sách món mỗi 5 giây, có món mới thì kêu.
+    var board = document.querySelector('[data-board]');
+
+    if (board) {
+        var lineIds = function (root) {
+            return Array.prototype.map.call(root.querySelectorAll('[data-line-id]'), function (line) {
+                return line.dataset.lineId;
+            });
+        };
+        var known = lineIds(board);
+
+        window.setInterval(function () {
+            if (document.hidden || confirmOpen()) {
+                return;
+            }
+
+            fetch(window.location.pathname, { headers: { 'X-Board': '1' }, credentials: 'same-origin' }).then(function (response) {
+                if (response.redirected || !response.ok) {
+                    if (response.redirected || response.status === 401 || response.status === 403) {
+                        window.location.reload();
+                    }
+
+                    return null;
+                }
+
+                return response.text();
+            }).then(function (html) {
+                if (html === null || confirmOpen()) {
+                    return;
+                }
+
+                var fresh = document.createElement('div');
+
+                fresh.innerHTML = html;
+
+                var ids = lineIds(fresh);
+                var added = ids.filter(function (id) {
+                    return known.indexOf(id) === -1;
+                });
+
+                added.forEach(function (id) {
+                    var line = fresh.querySelector('[data-line-id="' + id + '"]');
+                    var ticket = line ? line.closest('[data-ticket]') : null;
+
+                    if (ticket) {
+                        ticket.classList.add('is-new');
+                    }
+                });
+
+                if (added.length > 0) {
+                    beep();
+                }
+
+                known = ids;
+                board.replaceChildren.apply(board, Array.prototype.slice.call(fresh.childNodes));
+            }).catch(function () {});
+        }, 5000);
+    }
+
+    // Báo món trên mọi trang: món đã xong (người phục vụ), món mới ở khu mình (bếp, bar).
+    var alerts = document.querySelector('[data-dine-alerts]');
+
+    if (alerts) {
+        var alertsPanel = alerts.querySelector('[data-alerts-panel]');
+        var alertsToggle = alerts.querySelector('[data-alerts-toggle]');
+        var alertsBody = alerts.querySelector('[data-alerts-body]');
+        var alertsCount = alerts.querySelector('[data-alerts-count]');
+        var onStation = board ? board.dataset.boardStation : null;
+        var readSeen = function () {
+            try {
+                return JSON.parse(window.sessionStorage.getItem('dinein-seen'));
+            } catch (error) {
+                return null;
+            }
+        };
+        var seen = readSeen();
+        var element = function (tag, className, text) {
+            var node = document.createElement(tag);
+
+            if (className) {
+                node.className = className;
+            }
+
+            if (text) {
+                node.textContent = text;
+            }
+
+            return node;
+        };
+        var setOpen = function (open) {
+            alertsPanel.hidden = !open;
+            alertsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+
+        alertsToggle.addEventListener('click', function () {
+            setOpen(alertsPanel.hidden);
+        });
+        alerts.querySelector('[data-alerts-close]').addEventListener('click', function () {
+            setOpen(false);
+        });
+
+        var render = function (data) {
+            var readyIds = data.ready.map(function (line) { return line.id; });
+            var stations = data.stations.filter(function (station) {
+                return String(station.id) !== onStation && station.ids.length > 0;
+            });
+            var newIds = [].concat.apply([], data.stations.map(function (station) { return station.ids; }));
+            var fresh = !seen ? [] : readyIds.filter(function (id) {
+                return seen.ready.indexOf(id) === -1;
+            }).concat(stations.length === 0 ? [] : [].concat.apply([], stations.map(function (station) {
+                return station.ids.filter(function (id) {
+                    return seen.fresh.indexOf(id) === -1;
+                });
+            })));
+
+            seen = { ready: readyIds, fresh: newIds };
+
+            try {
+                window.sessionStorage.setItem('dinein-seen', JSON.stringify(seen));
+            } catch (error) {}
+
+            if (fresh.length > 0) {
+                beep();
+                alerts.classList.remove('is-ringing');
+                void alerts.offsetWidth;
+                alerts.classList.add('is-ringing');
+            }
+
+            var count = readyIds.length + stations.reduce(function (sum, station) { return sum + station.ids.length; }, 0);
+
+            alerts.hidden = count === 0;
+            alertsCount.textContent = count;
+
+            if (count === 0) {
+                setOpen(false);
+            }
+
+            // Đang hỏi xác nhận "Đã mang ra" thì không vẽ lại, để form còn gửi được.
+            if (confirmOpen()) {
+                return;
+            }
+
+            alertsBody.replaceChildren();
+
+            stations.forEach(function (station) {
+                var row = element('p', 'dine-alert-row');
+
+                row.appendChild(element('strong', '', alerts.dataset.newLabel.replace(':station', station.name) + ': ' + station.ids.length));
+                var link = element('a', 'btn btn-sm', alerts.dataset.openLabel);
+                link.href = station.url;
+                row.appendChild(link);
+                alertsBody.appendChild(row);
+            });
+
+            if (data.ready.length > 0) {
+                alertsBody.appendChild(element('h3', '', alerts.dataset.readyLabel));
+                var list = element('ul', 'rows');
+
+                data.ready.forEach(function (line) {
+                    var item = element('li');
+                    var name = element('span', 'row-name');
+                    var table = element('a', 'dine-alert-table', line.table);
+
+                    table.href = line.table_url;
+                    name.appendChild(table);
+                    name.appendChild(document.createTextNode(' ' + line.text));
+
+                    if (line.detail) {
+                        name.appendChild(element('small', '', line.detail));
+                    }
+
+                    var form = element('form');
+                    form.method = 'post';
+                    form.action = line.serve_url;
+                    form.dataset.confirm = alerts.dataset.serveConfirm.replace(':name', line.text);
+                    form.dataset.confirmOk = alerts.dataset.serveLabel;
+
+                    var token = element('input');
+                    token.type = 'hidden';
+                    token.name = '_token';
+                    token.value = alerts.dataset.csrf;
+                    form.appendChild(token);
+
+                    var button = element('button', 'btn btn-sm', alerts.dataset.serveLabel);
+                    button.type = 'submit';
+                    form.appendChild(button);
+
+                    item.appendChild(name);
+                    item.appendChild(form);
+                    list.appendChild(item);
+                });
+                alertsBody.appendChild(list);
+            }
+        };
+
+        var poll = function () {
+            if (document.hidden) {
+                return;
+            }
+
+            fetch(alerts.dataset.url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(function (response) {
+                return response.ok && !response.redirected ? response.json() : null;
+            }).then(function (data) {
+                if (data) {
+                    render(data);
+                }
+            }).catch(function () {});
+        };
+
+        poll();
+        window.setInterval(poll, 8000);
+        document.addEventListener('visibilitychange', poll);
+    }
+
+    // Gọi món tại bàn: bấm món mở hộp thoại tuỳ chọn, số lượng, ghi chú; đơn giữ ở trình duyệt đến khi gửi.
+    var dineForm = document.querySelector('[data-dine-order]');
+
+    if (dineForm) {
+        var dineMenu = {};
+        var cart = [];
+        var dineMoney = function (amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+        };
+
+        JSON.parse(dineForm.querySelector('[data-dine-menu]').textContent).forEach(function (item) {
+            dineMenu[item.id] = item;
+        });
+        JSON.parse(dineForm.querySelector('[data-dine-old]').textContent).forEach(function (line) {
+            if (dineMenu[line.item]) {
+                cart.push({
+                    item: Number(line.item),
+                    quantity: Math.max(1, Number(line.quantity) || 1),
+                    options: (line.options || []).map(Number),
+                    note: line.note || '',
+                });
+            }
+        });
+
+        var allOptions = function (item) {
+            return [].concat.apply([], item.groups.map(function (group) { return group.options; }));
+        };
+        var unitPrice = function (line) {
+            var item = dineMenu[line.item];
+
+            return allOptions(item).reduce(function (sum, option) {
+                return sum + (line.options.indexOf(option.id) !== -1 ? option.price : 0);
+            }, item.price);
+        };
+        var optionText = function (line) {
+            return allOptions(dineMenu[line.item]).filter(function (option) {
+                return line.options.indexOf(option.id) !== -1;
+            }).map(function (option) { return option.name; }).join(', ');
+        };
+        var hidden = function (name, value) {
+            var input = document.createElement('input');
+
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+
+            return input;
+        };
+        var inputs = dineForm.querySelector('[data-dine-inputs]');
+        var cartList = document.querySelector('[data-cart-lines]');
+
+        var renderCart = function () {
+            var count = 0;
+            var total = 0;
+            var perItem = {};
+
+            inputs.replaceChildren();
+            cartList.replaceChildren();
+
+            cart.forEach(function (line, index) {
+                var prefix = 'lines[' + index + ']';
+                var price = unitPrice(line) * line.quantity;
+
+                inputs.appendChild(hidden(prefix + '[item]', line.item));
+                inputs.appendChild(hidden(prefix + '[quantity]', line.quantity));
+                line.options.forEach(function (id) {
+                    inputs.appendChild(hidden(prefix + '[options][]', id));
+                });
+                inputs.appendChild(hidden(prefix + '[note]', line.note));
+
+                count += line.quantity;
+                total += price;
+                perItem[line.item] = (perItem[line.item] || 0) + line.quantity;
+
+                var row = document.createElement('li');
+                var name = document.createElement('span');
+                name.className = 'row-name';
+                name.textContent = line.quantity + ' × ' + dineMenu[line.item].name;
+
+                [optionText(line), line.note].forEach(function (text, position) {
+                    if (text) {
+                        var small = document.createElement('small');
+                        small.textContent = text;
+                        small.className = position === 1 ? 'dine-note' : '';
+                        name.appendChild(small);
+                    }
+                });
+
+                var amount = document.createElement('strong');
+                amount.className = 'line-total';
+                amount.textContent = dineMoney(price);
+
+                var remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'row-btn';
+                remove.dataset.removeLine = index;
+                remove.setAttribute('aria-label', dineForm.dataset.removeLabel);
+                remove.textContent = '✕';
+
+                row.appendChild(name);
+                row.appendChild(amount);
+                row.appendChild(remove);
+                cartList.appendChild(row);
+            });
+
+            document.querySelectorAll('[data-dine-count]').forEach(function (node) {
+                node.textContent = dineForm.dataset.countLabel.replace(':count', count);
+            });
+            document.querySelectorAll('[data-dine-total]').forEach(function (node) {
+                node.textContent = dineMoney(total);
+            });
+            document.querySelectorAll('[data-dine-submit], [data-cart-send], [data-dine-review]').forEach(function (button) {
+                button.disabled = cart.length === 0;
+            });
+            document.querySelector('[data-cart-empty]').hidden = cart.length > 0;
+            dineForm.querySelectorAll('[data-dine-pick]').forEach(function (button) {
+                var badge = button.querySelector('[data-picked-count]');
+                var picked = perItem[button.dataset.dinePick] || 0;
+
+                badge.hidden = picked === 0;
+                badge.textContent = '× ' + picked;
+            });
+        };
+
+        cartList.addEventListener('click', function (event) {
+            var remove = event.target.closest('[data-remove-line]');
+
+            if (remove) {
+                cart.splice(Number(remove.dataset.removeLine), 1);
+                renderCart();
+            }
+        });
+        document.querySelector('[data-cart-send]').addEventListener('click', function () {
+            dineForm.requestSubmit();
+        });
+        dineForm.addEventListener('submit', function () {
+            dineForm.querySelectorAll('[data-dine-submit]').forEach(function (button) {
+                button.disabled = true;
+            });
+        });
+
+        var itemDialog = document.getElementById('dine-item');
+        var itemForm = itemDialog.querySelector('[data-dine-item-form]');
+        var groupsBox = itemForm.querySelector('[data-item-groups]');
+        var quantityInput = itemForm.querySelector('input[name=item_quantity]');
+        var noteInput = itemForm.querySelector('[data-item-note]');
+        var itemError = itemForm.querySelector('[data-item-error]');
+        var addButton = itemForm.querySelector('[data-item-add]');
+        var currentItem = null;
+
+        var picked = function () {
+            return Array.prototype.map.call(groupsBox.querySelectorAll('input:checked'), function (input) {
+                return Number(input.value);
+            });
+        };
+        var quantity = function () {
+            return Math.min(99, Math.max(1, parseInt(quantityInput.value, 10) || 1));
+        };
+        var syncAdd = function () {
+            itemError.hidden = true;
+            addButton.textContent = dineForm.dataset.addLabel + ' · ' + dineMoney(unitPrice({ item: currentItem.id, options: picked() }) * quantity());
+        };
+
+        var openItem = function (id) {
+            currentItem = dineMenu[id];
+            itemForm.querySelector('[data-item-name]').textContent = currentItem.name;
+            itemForm.querySelector('[data-item-price]').textContent = dineMoney(currentItem.price);
+            groupsBox.replaceChildren();
+
+            currentItem.groups.forEach(function (group) {
+                var fieldset = document.createElement('fieldset');
+                var legend = document.createElement('legend');
+                var hint = document.createElement('small');
+                var choices = document.createElement('div');
+
+                fieldset.className = 'option-pick';
+                legend.textContent = group.name + ' ';
+                hint.textContent = (group.multiple ? dineForm.dataset.pickMany : dineForm.dataset.pickOne) + (group.required ? ' · ' + dineForm.dataset.requiredLabel : '');
+                legend.appendChild(hint);
+                choices.className = 'chips';
+                fieldset.dataset.group = group.name;
+                fieldset.dataset.required = group.required ? '1' : '';
+
+                group.options.forEach(function (option) {
+                    var label = document.createElement('label');
+                    var input = document.createElement('input');
+                    var text = document.createElement('span');
+
+                    label.className = 'chip';
+                    input.type = group.multiple ? 'checkbox' : 'radio';
+                    input.name = 'group-' + group.id;
+                    input.value = option.id;
+                    text.textContent = option.name + (option.price > 0 ? ' +' + dineMoney(option.price) : '');
+                    label.appendChild(input);
+                    label.appendChild(text);
+                    choices.appendChild(label);
+                });
+
+                fieldset.appendChild(legend);
+                fieldset.appendChild(choices);
+                groupsBox.appendChild(fieldset);
+            });
+
+            quantityInput.value = 1;
+            noteInput.value = '';
+            itemError.hidden = true;
+            syncAdd();
+            itemDialog.showModal();
+        };
+
+        dineForm.addEventListener('click', function (event) {
+            var pick = event.target.closest('[data-dine-pick]');
+
+            if (pick) {
+                openItem(pick.dataset.dinePick);
+            }
+        });
+
+        // Bấm lại lựa chọn đang chọn (chọn một) thì bỏ chọn, cho nhóm không bắt buộc.
+        groupsBox.addEventListener('pointerdown', function (event) {
+            var label = event.target.closest('.chip');
+            var input = label ? label.querySelector('input[type=radio]') : null;
+
+            if (input) {
+                input.dataset.wasChecked = input.checked ? '1' : '';
+            }
+        });
+        groupsBox.addEventListener('click', function (event) {
+            var input = event.target.closest('input[type=radio]');
+
+            if (input && input.dataset.wasChecked === '1') {
+                input.checked = false;
+                input.dataset.wasChecked = '';
+                syncAdd();
+            }
+        });
+        itemForm.addEventListener('change', syncAdd);
+        itemForm.addEventListener('input', syncAdd);
+
+        itemForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            var missing = Array.prototype.find.call(groupsBox.querySelectorAll('fieldset'), function (fieldset) {
+                return fieldset.dataset.required && !fieldset.querySelector('input:checked');
+            });
+
+            if (missing) {
+                itemError.textContent = dineForm.dataset.needOption.replace(':group', missing.dataset.group);
+                itemError.hidden = false;
+
+                return;
+            }
+
+            var line = { item: currentItem.id, quantity: quantity(), options: picked().sort(), note: noteInput.value.trim() };
+            var same = cart.find(function (other) {
+                return other.item === line.item && other.note === line.note && other.options.join() === line.options.join();
+            });
+
+            if (same) {
+                same.quantity = Math.min(99, same.quantity + line.quantity);
+            } else {
+                cart.push(line);
+            }
+
+            renderCart();
+            itemDialog.close();
+        });
+
+        renderCart();
+    }
+
     // Ẩn hiện mật khẩu.
     document.addEventListener('click', function (event) {
         var button = event.target.closest('[data-password-toggle]');

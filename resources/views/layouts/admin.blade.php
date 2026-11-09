@@ -17,7 +17,7 @@
         return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
     })
     {{-- Ba mục phục vụ khách hằng ngày đứng riêng một nhóm, có đường kẻ trên dưới. --}}
-    @php($service = implode('', array_map($moduleLink, ['reservation', 'takeaway', 'menu'])))
+    @php($service = implode('', array_map($moduleLink, ['reservation', 'takeaway', 'dinein', 'menu'])))
 
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard')])>{{ __('ui.nav.dashboard') }}</a>
     {!! $moduleLink('website') !!}
@@ -38,3 +38,10 @@
     @endcan
     <a href="{{ route('tenant.admin.profile.edit') }}" @class(['active' => request()->routeIs('tenant.admin.profile.*')])>{{ __('ui.nav.profile') }}</a>
 @endsection
+
+{{-- Báo món trên mọi trang: món đã xong cho người phục vụ, món mới cho người ở bếp, bar. --}}
+@if (has_module('dinein') && \Illuminate\Support\Facades\Gate::any(['dinein.order', 'dinein.screen']))
+    @push('overlays')
+        @include('modules.dinein.alerts')
+    @endpush
+@endif

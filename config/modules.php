@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\DineIn\Installer as DineInInstaller;
 use App\Modules\Menu\Installer as MenuInstaller;
 use App\Modules\Reservation\Installer as ReservationInstaller;
 use App\Modules\Staff\Installer as StaffInstaller;
@@ -54,6 +55,15 @@ return [
         'installer' => TakeawayInstaller::class,
         'routes' => 'Takeaway/routes.php',
         'menu' => ['route' => 'takeaway.index', 'permission' => 'takeaway.view'],
+    ],
+    'dinein' => [
+        'name' => 'modules.dinein',
+        'depends' => ['menu'],
+        'phase' => 1,
+        'installer' => DineInInstaller::class,
+        'routes' => 'DineIn/routes.php',
+        // dinein.screen: có quyền mở màn hình khu, hoặc đang được phân công ở một khu (bếp, bar).
+        'menu' => ['route' => 'dinein.index', 'permission' => ['dinein.order', 'dinein.screen', 'dinein.assign', 'dinein.settings']],
     ],
     'staff' => [
         'name' => 'modules.staff',

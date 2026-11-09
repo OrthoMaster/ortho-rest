@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
+use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuTag;
@@ -46,7 +47,7 @@ class DatabaseSeeder extends Seeder
         $manager = $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Staff, phone: '0900000001');
         $staff = $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff, phone: '0900000002');
 
-        foreach (['website', 'menu', 'reservation', 'takeaway', 'staff'] as $module) {
+        foreach (['website', 'menu', 'reservation', 'takeaway', 'dinein', 'staff'] as $module) {
             $modules->enable($demo, $module);
         }
 
@@ -105,6 +106,19 @@ class DatabaseSeeder extends Seeder
                     'price_takeaway' => $takeaway,
                     'sort_order' => $itemOrder + 1,
                 ]);
+            }
+        }
+
+        // Lấy đơn tại bàn: đồ uống ở quầy nước, Cơm tấm có tuỳ chọn.
+        MenuItem::whereIn('name', ['Trà đá', 'Cà phê sữa đá'])->update(['dinein_station_id' => Station::orderBy('sort_order')->skip(1)->value('id')]);
+        $comTam = MenuItem::where('name', 'Cơm tấm sườn')->first();
+        foreach ([
+            ['Thịt', true, false, [['Sườn', 0], ['Sườn cọng', 15000], ['Thêm trứng', 8000]]],
+            ['Nước chấm', false, true, [['Không ớt', 0], ['Nhiều ớt', 0]]],
+        ] as $order => [$name, $required, $multiple, $options]) {
+            $group = $comTam->optionGroups()->create(['restaurant_id' => $restaurant->id, 'name' => $name, 'is_required' => $required, 'is_multiple' => $multiple, 'sort_order' => $order + 1]);
+            foreach ($options as $position => [$optionName, $price]) {
+                $group->options()->create(['restaurant_id' => $restaurant->id, 'name' => $optionName, 'price' => $price, 'sort_order' => $position + 1]);
             }
         }
 

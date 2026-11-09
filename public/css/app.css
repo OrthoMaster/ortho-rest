@@ -891,3 +891,100 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 @media (max-width: 760px) {
     .option-row { grid-template-columns: minmax(0, 1fr) 7rem auto; }
 }
+
+/* Lấy đơn tại bàn */
+.page-sub { margin-top: .15rem; color: var(--ink-soft); font-size: .9375rem; }
+.table-go { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 24rem; }
+.table-go input:not([type=checkbox]) { flex: 1 1 8rem; width: auto; min-width: 0; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.table-go .error { flex-basis: 100%; }
+.table-area { display: grid; gap: .6rem; }
+.table-area h2 { display: flex; align-items: center; gap: .5rem; }
+.table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.table-tile { display: grid; align-content: center; justify-items: center; gap: .15rem; min-height: 5rem; padding: .5rem; color: var(--ink); text-align: center; text-decoration: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.table-tile strong { font-size: 1.125rem; letter-spacing: .03em; }
+.table-tile small { color: var(--ink-soft); font-size: .8125rem; }
+.table-tile span { font-size: .875rem; font-weight: 600; }
+.table-tile:hover { border-color: var(--primary-ink); }
+.table-tile.is-open { background: var(--primary-soft); border-color: var(--primary-ink); }
+.table-tile.has-ready { box-shadow: 0 0 0 2px var(--ok-ink); }
+.table-tile .badge { color: inherit; }
+.table-tile .badge-ok { color: var(--ok-ink); }
+.table-tile .badge-warn { color: var(--warn-ink); }
+
+.dine-lines li { flex-wrap: nowrap; }
+.dine-lines .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.dine-lines .row-name small.dine-note, .ticket-name .dine-note { color: var(--warn-ink); font-style: italic; }
+.dine-line.is-cancelled .row-name, .dine-line.is-cancelled .line-total { color: var(--ink-soft); text-decoration: line-through; }
+.dine-lines .row-name .badge { display: table; margin-top: .25rem; font-size: .75rem; }
+.line-tools { display: flex; align-items: center; justify-content: flex-end; gap: .4rem; min-width: 2.75rem; }
+.dine-bill .panel-head { align-items: flex-start; }
+.dine-total { font-size: 1.5rem; }
+.dine-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; }
+.empty-state { justify-items: start; }
+
+.dine-order { padding-bottom: .5rem; }
+.dine-menu h2 { font-size: 1rem; }
+.dine-menu .rows li { padding: 0; }
+.dine-menu .rows li.is-sold-out { padding: .4rem .5rem; }
+.dine-pick { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 3.25rem; padding: .35rem 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dine-pick:hover { background: var(--ground); }
+.dine-pick .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.dine-picked { padding: .1rem .5rem; font-size: .875rem; font-weight: 700; color: var(--on-primary); background: var(--primary); border-radius: var(--radius); }
+.dine-plus { display: inline-grid; place-items: center; font-size: 1.375rem; line-height: 1; }
+.order-bar-actions { display: flex !important; gap: .5rem; }
+dialog.dine-dialog { width: min(32rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
+.dine-dialog .rows li { flex-wrap: nowrap; }
+.dine-dialog .rows .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.option-pick { margin: 0; padding: 0; border: 0; }
+.option-pick legend { margin-bottom: .4rem; padding: 0; font-weight: 600; }
+.option-pick legend small { font-weight: 400; color: var(--ink-soft); font-size: .8125rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chips .chip { position: relative; min-height: 2.75rem; cursor: pointer; }
+.chips .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.chips .chip:has(input:checked) { font-weight: 600; color: var(--on-secondary); background: var(--secondary); border-color: var(--secondary); }
+.chips .chip:has(input:focus-visible) { outline: 3px solid var(--primary-ink); outline-offset: 2px; }
+
+.screen-tools { display: flex; align-items: center; gap: .5rem; }
+.sound-toggle[aria-pressed="true"] { color: var(--ok-ink); background: var(--ok-bg); border-color: var(--ok-ink); }
+.tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .75rem; align-items: start; }
+.ticket { display: grid; gap: .5rem; padding: .9rem 1rem; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--primary-ink); border-radius: var(--radius); }
+.ticket.is-late { border-top-color: var(--bad-ink); }
+.ticket.is-new { animation: ticket-new 1.6s ease 2; }
+@keyframes ticket-new { 50% { background: var(--warn-bg); } }
+.ticket-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.ticket-table { font-size: 1.5rem; letter-spacing: .03em; }
+.ticket.is-late .ticket-head .row-note { color: var(--bad-ink); font-weight: 600; }
+.ticket-lines { display: grid; margin: 0; padding: 0; list-style: none; }
+.ticket-lines li { display: flex; align-items: center; gap: .6rem; padding: .45rem 0; border-top: 1px solid var(--line); }
+.ticket-qty { flex: none; min-width: 2rem; font-size: 1.25rem; font-weight: 700; text-align: center; }
+.ticket-name { flex: 1; min-width: 0; font-size: 1.0625rem; font-weight: 600; overflow-wrap: anywhere; }
+.ticket-name small { display: block; font-size: .875rem; font-weight: 400; color: var(--ink-soft); }
+.ticket-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.ticket-foot .btn, .ticket-lines .btn { white-space: nowrap; }
+.recent-done { margin-top: 1rem; }
+
+.station-items { display: grid; gap: .1rem; }
+.station-items h3 { margin: .5rem 0 .2rem; font-size: .9375rem; }
+.station-items .row-note { font-weight: 400; }
+
+.assign-shift .panel-head { align-items: baseline; }
+.assign-group { margin: .25rem 0 0; font-size: .875rem; font-weight: 600; color: var(--ink-soft); }
+.assign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .5rem .75rem; }
+.assign-target { display: grid; gap: .25rem; }
+
+.dine-alerts { position: fixed; right: 1rem; bottom: 1rem; z-index: 40; display: grid; justify-items: end; gap: .5rem; }
+.dine-alerts-toggle { position: relative; display: grid; place-items: center; width: 3.5rem; height: 3.5rem; color: var(--on-secondary); background: var(--secondary); border: 0; border-radius: 50%; box-shadow: 0 6px 18px rgb(23 40 56 / .25); cursor: pointer; }
+.dine-alerts-toggle svg { width: 1.5rem; height: 1.5rem; }
+.dine-alerts-count { position: absolute; top: -.2rem; right: -.2rem; min-width: 1.5rem; height: 1.5rem; padding: 0 .35rem; font-size: .8125rem; font-weight: 700; line-height: 1.5rem; color: var(--bad-ink); background: var(--bad-bg); border: 2px solid var(--surface); border-radius: 999px; }
+.dine-alerts.is-ringing .dine-alerts-toggle { animation: alert-ring .5s ease 4; }
+@keyframes alert-ring { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.dine-alerts-panel { order: -1; display: grid; gap: .6rem; width: min(24rem, calc(100vw - 2rem)); max-height: min(30rem, calc(100dvh - 6rem)); overflow: auto; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgb(23 40 56 / .2); }
+.dine-alerts-panel h3 { margin: 0; font-size: .9375rem; }
+.dine-alerts-panel .rows li { flex-wrap: nowrap; }
+.dine-alerts-panel .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.dine-alert-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.dine-alert-table { margin-right: .25rem; font-weight: 700; }
+body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
+@media (prefers-reduced-motion: reduce) {
+    .ticket.is-new, .dine-alerts.is-ringing .dine-alerts-toggle { animation: none; }
+}

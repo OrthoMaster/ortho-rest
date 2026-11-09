@@ -114,7 +114,7 @@ class ModuleManager
     /**
      * Tắt module và các module phụ thuộc vào nó. Chỉ ẩn, không xoá dữ liệu.
      *
-     * @return list<string> các module đã tắt
+     * @return list<string> các module đã tắt (trước đó đang bật)
      */
     public function disable(Restaurant $restaurant, string $module): array
     {
@@ -125,15 +125,18 @@ class ModuleManager
         $modules = [$module, ...$this->dependentsOf($module)];
 
         // Lưu từng dòng để nhật ký ghi lại từng module bị tắt.
-        RestaurantModule::forRestaurant($restaurant)
+        $turnedOff = RestaurantModule::forRestaurant($restaurant)
             ->whereIn('module', $modules)
             ->where('enabled', true)
             ->get()
-            ->each(fn (RestaurantModule $state) => $state->update(['enabled' => false, 'enabled_at' => null]));
+            ->each(fn (RestaurantModule $state) => $state->update(['enabled' => false, 'enabled_at' => null]))
+            ->pluck('module')
+            ->all();
 
         $this->forget($restaurant);
 
-        return $modules;
+        // Chỉ kể các module đang bật, theo thứ tự: module được tắt rồi các module phụ thuộc.
+        return array_values(array_intersect($modules, $turnedOff));
     }
 
     /** @return array<string, mixed> cài đặt đã lưu, thiếu thì lấy mặc định của module */
