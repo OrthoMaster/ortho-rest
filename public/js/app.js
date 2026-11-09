@@ -217,7 +217,9 @@
 
             var ok = confirmDialog.querySelector('[data-confirm-ok]');
 
-            confirmDialog.querySelector('[data-confirm-title]').textContent = form.dataset.confirmTitle || '';
+            var title = confirmDialog.querySelector('[data-confirm-title]');
+
+            title.textContent = form.dataset.confirmTitle || title.dataset.default;
             confirmDialog.querySelector('[data-confirm-body]').textContent = form.dataset.confirm;
             ok.textContent = form.dataset.confirmOk || ok.dataset.defaultLabel || 'OK';
             ok.classList.toggle('btn-danger', 'confirmDanger' in form.dataset);

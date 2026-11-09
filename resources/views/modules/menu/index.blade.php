@@ -59,7 +59,7 @@
                         <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.close') }}</button>
                     </div>
                 </form>
-                <form method="post" action="{{ route('tenant.admin.menu.categories.destroy', $category) }}" class="dialog-delete" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('menu.category_delete_confirm', ['name' => $category->name]) }}">
+                <form method="post" action="{{ route('tenant.admin.menu.categories.destroy', $category) }}" class="dialog-delete" data-confirm-danger data-confirm="{{ __('menu.category_delete_confirm', ['name' => $category->name]) }}">
                     @csrf
                     @method('delete')
                     <button class="link link-danger" type="submit">{{ __('menu.category_delete') }}</button>

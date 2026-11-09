@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\ShiftType;
 use App\Enums\SpecialDayType;
-use App\Enums\UserRole;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\Shift;
@@ -302,7 +301,7 @@ class ReservationTest extends TestCase
 
     public function test_staff_sees_today_but_cannot_manage_or_accept(): void
     {
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
         $pending = $this->book(['party_size' => 2], ReservationSource::Online);
         $confirmed = $this->book(['customer_phone' => '0903333333', 'party_size' => 2]);
 
@@ -317,7 +316,7 @@ class ReservationTest extends TestCase
 
     public function test_managers_can_manage_by_default(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
         $pending = $this->book(['party_size' => 2], ReservationSource::Online);
 
         $this->actingAs($manager)->get("$this->base/manage")->assertOk();
@@ -378,7 +377,7 @@ class ReservationTest extends TestCase
 
     public function test_history_records_who_created_changed_and_edited(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager, 'name' => 'Quản lý Lan']);
+        $manager = $this->member($this->restaurant, 'manager', ['name' => 'Quản lý Lan']);
         $reservation = $this->book([], ReservationSource::Online);
         $edit = $this->form(['reserved_at' => '2026-12-01T19:30', 'party_size' => 6, 'notes' => 'Ghế em bé']);
 
@@ -606,12 +605,12 @@ class ReservationTest extends TestCase
 
     public function test_staff_cannot_manage_areas(): void
     {
-        $this->actingAs(User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]))->get("$this->base/areas")->assertForbidden();
+        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/areas")->assertForbidden();
     }
 
     public function test_staff_can_book_but_not_change_settings(): void
     {
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
 
         $this->actingAs($staff)->post($this->base, $this->form())->assertSessionHasNoErrors();
         $this->actingAs($staff)->get("$this->base/settings")->assertForbidden();

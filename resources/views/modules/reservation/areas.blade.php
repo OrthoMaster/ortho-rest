@@ -34,7 +34,7 @@
                             <td class="col-tools">
                                 @component('partials.kebab', ['label' => __('reservation.area_actions_for', ['name' => $area->name])])
                                     <button type="button" data-open-dialog="area-dialog-{{ $area->id }}">{{ __('reservation.area_edit') }}</button>
-                                    <form method="post" action="{{ route('tenant.admin.reservation.areas.destroy', $area) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('reservation.area_delete_confirm', ['name' => $area->name]) }}">
+                                    <form method="post" action="{{ route('tenant.admin.reservation.areas.destroy', $area) }}" data-confirm-danger data-confirm="{{ __('reservation.area_delete_confirm', ['name' => $area->name]) }}">
                                         @csrf
                                         @method('delete')
                                         <button class="is-danger" type="submit">{{ __('reservation.area_delete') }}</button>

@@ -9,13 +9,17 @@ Route::middleware('module:takeaway')
     ->prefix('takeaway')
     ->name('takeaway.')
     ->group(function () {
-        Route::get('/', [OrderController::class, 'index'])->name('index');
-        Route::get('create', [OrderController::class, 'create'])->name('create');
-        Route::post('/', [OrderController::class, 'store'])->name('store');
+        Route::get('/', [OrderController::class, 'index'])->middleware('can:takeaway.view')->name('index');
 
-        Route::get('discounts/check', [DiscountCodeController::class, 'check'])->name('discounts.check');
+        Route::middleware('can:takeaway.create')->group(function () {
+            Route::get('create', [OrderController::class, 'create'])->name('create');
+            Route::post('/', [OrderController::class, 'store'])->name('store');
+            Route::get('discounts/check', [DiscountCodeController::class, 'check'])->name('discounts.check');
+            Route::get('{order}/edit', [OrderController::class, 'edit'])->whereNumber('order')->name('edit');
+            Route::put('{order}', [OrderController::class, 'update'])->whereNumber('order')->name('update');
+        });
 
-        Route::middleware('role:owner,manager')->group(function () {
+        Route::middleware('can:takeaway.settings')->group(function () {
             Route::get('discounts', [DiscountCodeController::class, 'index'])->name('discounts.index');
             Route::get('discounts/create', [DiscountCodeController::class, 'create'])->name('discounts.create');
             Route::post('discounts', [DiscountCodeController::class, 'store'])->name('discounts.store');
@@ -26,8 +30,6 @@ Route::middleware('module:takeaway')
             Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
         });
 
-        Route::get('{order}', [OrderController::class, 'show'])->whereNumber('order')->name('show');
-        Route::get('{order}/edit', [OrderController::class, 'edit'])->whereNumber('order')->name('edit');
-        Route::put('{order}', [OrderController::class, 'update'])->whereNumber('order')->name('update');
-        Route::post('{order}/status', [OrderController::class, 'changeStatus'])->whereNumber('order')->name('status');
+        Route::get('{order}', [OrderController::class, 'show'])->whereNumber('order')->middleware('can:takeaway.view')->name('show');
+        Route::post('{order}/status', [OrderController::class, 'changeStatus'])->whereNumber('order')->middleware('can:takeaway.status')->name('status');
     });

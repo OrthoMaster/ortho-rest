@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Restaurant;
@@ -125,7 +124,7 @@ class CustomerRetentionTest extends TestCase
         $this->get("/{$this->restaurant->slug}/admin")->assertOk();
         $this->assertNotNull($customer->fresh()->anonymized_at);
 
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
         $this->actingAs($manager)->put("/{$this->restaurant->slug}/admin/restaurant/customer-data", ['customer_retention_days' => 90])->assertForbidden();
     }
 
@@ -182,7 +181,7 @@ class CustomerRetentionTest extends TestCase
     public function test_only_the_owner_exports_or_anonymizes(): void
     {
         $customer = $this->customer('Chị Hoa', '0901111111', '2026-11-20 19:00');
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
 
         $this->actingAs($staff)->get("$this->admin/customers")->assertOk()->assertDontSee(__('customers.export'))->assertDontSee(__('customers.anonymize'));
         $this->actingAs($staff)->get("$this->admin/customers/export")->assertForbidden();
@@ -206,7 +205,7 @@ class CustomerRetentionTest extends TestCase
         $this->get("$this->admin/restaurant")->assertDontSee('href="http://localhost'.$this->admin.'/activity" aria-current', false);
 
         // Nhân viên thấy Khách hàng nhưng không thấy Nhật ký.
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
         $this->actingAs($staff)->get($this->admin)
             ->assertSee('href="http://localhost'.$this->admin.'/customers"', false)
             ->assertDontSee('href="http://localhost'.$this->admin.'/activity"', false);

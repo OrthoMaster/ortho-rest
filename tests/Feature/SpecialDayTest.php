@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\ShiftType;
 use App\Enums\SpecialDayType;
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\SpecialDay;
@@ -156,7 +155,7 @@ class SpecialDayTest extends TestCase
 
     public function test_only_owner_and_only_own_restaurant(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
         $this->actingAs($manager)->get($this->base)->assertForbidden();
 
         $other = Restaurant::factory()->create();

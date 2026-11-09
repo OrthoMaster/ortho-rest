@@ -11,7 +11,7 @@
                     <small class="booking-phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span class="visually-hidden">{{ __('reservation.customer_phone') }}:</span> {{ mask_phone($reservation->customer->phone) }}</small>
                 @endif
             </div>
-            @php($arrive = ($today ?? false) && $reservation->status === \App\Modules\Reservation\ReservationStatus::Confirmed)
+            @php($arrive = ($today ?? false) && $reservation->status === \App\Modules\Reservation\ReservationStatus::Confirmed && auth()->user()->can('reservation.status'))
             {{-- Ở tab Hôm nay mọi dòng đều đã xác nhận, chỉ hiện nhãn khi khác. --}}
             @unless ($arrive)
                 <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>

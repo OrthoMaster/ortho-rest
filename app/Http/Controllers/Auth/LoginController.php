@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Auth\DeviceGuard;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Support\Phone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -26,17 +29,21 @@ class LoginController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $data = $request->validate([
+            'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt([...$credentials, self::scope()], $request->boolean('remember'))) {
-            throw ValidationException::withMessages(['email' => __('auth.failed')]);
+        if (! Auth::attempt([...self::credentials($data['login']), 'password' => $data['password'], self::scope()], $request->boolean('remember'))) {
+            throw ValidationException::withMessages(['login' => __('auth.failed')]);
         }
 
         if (tenant()?->isLocked()) {
             $this->reject($request, __('ui.login.locked'));
+        }
+
+        if ($message = self::blockedReason($request->user())) {
+            $this->reject($request, $message);
         }
 
         $request->session()->regenerate();
@@ -60,6 +67,34 @@ class LoginController extends Controller
         return redirect($loginUrl);
     }
 
+    /**
+     * Trang của quán: email hoặc số điện thoại. Trang super admin: chỉ email.
+     *
+     * @return array<string, string>
+     */
+    public static function credentials(string $login): array
+    {
+        $login = trim($login);
+
+        return tenant() === null || str_contains($login, '@')
+            ? ['email' => Str::lower($login)]
+            : ['phone' => Phone::normalize($login)];
+    }
+
+    /** Vì sao một người của quán không được vào: tài khoản đã ngừng, hoặc quán chưa bật Nội bộ (chỉ chủ quán làm). */
+    public static function blockedReason(User $user): ?string
+    {
+        if ($user->is_super_admin || $user->isOwner()) {
+            return null;
+        }
+
+        return match (true) {
+            ! $user->is_active => __('staff.inactive_login'),
+            ! $user->restaurant?->hasModule('staff') => __('staff.module_off_login'),
+            default => null,
+        };
+    }
+
     /** Điều kiện tài khoản theo trang đăng nhập đang dùng. Dùng cả cho quên mật khẩu. */
     public static function scope(): \Closure
     {
@@ -76,6 +111,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        throw ValidationException::withMessages(['email' => $message]);
+        throw ValidationException::withMessages(['login' => $message]);
     }
 }

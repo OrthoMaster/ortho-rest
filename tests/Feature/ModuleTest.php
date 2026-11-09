@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\RestaurantModule;
 use App\Models\User;
@@ -107,7 +106,7 @@ class ModuleTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $this->enableModules($restaurant, 'menu', 'reservation');
-        $staff = User::factory()->create(['restaurant_id' => $restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($restaurant, 'staff');
 
         $this->actingAs($staff)->get("/{$restaurant->slug}/admin/menu")->assertForbidden();
         $this->actingAs($staff)->get("/{$restaurant->slug}/admin/reservations")->assertOk();

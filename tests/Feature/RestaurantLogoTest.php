@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,7 +109,7 @@ class RestaurantLogoTest extends TestCase
 
     public function test_only_the_owner_of_this_restaurant_can_change_the_logo(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
         $otherOwner = User::factory()->owner()->create();
 
         $this->actingAs($manager)->get($this->adminUrl('/restaurant'))->assertForbidden();
@@ -123,7 +122,7 @@ class RestaurantLogoTest extends TestCase
 
     public function test_menu_link_is_for_the_owner_only(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
 
         $this->actingAs($this->owner)->get($this->adminUrl())->assertSee(__('ui.restaurant.title'));
         $this->actingAs($manager)->get($this->adminUrl())->assertDontSee(__('ui.restaurant.title'));

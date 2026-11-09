@@ -831,3 +831,22 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 @media (max-width: 760px) {
     .password-toggle { width: 2.75rem; height: 2.75rem; }
 }
+
+/* Nội bộ: tài khoản nhân viên, chức vụ, quyền */
+.chip-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+.tag.is-empty { color: var(--ink-soft); background: var(--ground); }
+.rows li.is-fixed { color: var(--ink-soft); }
+.rows li.is-muted .row-name a, .rows li.is-muted .row-name strong { color: var(--ink-soft); }
+.rows + .rows { margin-top: 0; }
+.toggle-list { display: grid; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3rem; padding: .55rem .9rem; cursor: pointer; }
+.toggle-row + .toggle-row { border-top: 1px solid var(--line); }
+.toggle-row > span { display: grid; gap: .1rem; min-width: 0; overflow-wrap: anywhere; }
+.toggle-row small { color: var(--ink-soft); font-size: .8125rem; }
+.toggle-row input { flex: none; }
+.staff-grid, .permission-groups { display: grid; gap: 1rem; align-items: start; }
+.permission-group h3 { font-size: 1rem; }
+@media (min-width: 761px) {
+    .staff-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .permission-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

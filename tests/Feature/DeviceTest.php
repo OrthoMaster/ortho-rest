@@ -36,7 +36,7 @@ class DeviceTest extends TestCase
             $request = $request->withCookie(DeviceGuard::COOKIE, $deviceCookie);
         }
 
-        return $request->post("/{$this->slug}/login", ['email' => $this->owner->email, 'password' => 'password']);
+        return $request->post("/{$this->slug}/login", ['login' => $this->owner->email, 'password' => 'password']);
     }
 
     private function logout(): void
@@ -100,7 +100,7 @@ class DeviceTest extends TestCase
         $this->put("/{$this->slug}/admin/profile/devices/lock", ['devices_locked' => 1])->assertSessionHas('status');
         $this->logout();
 
-        $this->login(self::WINDOWS)->assertSessionHasErrors(['email' => __('ui.devices.blocked')]);
+        $this->login(self::WINDOWS)->assertSessionHasErrors(['login' => __('ui.devices.blocked')]);
         $this->assertGuest();
         $this->assertSame(1, $this->owner->devices()->count());
 

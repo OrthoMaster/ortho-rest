@@ -14,7 +14,7 @@
         <button class="btn" type="submit">{{ __('menu.tag_save') }}</button>
     </form>
 
-    <form method="post" action="{{ route('tenant.admin.menu.tags.destroy', $tag) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('menu.tag_delete_confirm', ['name' => $tag->name]) }}">
+    <form method="post" action="{{ route('tenant.admin.menu.tags.destroy', $tag) }}" data-confirm-danger data-confirm="{{ __('menu.tag_delete_confirm', ['name' => $tag->name]) }}">
         @csrf
         @method('delete')
         <button class="link link-danger" type="submit">{{ __('menu.tag_delete') }}</button>

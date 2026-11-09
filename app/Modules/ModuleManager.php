@@ -5,6 +5,7 @@ namespace App\Modules;
 use App\Models\ActivityLog;
 use App\Models\Restaurant;
 use App\Models\RestaurantModule;
+use App\Support\Permissions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -101,6 +102,11 @@ class ModuleManager
                 ActivityLog::quietly(fn () => app($installer)->install($restaurant, $state));
             }
         });
+
+        $this->forget($restaurant);
+
+        // Chức vụ mặc định nhận sẵn quyền cơ bản của module vừa bật.
+        ActivityLog::quietly(fn () => Permissions::grantModuleDefaults($restaurant, $module));
 
         $this->forget($restaurant);
     }

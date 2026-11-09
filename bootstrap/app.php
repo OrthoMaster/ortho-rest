@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthorizeAny;
 use App\Http\Middleware\EnsureMainDomain;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureRestaurantActive;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super' => EnsureSuperAdmin::class,
             'tenant.active' => EnsureRestaurantActive::class,
             'tenant.prune' => PruneCustomers::class,
+            'can_any' => AuthorizeAny::class,
             'tenant.host' => IdentifyTenantByHost::class,
             'tenant.member' => EnsureRestaurantMember::class,
             'tenant.redirect' => RedirectToCustomDomain::class,

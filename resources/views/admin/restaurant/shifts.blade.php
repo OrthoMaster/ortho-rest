@@ -44,7 +44,7 @@
                                             .($shift->crossesMidnight() ? '<small>'.e(__('shifts.next_day')).'</small>' : '')
                                         )])
                                             <a href="{{ route('tenant.admin.restaurant.shifts.edit', $shift) }}">{{ __('shifts.edit') }}</a>
-                                            <form method="post" action="{{ route('tenant.admin.restaurant.shifts.destroy', $shift) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('shifts.delete_confirm', ['name' => $shift->name.', '.$dayName]) }}">
+                                            <form method="post" action="{{ route('tenant.admin.restaurant.shifts.destroy', $shift) }}" data-confirm-danger data-confirm="{{ __('shifts.delete_confirm', ['name' => $shift->name.', '.$dayName]) }}">
                                                 @csrf
                                                 @method('delete')
                                                 <button class="is-danger" type="submit">{{ __('shifts.delete') }}</button>

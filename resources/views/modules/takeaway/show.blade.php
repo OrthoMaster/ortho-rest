@@ -7,14 +7,14 @@
         @component('partials.page-title', ['title' => __('takeaway.number', ['code' => $order->code()]), 'back' => route('tenant.admin.takeaway.index', ['date' => $order->pickup_at->toDateString()])])
             <span class="badge {{ $order->status->badge() }}">{{ $order->status->label() }}</span>
         @endcomponent
-        @if ($order->isEditable())
+        @if ($order->isEditable() && auth()->user()->can('takeaway.create'))
             <a class="btn btn-quiet" href="{{ route('tenant.admin.takeaway.edit', $order) }}">{{ __('takeaway.edit') }}</a>
         @endif
     </div>
 
     @error('status')<p class="flash flash-error">{{ $message }}</p>@enderror
 
-    @if ($order->status->next())
+    @if ($order->status->next() && auth()->user()->can('takeaway.status'))
         <section class="panel">
             @include('modules.takeaway.status-actions')
         </section>

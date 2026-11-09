@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -40,7 +39,7 @@ class ActivityLogTest extends TestCase
         }
 
         $this->owner = User::factory()->owner($this->restaurant)->create();
-        $this->manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager, 'name' => 'Quản lý Lan']);
+        $this->manager = $this->member($this->restaurant, 'manager', ['name' => 'Quản lý Lan']);
         $this->admin = "/{$this->restaurant->slug}/admin";
 
         $category = MenuCategory::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Món chính', 'sort_order' => 1, 'is_visible' => true]);
@@ -65,9 +64,9 @@ class ActivityLogTest extends TestCase
 
     public function test_enabling_modules_does_not_log_the_sample_data(): void
     {
-        // Ba dòng bật module, rồi hai dòng của dữ liệu tạo trong setUp, không có dữ liệu mẫu.
+        // Bốn dòng bật module (Nội bộ bật khi tạo quản lý), rồi hai dòng của dữ liệu tạo trong setUp; không có dữ liệu mẫu hay chức vụ mặc định.
         $this->assertSame(
-            ['Bật module Menu', 'Bật module Đặt bàn', 'Bật module Đặt mang đi', 'Thêm danh mục Món chính', 'Thêm món Phở bò'],
+            ['Bật module Menu', 'Bật module Đặt bàn', 'Bật module Đặt mang đi', 'Bật module Nội bộ', 'Thêm danh mục Món chính', 'Thêm món Phở bò'],
             $this->logs()->reorder()->oldest('id')->pluck('summary')->all(),
         );
     }

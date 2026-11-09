@@ -2,7 +2,6 @@
 
 namespace App\Modules\Takeaway\Http;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Modules\ModuleManager;
 use Illuminate\Http\RedirectResponse;
@@ -31,16 +30,9 @@ class SettingsController extends Controller
 
         $settings = [...$data, 'accepting_orders' => $request->boolean('accepting_orders')];
 
-        // Quản lý không được tự cấp quyền, chỉ chủ quán đổi mục này.
-        if ($request->user()->role === UserRole::Owner) {
-            $settings['direct_discount_roles'] = array_values(array_intersect(
-                (array) $request->input('direct_discount_roles', []),
-                [UserRole::Manager->value, UserRole::Staff->value],
-            ));
-
-            if ($prefix !== null) {
-                $settings['order_code_prefix'] = strtoupper($prefix);
-            }
+        // Đổi chữ đầu mã đơn chỉ chủ quán làm. Quyền giảm giá trực tiếp nay giao theo chức vụ.
+        if ($request->user()->isOwner() && $prefix !== null) {
+            $settings['order_code_prefix'] = strtoupper($prefix);
         }
 
         $this->modules->updateSettings(tenant(), 'takeaway', $settings);

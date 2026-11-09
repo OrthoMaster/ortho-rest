@@ -47,7 +47,7 @@
     </form>
 
     @if ($item->exists)
-        <form method="post" action="{{ route('tenant.admin.menu.items.destroy', $item) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('menu.item_delete_confirm', ['name' => $item->name]) }}">
+        <form method="post" action="{{ route('tenant.admin.menu.items.destroy', $item) }}" data-confirm-danger data-confirm="{{ __('menu.item_delete_confirm', ['name' => $item->name]) }}">
             @csrf
             @method('delete')
             <button class="link link-danger" type="submit">{{ __('menu.item_delete') }}</button>

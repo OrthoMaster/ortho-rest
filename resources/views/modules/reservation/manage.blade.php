@@ -5,7 +5,9 @@
 @section('content')
     <div class="page-head">
         <h1>{{ __('modules.reservation') }}</h1>
-        <a class="btn" href="{{ route('tenant.admin.reservation.create') }}">{{ __('reservation.add') }}</a>
+        @can('reservation.create')
+            <a class="btn" href="{{ route('tenant.admin.reservation.create') }}">{{ __('reservation.add') }}</a>
+        @endcan
     </div>
 
     @include('modules.reservation.subnav')

@@ -5,19 +5,18 @@
 @section('content')
     <h1>{{ __('ui.nav.customers') }}</h1>
 
-    @php($owner = auth()->user()->role === \App\Enums\UserRole::Owner)
 
     @if ($soon > 0)
         <p class="flash flash-warn">{{ __('customers.soon', ['count' => $soon, 'days' => \App\Support\CustomerRetention::NOTICE_DAYS]) }}</p>
     @endif
 
     <div class="list-tools">
-        @if ($owner)
+        @can('customers.export')
             <a class="btn btn-quiet" href="{{ route('tenant.admin.customers.export') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
                 {{ __('customers.export') }}
             </a>
-        @endif
+        @endcan
         <form class="list-search" method="get">
             <label>
                 <span class="visually-hidden">{{ __('reservation.customer_search') }}</span>
@@ -40,7 +39,7 @@
                         <th>{{ __('reservation.count_cancelled') }}</th>
                         <th>{{ __('reservation.count_no_show') }}</th>
                         <th>{{ __('customers.delete_date') }}</th>
-                        @if ($owner)<th><span class="visually-hidden">{{ __('reservation.area_actions') }}</span></th>@endif
+                        @can('customers.anonymize')<th><span class="visually-hidden">{{ __('reservation.area_actions') }}</span></th>@endcan
                     </tr>
                 </thead>
                 <tbody>
@@ -59,7 +58,7 @@
                                     {{ \App\Support\CustomerRetention::deleteDate($restaurant, $customer->last_seen_at)->format('d/m/Y') }}
                                 @endif
                             </td>
-                            @if ($owner)
+                            @can('customers.anonymize')
                                 <td class="col-tools">
                                     @unless ($customer->anonymized_at)
                                         @component('partials.kebab', ['label' => __('customers.actions_for', ['name' => $customer->name])])
@@ -72,7 +71,7 @@
                                         @endcomponent
                                     @endunless
                                 </td>
-                            @endif
+                            @endcan
                         </tr>
                     @endforeach
                 </tbody>

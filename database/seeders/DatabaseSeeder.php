@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\ShiftType;
 use App\Enums\UserRole;
 use App\Models\ActivityLog;
+use App\Models\Position;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -42,11 +43,16 @@ class DatabaseSeeder extends Seeder
             'theme' => ['primary' => '#b5e3c8', 'secondary' => '#ffd8b8'],
         ]);
         $this->user('owner@quan-demo.test', 'Chủ Quán Demo', $demo, UserRole::Owner);
-        $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Manager);
-        $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff);
+        $manager = $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Staff, phone: '0900000001');
+        $staff = $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff, phone: '0900000002');
 
-        foreach (['website', 'menu', 'reservation', 'takeaway'] as $module) {
+        foreach (['website', 'menu', 'reservation', 'takeaway', 'staff'] as $module) {
             $modules->enable($demo, $module);
+        }
+
+        // Quản lý và nhân viên demo nhận chức vụ mặc định cùng tên.
+        foreach (['manager' => $manager, 'staff' => $staff] as $preset => $user) {
+            $user->positions()->syncWithoutDetaching([Position::forRestaurant($demo)->where('preset', $preset)->value('id')]);
         }
 
         $this->demoData($demo);
@@ -137,16 +143,19 @@ class DatabaseSeeder extends Seeder
         ?Restaurant $restaurant = null,
         ?UserRole $role = null,
         bool $superAdmin = false,
-    ): void {
-        User::where('email', $email)->firstOr(fn () => new User(['email' => $email]))
-            ->forceFill([
-                'name' => $name,
-                'password' => 'password',
-                'email_verified_at' => now(),
-                'restaurant_id' => $restaurant?->getKey(),
-                'role' => $role,
-                'is_super_admin' => $superAdmin,
-            ])
-            ->save();
+        ?string $phone = null,
+    ): User {
+        $user = User::where('email', $email)->firstOr(fn () => new User(['email' => $email]));
+        $user->forceFill([
+            'name' => $name,
+            'password' => 'password',
+            'email_verified_at' => now(),
+            'restaurant_id' => $restaurant?->getKey(),
+            'role' => $role,
+            'is_super_admin' => $superAdmin,
+            'phone' => $phone,
+        ])->save();
+
+        return $user;
     }
 }

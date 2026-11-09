@@ -20,7 +20,7 @@
     </form>
 
     @if ($discount->exists)
-        <form method="post" action="{{ route('tenant.admin.takeaway.discounts.destroy', $discount) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('takeaway.code_delete_confirm', ['code' => $discount->code]) }}">
+        <form method="post" action="{{ route('tenant.admin.takeaway.discounts.destroy', $discount) }}" data-confirm-danger data-confirm="{{ __('takeaway.code_delete_confirm', ['code' => $discount->code]) }}">
             @csrf
             @method('delete')
             <button class="link link-danger" type="submit">{{ __('takeaway.code_delete') }}</button>

@@ -43,7 +43,7 @@ enum ReservationStatus: string
      */
     public function nextFor(User $user): array
     {
-        return $this === self::Pending && ! $user->can('reservation.manage') ? [] : $this->next();
+        return $user->can($this === self::Pending ? 'reservation.manage' : 'reservation.status') ? $this->next() : [];
     }
 
     public function canBecome(self $status): bool

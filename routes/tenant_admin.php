@@ -21,14 +21,12 @@ Route::put('profile/devices/lock', [DeviceController::class, 'lock'])->name('pro
 Route::delete('profile/devices/{device}', [DeviceController::class, 'destroy'])->whereNumber('device')->name('profile.devices.destroy');
 
 // Khách hàng dùng chung cho đặt bàn và đặt mang đi.
-Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
-Route::middleware('role:owner')->group(function () {
-    Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
-    Route::post('customers/{customer}/anonymize', [CustomerController::class, 'anonymize'])->whereNumber('customer')->name('customers.anonymize');
-    Route::get('activity', [ActivityController::class, 'index'])->name('activity');
-});
+Route::get('customers', [CustomerController::class, 'index'])->middleware('can:customers.view')->name('customers.index');
+Route::get('customers/export', [CustomerController::class, 'export'])->middleware('can:customers.export')->name('customers.export');
+Route::post('customers/{customer}/anonymize', [CustomerController::class, 'anonymize'])->whereNumber('customer')->middleware('can:customers.anonymize')->name('customers.anonymize');
+Route::get('activity', [ActivityController::class, 'index'])->middleware('can:activity.view')->name('activity');
 
-Route::middleware('role:owner')->prefix('restaurant')->name('restaurant.')->group(function () {
+Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
     Route::get('activity', fn () => redirect()->route('tenant.admin.activity', status: 301));
 

@@ -67,6 +67,8 @@ return [
         'back_home' => 'Về trang chủ',
         'close' => 'Đóng',
         'cancel' => 'Huỷ, quay lại',
+        'confirm_title' => 'Bạn chắc chứ?',
+        'confirm_ok' => 'Đồng ý',
         'back' => 'Quay lại',
     ],
 
@@ -95,6 +97,7 @@ return [
     'login' => [
         'title' => 'Đăng nhập',
         'email' => 'Email',
+        'email_or_phone' => 'Email hoặc số điện thoại',
         'password' => 'Mật khẩu',
         'remember' => 'Ghi nhớ trên máy này',
         'submit' => 'Đăng nhập',

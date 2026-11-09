@@ -13,7 +13,8 @@
             @csrf
             @method('put')
             @include('partials.field', ['name' => 'name', 'label' => __('ui.profile.name'), 'value' => $user->name, 'autocomplete' => 'name'])
-            @include('partials.field', ['name' => 'email', 'type' => 'email', 'label' => __('ui.profile.email'), 'value' => $user->email, 'autocomplete' => 'username'])
+            @include('partials.field', ['name' => 'phone', 'type' => 'tel', 'label' => __('staff.phone'), 'value' => $user->phone, 'autocomplete' => 'tel', 'required' => ! $user->isOwner()])
+            @include('partials.field', ['name' => 'email', 'type' => 'email', 'label' => __('ui.profile.email'), 'value' => $user->email, 'autocomplete' => 'username', 'required' => $user->isOwner()])
             <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
         </form>
     </section>
@@ -47,7 +48,7 @@
                     @if ($device->id === $currentDevice)
                         <span class="badge badge-ok">{{ __('ui.devices.current') }}</span>
                     @else
-                        <form method="post" action="{{ route('tenant.admin.profile.devices.destroy', $device->id) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('ui.devices.revoke_confirm', ['name' => $device->name]) }}">
+                        <form method="post" action="{{ route('tenant.admin.profile.devices.destroy', $device->id) }}" data-confirm-danger data-confirm="{{ __('ui.devices.revoke_confirm', ['name' => $device->name]) }}">
                             @csrf
                             @method('delete')
                             <button class="link link-danger" type="submit">{{ __('ui.devices.revoke') }}</button>

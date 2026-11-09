@@ -5,7 +5,9 @@
 @section('content')
     <div class="page-head">
         <h1>{{ __('modules.takeaway') }}</h1>
-        <a class="btn" href="{{ route('tenant.admin.takeaway.create') }}">{{ __('takeaway.add') }}</a>
+        @can('takeaway.create')
+            <a class="btn" href="{{ route('tenant.admin.takeaway.create') }}">{{ __('takeaway.add') }}</a>
+        @endcan
     </div>
 
     @include('modules.takeaway.subnav')

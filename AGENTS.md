@@ -7,7 +7,8 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Bảng mới của quán có `restaurant_id`, model dùng trait `BelongsToRestaurant`. Đọc xuyên quán phải gọi rõ `forRestaurant()`.
 - `User`, `UserDevice` và `RestaurantDomain` cố ý không dùng trait. Trong một quán, lấy user qua `$restaurant->users()`.
 - Model mà người trong quán sửa được thì dùng trait `RecordsActivity` để ghi nhật ký thay đổi (khai `activityFields()`). Dữ liệu mẫu bọc trong `ActivityLog::quietly()`.
-- Người của quán đăng nhập ở `/{slug}/login`; `/login` chỉ cho super admin.
+- Người của quán đăng nhập ở `/{slug}/login` bằng email hoặc số điện thoại; `/login` chỉ cho super admin (email).
+- Phân quyền theo quyền, không theo vai trò: khai quyền mới trong `config/permissions.php` (theo module, kèm chức vụ mặc định) và `lang/vi/permissions.php`, rồi kiểm tra bằng `can:quyền` trên route và `@can` trong Blade. Chủ quán luôn có mọi quyền; người khác theo chức vụ (bảng `positions`), chỉ khi bật module Nội bộ.
 - Link của quán sinh bằng `tenant_route()`.
 - Chữ giao diện qua `__()` và `lang/vi`, không viết cứng trong Blade.
 - Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.

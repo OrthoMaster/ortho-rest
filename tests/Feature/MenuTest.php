@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
@@ -403,7 +402,7 @@ class MenuTest extends TestCase
 
     public function test_staff_cannot_edit_the_menu(): void
     {
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
 
         $this->actingAs($staff)->get($this->base)->assertForbidden();
     }

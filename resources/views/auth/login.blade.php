@@ -12,7 +12,11 @@
     @include('partials.flash')
     <form method="post" action="{{ route($prefix.'login') }}" class="stack">
         @csrf
-        @include('partials.field', ['name' => 'email', 'type' => 'email', 'label' => __('ui.login.email'), 'autocomplete' => 'username'])
+        @if (tenant())
+            @include('partials.field', ['name' => 'login', 'label' => __('ui.login.email_or_phone'), 'autocomplete' => 'username'])
+        @else
+            @include('partials.field', ['name' => 'login', 'type' => 'email', 'label' => __('ui.login.email'), 'autocomplete' => 'username'])
+        @endif
         @include('partials.field', ['name' => 'password', 'type' => 'password', 'label' => __('ui.login.password'), 'autocomplete' => 'current-password'])
         <label class="check"><input type="checkbox" name="remember" value="1"> {{ __('ui.login.remember') }}</label>
         <button class="btn" type="submit">{{ __('ui.login.submit') }}</button>

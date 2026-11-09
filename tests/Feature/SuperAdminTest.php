@@ -166,7 +166,7 @@ class SuperAdminTest extends TestCase
         $url = "/super/restaurants/{$restaurant->id}/modules";
 
         $this->actingAs($this->admin)->put("$url/core", ['enabled' => 0])->assertUnprocessable();
-        $this->actingAs($this->admin)->put("$url/staff", ['enabled' => 1])->assertUnprocessable();
+        $this->actingAs($this->admin)->put("$url/schedule", ['enabled' => 1])->assertUnprocessable();
         $this->actingAs($this->admin)->put("$url/khong-co", ['enabled' => 1])->assertNotFound();
     }
 

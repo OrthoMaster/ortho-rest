@@ -100,7 +100,7 @@
                             ? __('ui.super.module_disable_confirm_with', ['module' => __($definition['name']), 'modules' => implode(', ', array_map(fn ($dependent) => __($modules->definition($dependent)['name']), $dependents))])
                             : __('ui.super.module_disable_confirm', ['module' => __($definition['name'])]))
                         <form method="post" action="{{ route('super.modules.update', [$restaurant, $key]) }}"
-                              @if ($on) onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ $confirm }}" @endif>
+                              @if ($on) data-confirm-danger data-confirm="{{ $confirm }}" @endif>
                             @csrf
                             @method('put')
                             <input type="hidden" name="enabled" value="{{ $on ? 0 : 1 }}">
@@ -134,7 +134,7 @@
                             </form>
                         @endif
                         <form method="post" action="{{ route('super.domains.destroy', [$restaurant, $domain]) }}"
-                              onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('ui.super.domain_remove_confirm', ['domain' => $domain->domain]) }}">
+                              data-confirm-danger data-confirm="{{ __('ui.super.domain_remove_confirm', ['domain' => $domain->domain]) }}">
                             @csrf
                             @method('delete')
                             <button class="link link-danger" type="submit">{{ __('ui.super.domain_remove') }}</button>
@@ -158,7 +158,7 @@
             </form>
         @else
             <form method="post" action="{{ route('super.restaurants.lock', $restaurant) }}"
-                  onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('ui.super.lock_confirm') }}">
+                  data-confirm-danger data-confirm="{{ __('ui.super.lock_confirm') }}">
                 @csrf
                 <button class="btn btn-danger" type="submit">{{ __('ui.super.lock') }}</button>
             </form>

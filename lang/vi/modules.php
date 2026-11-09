@@ -6,7 +6,7 @@ return [
     'menu' => 'Menu',
     'reservation' => 'Đặt bàn',
     'takeaway' => 'Đặt mang đi',
-    'staff' => 'Nhân viên',
+    'staff' => 'Nội bộ',
     'schedule' => 'Lịch làm',
     'leave' => 'Nghỉ phép',
     'sop' => 'Quy trình',

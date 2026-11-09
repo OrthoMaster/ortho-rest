@@ -9,7 +9,7 @@
             : route('tenant.admin.reservation.manage', ['upcoming' => 0, 'from' => $reservation->reserved_at->toDateString(), 'to' => $reservation->reserved_at->toDateString()]))])
             <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>
         @endcomponent
-        @if ($reservation->status->holdsSeats())
+        @if ($reservation->status->holdsSeats() && auth()->user()->can('reservation.create'))
             <a class="btn btn-quiet" href="{{ route('tenant.admin.reservation.edit', $reservation) }}">{{ __('reservation.edit') }}</a>
         @endif
     </div>

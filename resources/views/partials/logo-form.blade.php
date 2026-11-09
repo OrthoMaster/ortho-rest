@@ -4,7 +4,7 @@
     <button class="btn" type="submit">{{ __('ui.logo.save') }}</button>
 </form>
 @if ($restaurant->logoUrl())
-    <form method="post" action="{{ $destroyUrl }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('ui.logo.remove_confirm') }}">
+    <form method="post" action="{{ $destroyUrl }}" data-confirm-danger data-confirm="{{ __('ui.logo.remove_confirm') }}">
         @csrf
         @method('delete')
         <button class="link link-danger" type="submit">{{ __('ui.logo.remove') }}</button>

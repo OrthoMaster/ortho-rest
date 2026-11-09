@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
@@ -322,7 +321,7 @@ class TakeawayTest extends TestCase
     public function test_staff_can_use_codes_but_not_manage_them(): void
     {
         $this->code('GIAM10', DiscountType::Percent, 10);
-        $staff = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Staff]);
+        $staff = $this->member($this->restaurant, 'staff');
 
         $this->actingAs($staff)->getJson("$this->base/discounts/check?code=GIAM10")->assertJson(['valid' => true]);
         $this->actingAs($staff)->get("$this->base/discounts")->assertForbidden();
@@ -370,22 +369,34 @@ class TakeawayTest extends TestCase
             ->assertSessionHasErrors('pickup_at');
     }
 
-    private function asRole(UserRole $role): User
+    private function asRole(string $preset): User
     {
-        return User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => $role]);
+        return $this->member($this->restaurant, $preset);
+    }
+
+    public function test_direct_discount_follows_positions(): void
+    {
+        $staff = $this->asRole('staff');
+        $this->assertFalse($staff->can('takeaway.direct-discount'));
+
+        $this->actingInTenant($this->restaurant);
+        $position = $staff->positions()->first();
+        $position->update(['permissions' => [...$position->permissions, 'takeaway.direct-discount']]);
+        $staff->forgetPermissions();
+        $this->assertTrue($staff->can('takeaway.direct-discount'));
     }
 
     public function test_direct_discount_defaults_to_owner_and_manager(): void
     {
         $this->assertTrue($this->owner->can('takeaway.direct-discount'));
-        $this->assertTrue($this->asRole(UserRole::Manager)->can('takeaway.direct-discount'));
-        $this->assertFalse($this->asRole(UserRole::Staff)->can('takeaway.direct-discount'));
+        $this->assertTrue($this->asRole('manager')->can('takeaway.direct-discount'));
+        $this->assertFalse($this->asRole('staff')->can('takeaway.direct-discount'));
     }
 
     public function test_user_without_the_permission_can_use_codes_but_not_direct_discounts(): void
     {
         $this->code('GIAM10', DiscountType::Percent, 10);
-        $staff = $this->asRole(UserRole::Staff);
+        $staff = $this->asRole('staff');
         $on = ['discount_enabled' => 1];
 
         $this->actingAs($staff)->get("$this->base/create")
@@ -400,38 +411,6 @@ class TakeawayTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame(126000, TakeawayOrder::forRestaurant($this->restaurant)->sole()->total);
-    }
-
-    public function test_owner_can_grant_and_remove_the_permission(): void
-    {
-        $settings = ['pickup_opens' => '10:00', 'pickup_closes' => '21:00'];
-        $staff = $this->asRole(UserRole::Staff);
-        $manager = $this->asRole(UserRole::Manager);
-
-        $this->put("$this->base/settings", [...$settings, 'direct_discount_roles' => ['staff', 'owner', 'khac']])->assertSessionHasNoErrors();
-        $modules = app(ModuleManager::class);
-
-        $this->assertSame(['staff'], $modules->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
-        $this->assertTrue($staff->can('takeaway.direct-discount'));
-        $this->assertFalse($manager->can('takeaway.direct-discount'));
-        $this->assertTrue($this->owner->can('takeaway.direct-discount'));
-
-        $this->put("$this->base/settings", $settings)->assertSessionHasNoErrors();
-
-        $this->assertSame([], $modules->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
-    }
-
-    public function test_manager_cannot_change_the_permission(): void
-    {
-        $manager = $this->asRole(UserRole::Manager);
-
-        $this->actingAs($manager)->get("$this->base/settings")->assertDontSee('direct_discount_roles', false);
-
-        $this->put("$this->base/settings", [
-            'pickup_opens' => '10:00', 'pickup_closes' => '21:00', 'direct_discount_roles' => ['staff'],
-        ])->assertSessionHasNoErrors();
-
-        $this->assertSame(['manager'], app(ModuleManager::class)->settings($this->restaurant, 'takeaway')['direct_discount_roles']);
     }
 
     private function pickup(string $date): TakeawayOrder
@@ -510,7 +489,7 @@ class TakeawayTest extends TestCase
 
     public function test_only_the_owner_sets_the_code_letter(): void
     {
-        $manager = $this->asRole(UserRole::Manager);
+        $manager = $this->asRole('manager');
 
         $this->actingAs($manager)->get("$this->base/settings")->assertDontSee('order_code_prefix', false);
 
@@ -630,7 +609,7 @@ class TakeawayTest extends TestCase
     public function test_staff_keeps_a_direct_discount_but_cannot_change_it(): void
     {
         $order = $this->discounted(['discount_mode' => 'percent', 'discount_percent' => 10]);
-        $staff = $this->asRole(UserRole::Staff);
+        $staff = $this->asRole('staff');
         $keep = ['discount_enabled' => 1, 'discount_mode' => 'percent', 'discount_percent' => 10];
 
         $this->actingAs($staff)->get("$this->base/{$order->id}/edit")->assertSee('Đơn đang giảm 10%');
@@ -648,7 +627,7 @@ class TakeawayTest extends TestCase
     {
         $percent = $this->discounted(['discount_mode' => 'percent', 'discount_percent' => 10]);
         $amount = $this->discounted(['discount_mode' => 'amount', 'discount_thousands' => 25]);
-        $this->actingAs($this->asRole(UserRole::Staff));
+        $this->actingAs($this->asRole('staff'));
 
         $this->get("$this->base/{$percent->id}/edit")
             ->assertSee('name="discount_percent" value="10"', false)

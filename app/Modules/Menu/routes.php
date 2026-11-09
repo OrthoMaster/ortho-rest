@@ -5,7 +5,7 @@ use App\Modules\Menu\Http\ItemController;
 use App\Modules\Menu\Http\TagController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['module:menu', 'role:owner,manager'])
+Route::middleware(['module:menu', 'can:menu.manage'])
     ->prefix('menu')
     ->name('menu.')
     ->group(function () {

@@ -3,6 +3,7 @@
 namespace App\Support\Activity;
 
 use App\Enums\UserRole;
+use App\Support\Permissions;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -30,8 +31,20 @@ class ActivityFormat
             'image' => [__($old ? ($new ? 'activity.image_changed' : 'activity.image_removed') : 'activity.image_added')],
             'theme' => [__('activity.theme_changed')],
             'settings' => self::settings((array) $old, (array) $new),
+            'permissions' => self::permissions((array) $old, (array) $new),
             default => [self::change($label, self::value($old, $kind), self::value($new, $kind))],
         };
+    }
+
+    /** Quyền thêm và bỏ của một chức vụ, mỗi bên một dòng. */
+    private static function permissions(array $old, array $new): array
+    {
+        $name = fn (string $key) => Permissions::label($key);
+
+        return array_values(array_filter([
+            ($added = array_diff($new, $old)) ? __('activity.permissions_added', ['list' => implode('; ', array_map($name, $added))]) : null,
+            ($removed = array_diff($old, $new)) ? __('activity.permissions_removed', ['list' => implode('; ', array_map($name, $removed))]) : null,
+        ]));
     }
 
     public static function label(string $field): string

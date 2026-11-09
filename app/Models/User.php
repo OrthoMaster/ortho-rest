@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,9 +18,9 @@ use Illuminate\Notifications\Notifiable;
  * nhập, session). Ranh giới giữa các quán do middleware tenant.member giữ, và
  * trong một quán thì luôn đi qua $restaurant->users().
  *
- * restaurant_id, role, is_super_admin cố ý không fillable.
+ * restaurant_id, role, is_super_admin, is_active cố ý không fillable.
  */
-#[Fillable(['name', 'email', 'password', 'locale'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'locale'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -34,7 +35,38 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'is_super_admin' => 'boolean',
             'devices_locked' => 'boolean',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /** Tài khoản mới mặc định đang làm việc (giống giá trị mặc định của cột). */
+    protected $attributes = ['is_active' => true];
+
+    /** @var list<string>|null quyền gộp từ các chức vụ, nhớ trong một request */
+    private ?array $permissionKeysCache = null;
+
+    public function positions(): BelongsToMany
+    {
+        return $this->belongsToMany(Position::class)->orderBy('sort_order')->orderBy('positions.id');
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === UserRole::Owner;
+    }
+
+    /** @return list<string> */
+    public function permissionKeys(): array
+    {
+        return $this->permissionKeysCache ??= array_values(array_unique(
+            $this->positions()->withoutGlobalScopes()->pluck('permissions')->flatMap(fn ($keys) => is_array($keys) ? $keys : (json_decode($keys, true) ?? []))->all()
+        ));
+    }
+
+    public function forgetPermissions(): void
+    {
+        $this->permissionKeysCache = null;
+        $this->unsetRelation('positions');
     }
 
     public function restaurant(): BelongsTo

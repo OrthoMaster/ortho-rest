@@ -254,8 +254,8 @@ class ReservationController extends Controller
     {
         $status = $request->validate(['status' => ['required', Rule::enum(ReservationStatus::class)]])['status'];
 
-        // Đặt bàn đang chờ: chỉ người quản lý đặt bàn được nhận, từ chối hay huỷ.
-        abort_if($reservation->status === ReservationStatus::Pending && ! $request->user()->can('reservation.manage'), 403);
+        // Đặt bàn đang chờ: chỉ người quản lý đặt bàn được nhận, từ chối hay huỷ; còn lại cần quyền đổi trạng thái.
+        abort_unless($request->user()->can($reservation->status === ReservationStatus::Pending ? 'reservation.manage' : 'reservation.status'), 403);
 
         try {
             $this->booking->changeStatus($reservation, ReservationStatus::from($status), $request->user(), $request->boolean('overbook'));

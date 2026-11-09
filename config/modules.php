@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\UserRole;
 use App\Modules\Menu\Installer as MenuInstaller;
 use App\Modules\Reservation\Installer as ReservationInstaller;
+use App\Modules\Staff\Installer as StaffInstaller;
 use App\Modules\Takeaway\Installer as TakeawayInstaller;
 use App\Modules\Website\Installer as WebsiteInstaller;
 
@@ -14,11 +14,8 @@ use App\Modules\Website\Installer as WebsiteInstaller;
 | depends    các module phải bật trước
 | installer  class chạy khi bật, phải an toàn khi chạy lại
 | routes     file route admin của module
-| menu       mục menu admin: route, và các role được thấy
+| menu       mục menu admin: route, và quyền cần có để thấy
 */
-
-$managers = [UserRole::Owner->value, UserRole::Manager->value];
-$everyone = array_column(UserRole::cases(), 'value');
 
 return [
     'core' => [
@@ -32,7 +29,7 @@ return [
         'phase' => 1,
         'installer' => WebsiteInstaller::class,
         'routes' => 'Website/routes.php',
-        'menu' => ['route' => 'website.index', 'roles' => $managers],
+        'menu' => ['route' => 'website.index', 'permission' => 'website.manage'],
     ],
     'menu' => [
         'name' => 'modules.menu',
@@ -40,7 +37,7 @@ return [
         'phase' => 1,
         'installer' => MenuInstaller::class,
         'routes' => 'Menu/routes.php',
-        'menu' => ['route' => 'menu.index', 'roles' => $managers],
+        'menu' => ['route' => 'menu.index', 'permission' => 'menu.manage'],
     ],
     'reservation' => [
         'name' => 'modules.reservation',
@@ -48,7 +45,7 @@ return [
         'phase' => 1,
         'installer' => ReservationInstaller::class,
         'routes' => 'Reservation/routes.php',
-        'menu' => ['route' => 'reservation.index', 'roles' => $everyone],
+        'menu' => ['route' => 'reservation.index', 'permission' => 'reservation.view'],
     ],
     'takeaway' => [
         'name' => 'modules.takeaway',
@@ -56,13 +53,15 @@ return [
         'phase' => 1,
         'installer' => TakeawayInstaller::class,
         'routes' => 'Takeaway/routes.php',
-        'menu' => ['route' => 'takeaway.index', 'roles' => $everyone],
+        'menu' => ['route' => 'takeaway.index', 'permission' => 'takeaway.view'],
     ],
     'staff' => [
         'name' => 'modules.staff',
         'depends' => [],
         'phase' => 2,
-        'available' => false,
+        'installer' => StaffInstaller::class,
+        'routes' => 'Staff/routes.php',
+        'menu' => ['route' => 'staff.index', 'permission' => ['staff.manage', 'positions.manage']],
     ],
     'schedule' => [
         'name' => 'modules.schedule',

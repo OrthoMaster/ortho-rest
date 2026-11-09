@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'permissions_added' => 'Thêm quyền: :list',
+    'permissions_removed' => 'Bỏ quyền: :list',
     'title' => 'Nhật ký thay đổi',
     'lead' => 'Ai đã thay đổi gì trong quán, lúc nào. Nhật ký chỉ ghi thêm, không sửa hay xoá được.',
     'all_areas' => 'Tất cả',
@@ -17,6 +19,7 @@ return [
         'takeaway' => 'Đặt mang đi',
         'settings' => 'Cài đặt',
         'customers' => 'Khách hàng',
+        'staff' => 'Nội bộ',
     ],
 
     'actor_customer' => 'Khách đặt online',
@@ -49,6 +52,8 @@ return [
     'order_edited' => 'Sửa đơn :code',
 
     'names' => [
+        'position' => 'chức vụ :name',
+        'account' => 'tài khoản :name',
         'item' => 'món :name',
         'category' => 'danh mục :name',
         'tag' => 'nhãn :name',
@@ -76,6 +81,10 @@ return [
     ],
 
     'fields' => [
+        'permissions' => 'Quyền',
+        'phone' => 'Số điện thoại',
+        'is_active' => 'Đang làm việc',
+        'positions' => 'Chức vụ',
         'name' => 'Tên',
         'slug' => 'Đường dẫn',
         'description' => 'mô tả',

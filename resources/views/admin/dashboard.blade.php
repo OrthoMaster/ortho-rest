@@ -4,7 +4,8 @@
 
 @section('content')
     <h1>{{ __('ui.dashboard.greeting', ['name' => $user->name]) }}</h1>
-    <p class="lead">{{ __('ui.dashboard.role_at', ['role' => $user->role?->label(), 'restaurant' => $restaurant->name]) }}</p>
+    @php($roleLabel = $user->isOwner() ? $user->role->label() : ($user->positions->pluck('name')->implode(', ') ?: $user->role?->label()))
+    <p class="lead">{{ __('ui.dashboard.role_at', ['role' => $roleLabel, 'restaurant' => $restaurant->name]) }}</p>
 
     <section class="panel">
         <h2>{{ __('ui.dashboard.public_url') }}</h2>

@@ -50,12 +50,12 @@
         <section class="panel stack">
             <h2>{{ __('reservation.hours') }}</h2>
             <p class="row-note">{{ __('reservation.hours_moved') }}</p>
-            @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+            @can('settings.manage')
                 <div class="inline-form">
                     <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.shifts.index', \App\Enums\ShiftType::Opening) }}">{{ __('reservation.hours_open') }}</a>
                     <a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.special-days.index') }}">{{ __('special_days.title') }}</a>
                 </div>
-            @endif
+            @endcan
         </section>
 
         <div>

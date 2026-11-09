@@ -15,17 +15,8 @@
             @include('partials.field', ['name' => 'pickup_opens', 'type' => 'time', 'label' => __('takeaway.pickup_opens'), 'value' => $settings['pickup_opens']])
             @include('partials.field', ['name' => 'pickup_closes', 'type' => 'time', 'label' => __('takeaway.pickup_closes'), 'value' => $settings['pickup_closes']])
         </div>
-        @if (auth()->user()->role === \App\Enums\UserRole::Owner)
+        @if (auth()->user()->isOwner())
             @include('partials.field', ['name' => 'order_code_prefix', 'label' => __('takeaway.order_code_prefix'), 'value' => $settings['order_code_prefix'], 'maxlength' => 1, 'hint' => __('takeaway.order_code_prefix_hint')])
-            <div class="field">
-                <span class="field-label">{{ __('takeaway.direct_discount_permission') }}</span>
-                <small>{{ __('takeaway.direct_discount_hint') }}</small>
-                <div class="toggles">
-                    @foreach ([\App\Enums\UserRole::Manager, \App\Enums\UserRole::Staff] as $role)
-                        <label class="check"><input type="checkbox" name="direct_discount_roles[]" value="{{ $role->value }}" @checked(in_array($role->value, $settings['direct_discount_roles'], true))> {{ $role->label() }}</label>
-                    @endforeach
-                </div>
-            </div>
         @endif
         <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
     </form>

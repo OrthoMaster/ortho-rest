@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\ShiftType;
-use App\Enums\UserRole;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -175,7 +174,7 @@ class ShiftTest extends TestCase
 
     public function test_only_the_owner_can_manage_shifts(): void
     {
-        $manager = User::factory()->create(['restaurant_id' => $this->restaurant->id, 'role' => UserRole::Manager]);
+        $manager = $this->member($this->restaurant, 'manager');
 
         $this->actingAs($manager)->get("$this->base/opening")->assertForbidden();
         $this->post("$this->base/opening", $this->form())->assertForbidden();

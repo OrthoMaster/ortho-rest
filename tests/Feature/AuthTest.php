@@ -18,7 +18,7 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner()->create();
 
-        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'password'])
+        $this->post("/{$owner->restaurant->slug}/login", ['login' => $owner->email, 'password' => 'password'])
             ->assertRedirect("/{$owner->restaurant->slug}/admin");
 
         $this->assertAuthenticatedAs($owner);
@@ -28,7 +28,7 @@ class AuthTest extends TestCase
     {
         $admin = User::factory()->superAdmin()->create();
 
-        $this->post('/login', ['email' => $admin->email, 'password' => 'password'])
+        $this->post('/login', ['login' => $admin->email, 'password' => 'password'])
             ->assertRedirect('/super/restaurants');
     }
 
@@ -36,8 +36,8 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner()->create();
 
-        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'sai'])
-            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+        $this->post("/{$owner->restaurant->slug}/login", ['login' => $owner->email, 'password' => 'sai'])
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
 
         $this->assertGuest();
     }
@@ -45,18 +45,18 @@ class AuthTest extends TestCase
     public function test_login_is_rate_limited(): void
     {
         foreach (range(1, 5) as $ignored) {
-            $this->post('/login', ['email' => 'a@b.vn', 'password' => 'sai']);
+            $this->post('/login', ['login' => 'a@b.vn', 'password' => 'sai']);
         }
 
-        $this->post('/login', ['email' => 'a@b.vn', 'password' => 'sai'])->assertTooManyRequests();
+        $this->post('/login', ['login' => 'a@b.vn', 'password' => 'sai'])->assertTooManyRequests();
     }
 
     public function test_user_of_a_locked_restaurant_cannot_log_in(): void
     {
         $owner = User::factory()->owner(Restaurant::factory()->locked()->create())->create();
 
-        $this->post("/{$owner->restaurant->slug}/login", ['email' => $owner->email, 'password' => 'password'])
-            ->assertSessionHasErrors(['email' => __('ui.login.locked')]);
+        $this->post("/{$owner->restaurant->slug}/login", ['login' => $owner->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['login' => __('ui.login.locked')]);
 
         $this->assertGuest();
     }
@@ -116,8 +116,8 @@ class AuthTest extends TestCase
     {
         $owner = User::factory()->owner()->create();
 
-        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])
-            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+        $this->post('/login', ['login' => $owner->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
 
         $this->assertGuest();
         $this->get('/login')->assertSee(__('ui.login.super_lead'));
@@ -129,10 +129,10 @@ class AuthTest extends TestCase
         $other = Restaurant::factory()->create();
         $admin = User::factory()->superAdmin()->create();
 
-        $this->post("/{$other->slug}/login", ['email' => $owner->email, 'password' => 'password'])
-            ->assertSessionHasErrors(['email' => __('auth.failed')]);
-        $this->post("/{$other->slug}/login", ['email' => $admin->email, 'password' => 'password'])
-            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+        $this->post("/{$other->slug}/login", ['login' => $owner->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->post("/{$other->slug}/login", ['login' => $admin->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
 
         $this->assertGuest();
     }

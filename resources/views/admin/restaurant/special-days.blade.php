@@ -30,7 +30,7 @@
                                 <div class="row-tools">
                                     @component('partials.kebab', ['label' => __('special_days.actions', ['date' => $day->date->format('d/m')])])
                                         <a href="{{ route('tenant.admin.restaurant.special-days.edit', $day) }}">{{ __('special_days.edit') }}</a>
-                                        <form method="post" action="{{ route('tenant.admin.restaurant.special-days.destroy', $day) }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('special_days.delete_confirm', ['date' => $day->date->format('d/m/Y')]) }}">
+                                        <form method="post" action="{{ route('tenant.admin.restaurant.special-days.destroy', $day) }}" data-confirm-danger data-confirm="{{ __('special_days.delete_confirm', ['date' => $day->date->format('d/m/Y')]) }}">
                                             @csrf
                                             @method('delete')
                                             <button class="is-danger" type="submit">{{ __('special_days.delete') }}</button>

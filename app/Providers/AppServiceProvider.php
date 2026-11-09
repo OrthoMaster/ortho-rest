@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use App\Modules\ModuleManager;
+use App\Support\Permissions;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -25,24 +25,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Nhận, từ chối đặt bàn và xem toàn bộ đặt bàn. Chủ quán luôn có, vai trò khác do chủ quán giao.
-        Gate::define('reservation.manage', fn (User $user): bool => $user->role === UserRole::Owner
-            || ($user->restaurant !== null && in_array(
-                $user->role?->value,
-                app(ModuleManager::class)->settings($user->restaurant, 'reservation')['manage_roles'],
-                true,
-            )));
-
-        // Giảm theo % hoặc số tiền trên đơn. Nhập mã không cần quyền này.
-        Gate::define('takeaway.direct-discount', fn (User $user): bool => $user->role === UserRole::Owner
-            || in_array(
-                $user->role?->value,
-                app(ModuleManager::class)->settings($user->restaurant, 'takeaway')['direct_discount_roles'],
-                true,
-            ));
+        // Quyền trong config/permissions.php: chủ quán luôn có, người khác theo chức vụ.
+        Gate::before(fn (User $user, string $ability) => Permissions::exists($ability) ? Permissions::allows($user, $ability) : null);
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
-            Str::lower((string) $request->input('email')).'|'.$request->ip(),
+            Str::lower((string) $request->input('login', $request->input('email'))).'|'.$request->ip(),
         ));
 
         ResetPassword::toMailUsing(fn (object $notifiable, string $token) => (new MailMessage)
