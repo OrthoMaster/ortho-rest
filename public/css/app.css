@@ -1282,6 +1282,35 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-list .row-name { display: grid; gap: .2rem; }
 .leave-list .row-name .person-pill { justify-self: start; }
 .leave-shifts { margin: 0; padding: 0; border: 0; }
+/* Lịch nhỏ ở Đơn xin nghỉ: số người nghỉ theo ca và bộ phận. */
+.leave-calendar-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.leave-calendar-head h2 { margin: 0; }
+.leave-cal { width: 100%; min-width: 28rem; border-collapse: collapse; table-layout: fixed; font-size: .8125rem; }
+.leave-cal th, .leave-cal td { padding: .4rem .45rem; text-align: center; vertical-align: top; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
+.leave-cal tr > :first-child { width: 7rem; text-align: left; border-left: 0; }
+.leave-cal tbody tr:last-child > * { border-bottom: 0; }
+/* Cột bộ phận đứng yên khi cuộn ngang trên điện thoại. */
+.leave-cal tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.leave-cal thead tr > :first-child { background: var(--ground); }
+.leave-cal thead th { font-weight: 600; background: var(--ground); }
+.leave-cal thead th span { display: block; font-weight: 400; color: var(--ink-soft); }
+.leave-cal thead th.is-today { color: var(--primary-ink); background: var(--primary-soft); }
+.leave-cal tbody th { font-weight: 600; }
+.leave-cal tbody th .tone-dot { display: inline-block; margin-right: .3rem; vertical-align: middle; }
+.leave-cal tbody th small { display: block; font-weight: 400; color: var(--ink-soft); }
+.leave-cal td.is-today { background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface)); }
+.leave-cal .is-closed { color: var(--ink-soft); background: var(--closed-bg); }
+.leave-cal-closed { font-size: .75rem; }
+.leave-cal-slot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .2rem; min-height: 1.6rem; padding: .1rem; border-radius: 6px; }
+.leave-cal-slot + .leave-cal-slot { margin-top: .2rem; }
+.leave-cal-slot small { flex-basis: 100%; overflow: hidden; font-size: .6875rem; color: var(--ink-soft); white-space: nowrap; text-overflow: ellipsis; }
+.leave-cal-slot.is-heavy { background: color-mix(in srgb, var(--bad-bg) 70%, var(--surface)); }
+.leave-cal-none { color: var(--ink-soft); }
+.leave-count { display: inline-grid; place-items: center; min-width: 1.4rem; height: 1.4rem; padding: 0 .3rem; font-size: .75rem; border-radius: 999px; }
+.leave-count.is-approved { color: var(--bad-ink); background: var(--bad-bg); }
+.leave-count.is-pending { color: var(--warn-ink); background: var(--warn-bg); }
+.leave-cal-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: 0; font-size: .8125rem; color: var(--ink-soft); }
+.leave-cal-legend span { display: inline-flex; align-items: center; gap: .35rem; }
 .leave-shifts legend { margin-bottom: .4rem; padding: 0; font-weight: 600; }
 @media (max-width: 760px) {
     .planner, .people-card, .people-card-open { display: none !important; }

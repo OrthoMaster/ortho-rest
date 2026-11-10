@@ -4,6 +4,7 @@ namespace App\Modules\Schedule\Http;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Department;
 use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\LeaveRequest;
@@ -22,14 +23,20 @@ use Illuminate\View\View;
  */
 class LeaveController extends Controller
 {
-    public function index(Request $request): View
+    /**
+     * Đơn xin nghỉ (người duyệt): lịch tuần nhỏ đếm số người nghỉ theo ca và bộ phận
+     * (đã duyệt, chờ duyệt) để biết còn đủ người không, và danh sách đơn.
+     * Người không có quyền duyệt chuyển sang Nghỉ phép (phần của mình).
+     */
+    public function index(Request $request): View|RedirectResponse
     {
-        $user = $request->user();
-        $approver = $user->can('schedule.leave');
-        $filter = $approver && $request->query('status') !== 'all' ? 'pending' : 'all';
+        if (! $request->user()->can('schedule.leave')) {
+            return redirect()->route('tenant.admin.schedule.leave.mine');
+        }
+
+        $filter = $request->query('status') === 'all' ? 'all' : 'pending';
 
         $leaves = LeaveRequest::with(['user.department', 'creator', 'decider'])
-            ->when(! $approver, fn ($query) => $query->where('user_id', $user->id))
             ->when($filter === 'pending', fn ($query) => $query->where('status', LeaveStatus::Pending))
             ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
             ->orderByDesc('starts_on')
@@ -40,13 +47,73 @@ class LeaveController extends Controller
 
         return view('modules.schedule.leave.index', [
             'leaves' => $leaves,
-            'approver' => $approver,
+            'approver' => true,
             'filter' => $filter,
-            'balance' => LeaveBook::balance($user),
+            ...$this->calendar($request),
             // Cho hộp thoại duyệt: phép còn lại và số ô đang xếp lịch của từng đơn chờ.
-            'balances' => $approver ? $pending->mapWithKeys(fn ($leave) => [$leave->id => LeaveBook::balance($leave->user)]) : collect(),
-            'conflicts' => $approver ? $pending->mapWithKeys(fn ($leave) => [$leave->id => LeaveBook::scheduled($leave)->count()]) : collect(),
+            'balances' => $pending->mapWithKeys(fn ($leave) => [$leave->id => LeaveBook::balance($leave->user)]),
+            'conflicts' => $pending->mapWithKeys(fn ($leave) => [$leave->id => LeaveBook::scheduled($leave)->count()]),
         ]);
+    }
+
+    /** Nghỉ phép: phép còn lại và các đơn của chính mình. */
+    public function mine(Request $request): View
+    {
+        $user = $request->user();
+
+        return view('modules.schedule.leave.mine', [
+            'balance' => LeaveBook::balance($user),
+            'leaves' => LeaveRequest::with(['decider'])->where('user_id', $user->id)
+                ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
+                ->orderByDesc('starts_on')
+                ->limit(100)
+                ->get(),
+        ]);
+    }
+
+    /**
+     * Lịch tuần nhỏ: mỗi ngày, mỗi ca, mỗi bộ phận có bao nhiêu người nghỉ đã duyệt và chờ duyệt.
+     *
+     * @return array<string, mixed>
+     */
+    private function calendar(Request $request): array
+    {
+        try {
+            $date = CarbonImmutable::parse((string) $request->query('date', 'today'));
+        } catch (\Throwable) {
+            $date = CarbonImmutable::today();
+        }
+
+        $days = Roster::week($date);
+        $shifts = Roster::shiftsByWeekday();
+        $users = Roster::users();
+        $leaves = LeaveRequest::with('user')->activeBetween($days[0], $days[6])->get();
+        $slots = [];
+        $counts = [];
+
+        foreach ($days as $day) {
+            $key = $day->toDateString();
+            $slots[$key] = Roster::slots($day, $shifts);
+
+            foreach ($slots[$key] as $slot) {
+                foreach ($leaves as $leave) {
+                    if ($leave->covers($day, $slot['key'])) {
+                        $status = $leave->status === LeaveStatus::Approved ? 'approved' : 'pending';
+                        $counts[$key][$slot['key']][$leave->user->department_id ?? 0][$status] ??= 0;
+                        $counts[$key][$slot['key']][$leave->user->department_id ?? 0][$status]++;
+                    }
+                }
+            }
+        }
+
+        // Hàng là bộ phận (kèm số người); người chưa có bộ phận gom một hàng cuối.
+        $groups = Department::orderBy('sort_order')->orderBy('id')->get()
+            ->map(fn (Department $department) => ['id' => $department->id, 'name' => $department->name, 'tone' => $department->tone, 'people' => $users->where('department_id', $department->id)->count()]);
+        if ($users->whereNull('department_id')->isNotEmpty() || $leaves->contains(fn ($leave) => $leave->user->department_id === null)) {
+            $groups->push(['id' => 0, 'name' => __('staff.no_department'), 'tone' => 0, 'people' => $users->whereNull('department_id')->count()]);
+        }
+
+        return ['date' => $days[0], 'days' => $days, 'calendarSlots' => $slots, 'counts' => $counts, 'groups' => $groups];
     }
 
     public function create(Request $request): View
@@ -143,7 +210,7 @@ class LeaveController extends Controller
             return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.approved', ['name' => $name]));
         }
 
-        return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.sent'));
+        return redirect()->route($approver ? 'tenant.admin.schedule.leave.index' : 'tenant.admin.schedule.leave.mine')->with('status', __('leave.sent'));
     }
 
     /** Duyệt (có lương hoặc không) hoặc từ chối. Duyệt thì bỏ người đó khỏi các ô lịch trùng ngày nghỉ. */

@@ -38,6 +38,7 @@ Route::middleware(['module:schedule', 'can:schedule.open'])
         // Đơn xin nghỉ: ai cũng gửi được cho mình; người có quyền duyệt thấy mọi đơn và nhập thay.
         Route::prefix('leave')->name('leave.')->group(function () {
             Route::get('/', [LeaveController::class, 'index'])->name('index');
+            Route::get('mine', [LeaveController::class, 'mine'])->name('mine');
             Route::get('create', [LeaveController::class, 'create'])->name('create');
             Route::post('/', [LeaveController::class, 'store'])->name('store');
             Route::post('{leave}/cancel', [LeaveController::class, 'cancel'])->whereNumber('leave')->name('cancel');

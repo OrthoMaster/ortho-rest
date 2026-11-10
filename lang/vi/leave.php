@@ -2,6 +2,15 @@
 
 return [
     'title' => 'Đơn xin nghỉ',
+    'mine' => 'Nghỉ phép',
+    'mine_pending' => 'Đơn đang chờ duyệt',
+    'mine_pending_none' => 'Không có đơn nào đang chờ duyệt.',
+    'mine_history' => 'Các đơn đã xin',
+    'calendar_title' => 'Số người nghỉ theo ca',
+    'calendar_empty' => 'Chưa có bộ phận hay nhân viên nào.',
+    'calendar_cell' => ':approved đã duyệt nghỉ, :pending đang chờ duyệt, bộ phận có :people người',
+    'calendar_approved' => 'Đã duyệt nghỉ',
+    'calendar_pending' => 'Đang chờ duyệt',
     'lead' => 'Gửi đơn xin nghỉ cả ngày hoặc từng ca. Người duyệt chọn nghỉ có lương (trừ vào phép) hay không lương.',
     'add' => 'Tạo đơn xin nghỉ',
     'add_for' => 'Nhập đơn thay',

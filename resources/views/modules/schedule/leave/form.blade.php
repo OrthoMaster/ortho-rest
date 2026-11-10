@@ -3,7 +3,7 @@
 @section('title', __('leave.add'))
 
 @section('content')
-    @include('partials.page-title', ['title' => __('leave.add'), 'back' => route('tenant.admin.schedule.leave.index')])
+    @include('partials.page-title', ['title' => __('leave.add'), 'back' => route($approver ? 'tenant.admin.schedule.leave.index' : 'tenant.admin.schedule.leave.mine')])
 
     @php($wholeDay = (bool) old('whole_day', true))
     @php($start = old('starts_on', today()->toDateString()))

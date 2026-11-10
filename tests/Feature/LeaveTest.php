@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ShiftType;
+use App\Models\Department;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -53,11 +54,14 @@ class LeaveTest extends TestCase
 
     public function test_staff_requests_whole_days_and_shifts(): void
     {
-        $this->actingAs($this->lan)->get($this->base)->assertOk()->assertSee(__('leave.balance_value', ['days' => '10']));
+        // Nhân viên: Đơn xin nghỉ chuyển sang Nghỉ phép (phép còn lại, đơn của mình); không có tab Đơn xin nghỉ.
+        $this->actingAs($this->lan)->get($this->base)->assertRedirect("$this->base/mine");
+        $this->get("$this->base/mine")->assertOk()->assertSee(__('leave.balance_value', ['days' => '10']))->assertSee(__('leave.mine_pending_none'))
+            ->assertDontSee('/admin/schedule/leave"', false);
         $this->get("$this->base/create")->assertOk()->assertDontSee('name="user_id"', false);
 
         $this->post($this->base, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-18', 'whole_day' => 1, 'reason' => 'Về quê'])
-            ->assertRedirect($this->base)->assertSessionHas('status', __('leave.sent'));
+            ->assertRedirect("$this->base/mine")->assertSessionHas('status', __('leave.sent'));
         // Thứ năm 12/11, nghỉ ca trưa: 4 giờ / 8 giờ = 0,5 ngày.
         $this->post($this->base, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'whole_day' => 0, 'shifts' => [$this->lunch->id]]);
 
@@ -138,6 +142,24 @@ class LeaveTest extends TestCase
         $this->assertSame([LeaveStatus::Pending, LeaveStatus::Pending], LeaveRequest::withoutGlobalScopes()->where('id', '>', $leave->id)->orderBy('id')->pluck('status')->all());
     }
 
+    public function test_calendar_counts_leave_by_shift_and_department(): void
+    {
+        $dept = Department::withoutGlobalScopes()->where('restaurant_id', $this->restaurant->id)->orderBy('sort_order')->first();
+        $this->lan->forceFill(['department_id' => $dept->id])->save();
+        $minh = $this->member($this->restaurant, 'staff', ['name' => 'Minh']);
+        $minh->forceFill(['department_id' => $dept->id])->save();
+        $make = fn (User $user, array $attributes) => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $user->id, 'days' => 1, ...$attributes]);
+        // Thứ năm 12/11: Lan nghỉ cả ngày (đã duyệt), Minh xin nghỉ ca trưa (chờ duyệt).
+        $make($this->lan, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'status' => LeaveStatus::Approved]);
+        $make($minh, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'shift_ids' => [$this->lunch->id], 'status' => LeaveStatus::Pending]);
+
+        $this->actingAs($this->owner)->get("$this->base?date=2026-11-10")->assertOk()
+            ->assertSee(__('leave.calendar_title'))->assertSee($dept->name)
+            ->assertSee('Ca trưa: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 1, 'people' => 2]), false)
+            ->assertSee('Ca tối: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 0, 'people' => 2]), false)
+            ->assertSee(__('leave.mine'));
+    }
+
     public function test_unpaid_and_rejected_do_not_use_balance(): void
     {
         $make = fn () => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);
@@ -158,6 +180,6 @@ class LeaveTest extends TestCase
     public function test_balance_needs_contract_info(): void
     {
         $this->assertNull(LeaveBook::balance($this->owner));
-        $this->actingAs($this->owner)->get($this->base)->assertSee(__('leave.balance_none'));
+        $this->actingAs($this->owner)->get("$this->base/mine")->assertSee(__('leave.balance_none'));
     }
 }
