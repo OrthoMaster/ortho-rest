@@ -1,5 +1,6 @@
-{{-- Ô chọn ngày hiện thứ, bấm mở lịch. $min là ngày nhỏ nhất chọn được, bỏ trống thì chọn được mọi ngày. --}}
-<div class="field" data-date-picker data-min="{{ $min ?? '' }}" data-today="{{ today()->toDateString() }}"
+{{-- Ô chọn ngày hiện thứ, bấm mở lịch. $min là ngày nhỏ nhất chọn được, bỏ trống thì chọn được mọi ngày.
+     $withYear: ngày xa (ngày bắt đầu làm...) thì hiện năm và có nút lùi, tới cả năm; $placeholder: cho phép để trống. --}}
+<div class="field" data-date-picker data-min="{{ $min ?? '' }}" @if ($withYear ?? false) data-with-year @endif data-placeholder="{{ $placeholder ?? '' }}" data-today="{{ today()->toDateString() }}"
      data-weekdays="{{ json_encode(array_values(__('ui.calendar.weekdays')), JSON_UNESCAPED_UNICODE) }}"
      data-weekdays-short="{{ json_encode(array_values(__('ui.calendar.weekdays_short')), JSON_UNESCAPED_UNICODE) }}"
      data-month-label="{{ __('ui.calendar.month') }}" data-today-label="{{ __('ui.calendar.today') }}" data-tomorrow-label="{{ __('ui.calendar.tomorrow') }}">
@@ -13,9 +14,15 @@
 
     <dialog class="calendar" data-date-dialog aria-label="{{ $label }}">
         <div class="calendar-head">
+            @if ($withYear ?? false)
+                <button class="row-btn" type="button" data-month-step="-12" aria-label="{{ __('ui.calendar.previous_year') }}">«</button>
+            @endif
             <button class="row-btn" type="button" data-month-step="-1" aria-label="{{ __('ui.calendar.previous') }}">‹</button>
             <strong data-month-title aria-live="polite"></strong>
             <button class="row-btn" type="button" data-month-step="1" aria-label="{{ __('ui.calendar.next') }}">›</button>
+            @if ($withYear ?? false)
+                <button class="row-btn" type="button" data-month-step="12" aria-label="{{ __('ui.calendar.next_year') }}">»</button>
+            @endif
         </div>
         <div class="calendar-grid calendar-weekdays" aria-hidden="true">
             @foreach (__('ui.calendar.weekdays_short') as $day)

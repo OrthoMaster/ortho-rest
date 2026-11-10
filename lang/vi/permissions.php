@@ -38,7 +38,8 @@ return [
         'dinein.stations' => 'Mở màn hình mọi khu (bếp, bar) dù không được phân công',
         'dinein.settings' => 'Cài đặt khu phục vụ và món của từng khu',
         'schedule.view' => 'Xem lịch làm việc của mọi người',
-        'schedule.manage' => 'Xếp lịch làm việc, phân công vào khu',
+        'schedule.manage' => 'Xếp lịch làm việc, cài đặt việc trong ca',
+        'schedule.leave' => 'Duyệt đơn xin nghỉ, nhập đơn thay nhân viên',
     ],
     'presets' => [
         'manager' => 'Quản lý',

@@ -2,9 +2,11 @@
 
 namespace App\Modules\Reservation\Models;
 
+use App\Models\Department;
 use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
@@ -27,6 +29,12 @@ class Area extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    /** Bộ phận làm ở khu này; xếp người bộ phận khác vào thì lịch nhắc. */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function activityArea(): string

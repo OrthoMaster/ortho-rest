@@ -9,6 +9,7 @@ class Installer extends ModuleInstaller
 {
     public function defaultSettings(): array
     {
-        return [];
+        // Số giờ một ngày công: quy ca nghỉ ra ngày phép (ca 4 giờ = 0,5 ngày).
+        return ['workday_hours' => 8];
     }
 }

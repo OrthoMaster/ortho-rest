@@ -25,6 +25,7 @@
                         @if ($owner)
                             <span class="tag">{{ $account->role->label() }}</span>
                         @else
+                            <span class="person-pill tone-{{ $account->department?->tone ?? 0 }}">{{ $account->department?->name ?? __('staff.no_department') }}</span>
                             @forelse ($account->positions as $position)
                                 <span class="tag">{{ $position->name }}</span>
                             @empty

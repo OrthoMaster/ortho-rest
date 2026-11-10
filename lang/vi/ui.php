@@ -15,6 +15,8 @@ return [
 
     'calendar' => [
         'month' => 'Tháng :month, :year',
+        'previous_year' => 'Năm trước',
+        'next_year' => 'Năm sau',
         'today' => 'Hôm nay',
         'tomorrow' => 'Ngày mai',
         'previous' => 'Tháng trước',

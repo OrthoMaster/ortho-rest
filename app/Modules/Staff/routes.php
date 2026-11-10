@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Staff\Http\AccountController;
+use App\Modules\Staff\Http\DepartmentController;
 use App\Modules\Staff\Http\PositionController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,14 @@ Route::middleware('module:staff')
             Route::get('{account}/edit', [AccountController::class, 'edit'])->whereNumber('account')->name('edit');
             Route::put('{account}', [AccountController::class, 'update'])->whereNumber('account')->name('update');
             Route::post('{account}/active', [AccountController::class, 'toggleActive'])->whereNumber('account')->name('active');
+        });
+
+        Route::middleware('can:staff.manage')->prefix('departments')->name('departments.')->group(function () {
+            Route::get('/', [DepartmentController::class, 'index'])->name('index');
+            Route::post('/', [DepartmentController::class, 'store'])->name('store');
+            Route::post('reorder', [DepartmentController::class, 'reorder'])->name('reorder');
+            Route::put('{department}', [DepartmentController::class, 'update'])->whereNumber('department')->name('update');
+            Route::delete('{department}', [DepartmentController::class, 'destroy'])->whereNumber('department')->name('destroy');
         });
 
         Route::middleware('can:positions.manage')->prefix('positions')->name('positions.')->group(function () {

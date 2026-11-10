@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\ActivityLog;
+use App\Models\Department;
 use App\Models\Position;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Models\UserDevice;
 use App\Modules\ModuleManager;
 use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class StaffTest extends TestCase
@@ -295,5 +297,41 @@ class StaffTest extends TestCase
             'nav-sep', __('modules.reservation'), __('modules.takeaway'), __('modules.menu'), 'nav-sep',
             __('ui.nav.customers'), __('activity.title'), __('modules.staff'), __('ui.restaurant.title'), __('ui.nav.profile'),
         ], false);
+    }
+
+    public function test_departments_and_contract_fields(): void
+    {
+        $url = "/{$this->restaurant->slug}/admin/staff";
+        $this->actingAs($this->owner)->get("$url/departments")->assertOk()->assertSee('Phục vụ')->assertSee('Bếp');
+
+        $this->post("$url/departments", ['name' => 'Bar'])->assertSessionHas('status');
+        $this->post("$url/departments", ['name' => 'Bar'])->assertSessionHasErrorsIn('department-new', ['name' => __('staff.department_taken')]);
+        $bar = Department::withoutGlobalScopes()->where('name', 'Bar')->sole();
+        $this->assertSame(3, $bar->tone, 'Màu tiếp theo chưa dùng.');
+        $this->put("$url/departments/{$bar->id}", ['name' => 'Quầy bar', 'tone' => 6])->assertSessionHas('status');
+        $this->assertSame(['Quầy bar', 6], [$bar->fresh()->name, $bar->fresh()->tone]);
+
+        $this->post("$url/accounts", [
+            'name' => 'Lan', 'phone' => '0911111111', 'password' => 'matkhau123',
+            'department_id' => $bar->id, 'started_on' => '2025-06-01', 'paid_leave_per_month' => '1.25', 'contract_hours' => '', 'contract_period' => 'week',
+        ])->assertSessionHasNoErrors();
+        $lan = User::where('phone', '0911111111')->sole();
+        $this->assertSame([$bar->id, '2025-06-01', 1.25, null, null], [$lan->department_id, $lan->started_on->toDateString(), $lan->paid_leave_per_month, $lan->contract_hours, $lan->contract_period]);
+        $this->get("$url/accounts")->assertSee('Quầy bar');
+
+        $this->put("$url/accounts/{$lan->id}", [
+            'name' => 'Lan', 'phone' => '0911111111', 'department_id' => $bar->id, 'started_on' => '2025-06-01',
+            'paid_leave_per_month' => '1.5', 'contract_hours' => '160', 'contract_period' => 'month',
+        ])->assertSessionHasNoErrors();
+        $lan->refresh();
+        $this->assertSame([1.5, 160.0, 'month'], [$lan->paid_leave_per_month, $lan->contract_hours, $lan->contract_period]);
+        $log = ActivityLog::where('summary', __('staff.log_updated', ['name' => 'Lan']))->latest('id')->first();
+        $this->assertContains(__('activity.change', ['field' => __('staff.contract_hours'), 'from' => __('activity.empty'), 'to' => __('staff.hours_per.month', ['hours' => '160'])]), $log->changes);
+
+        // Bộ phận của quán khác không chọn được; xoá bộ phận thì người về "chưa có".
+        $foreign = DB::table('departments')->insertGetId(['restaurant_id' => Restaurant::factory()->create()->id, 'name' => 'Lạ']);
+        $this->put("$url/accounts/{$lan->id}", ['name' => 'Lan', 'phone' => '0911111111', 'department_id' => $foreign])->assertSessionHasErrors('department_id');
+        $this->delete("$url/departments/{$bar->id}")->assertSessionHas('status');
+        $this->assertNull($lan->fresh()->department_id);
     }
 }

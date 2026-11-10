@@ -223,9 +223,9 @@ class DineInTest extends TestCase
         // Ca làm 10:00–14:00 thứ Hai; bây giờ 12:00 thứ Hai.
         $shift = Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Work, 'weekday' => 1, 'name' => 'Ca trưa', 'start_time' => '10:00', 'end_time' => '14:00']);
 
-        $this->actingAs($this->owner)->put("/{$this->restaurant->slug}/admin/schedule/day", ['date' => '2026-11-09', 'slots' => [
-            $shift->id => ['s'.$this->kitchen->id => [$cook->id], 'a'.$this->area->id => [$this->owner->id]],
-        ]])->assertSessionHas('status');
+        $schedule = "/{$this->restaurant->slug}/admin/schedule/assignments";
+        $this->actingAs($this->owner)->postJson($schedule, ['user' => $cook->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 's'.$this->kitchen->id])->assertOk();
+        $this->postJson($schedule, ['user' => $this->owner->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 'a'.$this->area->id])->assertOk();
         $this->assertSame(2, Assignment::withoutGlobalScopes()->count());
 
         $this->actingAs($cook)->get("$this->base/screens")->assertRedirect("$this->base/screens/{$this->kitchen->id}");

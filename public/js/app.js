@@ -1641,12 +1641,18 @@
         var weekdays = JSON.parse(picker.dataset.weekdays);
         var today = fromIso(picker.dataset.today);
         var min = picker.dataset.min;
-        var shown = fromIso(value.value);
+        var withYear = picker.hasAttribute('data-with-year');
+        // Ô được để trống (data-placeholder) thì lịch mở ở tháng hiện tại.
+        var shown = value.value ? fromIso(value.value) : today;
 
         var label = function (iso) {
             var date = fromIso(iso);
             var diff = Math.round((date - today) / 86400000);
-            var name = weekdays[(date.getDay() + 6) % 7] + ' ' + pad(date.getDate()) + '/' + pad(date.getMonth() + 1);
+            var name = weekdays[(date.getDay() + 6) % 7] + ' ' + pad(date.getDate()) + '/' + pad(date.getMonth() + 1) + (withYear ? '/' + date.getFullYear() : '');
+
+            if (withYear) {
+                return name;
+            }
 
             if (diff === 0) {
                 return picker.dataset.todayLabel + ', ' + name;
@@ -1664,6 +1670,10 @@
                 .replace(':month', shown.getMonth() + 1)
                 .replace(':year', shown.getFullYear());
             picker.querySelector('[data-month-step="-1"]').disabled = toIso(first).slice(0, 7) <= min.slice(0, 7);
+
+            if (withYear) {
+                picker.querySelector('[data-month-step="-12"]').disabled = Boolean(min) && toIso(new Date(first.getFullYear() - 1, first.getMonth(), 1)).slice(0, 7) < min.slice(0, 7);
+            }
 
             days.textContent = '';
 
@@ -1690,13 +1700,13 @@
             value.value = iso;
             text.textContent = label(iso);
             shown = fromIso(iso);
-            setDateText(text, label(iso), shortDay(picker, iso, picker.dataset.today));
+            setDateText(text, label(iso), withYear ? label(iso) : shortDay(picker, iso, picker.dataset.today));
             value.dispatchEvent(new Event('change', { bubbles: true }));
             dialog.close();
         };
 
         picker.querySelector('[data-date-trigger]').addEventListener('click', function () {
-            shown = fromIso(value.value);
+            shown = value.value ? fromIso(value.value) : today;
             renderMonth();
             dialog.showModal();
         });
@@ -1722,7 +1732,17 @@
             }
         });
 
-        setDateText(text, label(value.value), shortDay(picker, value.value, picker.dataset.today));
+        // Cho đoạn code khác đổi ngày mà không mở lịch (ví dụ ngày kết thúc theo ngày bắt đầu).
+        picker.setDate = function (iso) {
+            value.value = iso;
+            setDateText(text, label(iso), withYear ? label(iso) : shortDay(picker, iso, picker.dataset.today));
+        };
+
+        if (value.value) {
+            setDateText(text, label(value.value), withYear ? label(value.value) : shortDay(picker, value.value, picker.dataset.today));
+        } else {
+            text.textContent = picker.dataset.placeholder;
+        }
     });
 
     // Chọn khoảng ngày: bấm ngày đầu rồi ngày cuối, không dài quá data-max-days.
@@ -2355,4 +2375,276 @@
     document.querySelectorAll('dialog[data-auto-open]').forEach(function (dialog) {
         dialog.showModal();
     });
+    // Đơn xin nghỉ: nghỉ cả ngày thì chọn khoảng ngày; nghỉ theo ca thì một ngày và các ca của thứ đó.
+    var leaveForm = document.querySelector('[data-leave-form]');
+
+    if (leaveForm) {
+        var leaveWhole = leaveForm.querySelector('[data-leave-whole]');
+        var leaveStart = leaveForm.querySelector('input[name=starts_on]');
+        var leaveEnd = leaveForm.querySelector('input[name=ends_on]');
+        var syncLeave = function () {
+            var whole = leaveWhole.checked;
+            var weekday = (fromIso(leaveStart.value).getDay() + 6) % 7 + 1;
+            var visible = 0;
+
+            leaveForm.querySelector('[data-leave-end]').hidden = !whole;
+            leaveForm.querySelector('[data-leave-shifts]').hidden = whole;
+
+            if (!whole || leaveEnd.value < leaveStart.value) {
+                var endPicker = leaveEnd.closest('[data-date-picker]');
+
+                if (endPicker.setDate) {
+                    endPicker.setDate(leaveStart.value);
+                } else {
+                    leaveEnd.value = leaveStart.value;
+                }
+            }
+
+            leaveForm.querySelectorAll('[data-weekday]').forEach(function (row) {
+                var match = Number(row.dataset.weekday) === weekday;
+
+                row.hidden = !match;
+                visible += match ? 1 : 0;
+
+                if (!match) {
+                    row.querySelector('input').checked = false;
+                }
+            });
+            leaveForm.querySelector('[data-leave-no-shifts]').hidden = visible > 0;
+        };
+
+        leaveWhole.addEventListener('change', syncLeave);
+        leaveStart.addEventListener('change', syncLeave);
+        syncLeave();
+    }
+
+    // Xếp lịch tuần: kéo tên nhân viên vào ô (hoặc bấm tên rồi bấm ô), kéo pill sang ô khác, ✕ để bỏ. Lưu ngay.
+    var planner = document.querySelector('[data-planner]');
+
+    if (planner) {
+        var plannerLeaves = JSON.parse(planner.querySelector('[data-planner-leaves]').textContent || '{}');
+        var toasts = planner.querySelector('[data-planner-toasts]');
+        var dragged = null;
+        var picked = null;
+        var pickedToast = null;
+
+        var toast = function (message, kind) {
+            var item = document.createElement('div');
+            var close = document.createElement('button');
+
+            item.className = 'flash flash-' + kind;
+            item.textContent = message;
+            close.type = 'button';
+            close.className = 'flash-close';
+            close.setAttribute('aria-label', planner.dataset.closeLabel);
+            close.textContent = '✕';
+            close.addEventListener('click', function () { item.remove(); });
+            item.appendChild(close);
+            toasts.appendChild(item);
+
+            // Lưu xong thì tự tắt; cảnh báo và lỗi giữ lại đến khi đóng.
+            if (kind === 'success') {
+                window.setTimeout(function () { item.remove(); }, 2500);
+            }
+
+            return item;
+        };
+        var send = function (method, url, body) {
+            return fetch(url, {
+                method: method,
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': planner.dataset.csrf },
+                body: body ? JSON.stringify(body) : undefined,
+            }).then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (data) {
+                    if (!response.ok) {
+                        throw new Error(data.message || planner.dataset.errorLabel);
+                    }
+
+                    return data;
+                });
+            });
+        };
+        var itemUrl = function (id) {
+            return planner.dataset.itemUrl.replace(/\/0$/, '/' + id);
+        };
+        var updateStats = function (stats) {
+            Object.keys(stats || {}).forEach(function (userId) {
+                var stat = planner.querySelector('[data-stat="' + userId + '"]');
+
+                if (stat) {
+                    stat.textContent = stats[userId].label;
+                    stat.closest('[data-person]').classList.toggle('is-over', stats[userId].over);
+                }
+            });
+        };
+        var source = function (userId) {
+            return planner.querySelector('[data-drag-user="' + userId + '"]');
+        };
+        var makePill = function (userId, assignmentId) {
+            var from = source(userId);
+            var pill = document.createElement('span');
+            var remove = document.createElement('button');
+
+            pill.className = from.className.replace(' is-picked', '');
+            pill.draggable = true;
+            pill.dataset.assignment = assignmentId;
+            pill.dataset.user = userId;
+            pill.appendChild(document.createTextNode(from.textContent.trim() + ' '));
+            remove.type = 'button';
+            remove.className = 'pill-remove';
+            remove.dataset.remove = '';
+            remove.setAttribute('aria-label', planner.dataset.removeLabel + ' ' + from.textContent.trim());
+            remove.textContent = '✕';
+            pill.appendChild(remove);
+
+            return pill;
+        };
+        var report = function (data) {
+            updateStats(data.stats);
+            (data.warnings || []).forEach(function (warning) { toast(warning, 'warn'); });
+        };
+        // Đơn nghỉ của người đang kéo: đã duyệt thì ô đỏ (không thả được), chờ duyệt thì ô vàng.
+        var leaveState = function (userId, zone) {
+            var state = '';
+
+            (plannerLeaves[userId] || []).forEach(function (leave) {
+                var date = zone.dataset.date;
+                var inShift = leave.shifts === null || zone.dataset.slot === 'day' || leave.shifts.indexOf(Number(zone.dataset.slot)) !== -1;
+
+                if (date >= leave.from && date <= leave.to && inShift) {
+                    state = leave.approved ? 'is-blocked' : (state || 'is-warned');
+                }
+            });
+
+            return state;
+        };
+        var markZones = function (userId) {
+            planner.querySelectorAll('[data-drop]').forEach(function (zone) {
+                zone.classList.remove('is-blocked', 'is-warned');
+                var state = userId ? leaveState(userId, zone) : '';
+
+                if (state) {
+                    zone.classList.add(state);
+                }
+            });
+        };
+        var place = function (userId, zone) {
+            send('POST', planner.dataset.storeUrl, { user: Number(userId), date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
+                .then(function (data) {
+                    zone.appendChild(makePill(userId, data.id));
+                    report(data);
+                })
+                .catch(function (error) { toast(error.message, 'error'); });
+        };
+        var move = function (pill, zone) {
+            if (pill.parentElement === zone) {
+                return;
+            }
+
+            send('PATCH', itemUrl(pill.dataset.assignment), { date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
+                .then(function (data) {
+                    zone.appendChild(pill);
+                    report(data);
+                })
+                .catch(function (error) { toast(error.message, 'error'); });
+        };
+        var setPicked = function (userId) {
+            planner.querySelectorAll('[data-drag-user].is-picked').forEach(function (pill) { pill.classList.remove('is-picked'); });
+
+            if (pickedToast) {
+                pickedToast.remove();
+                pickedToast = null;
+            }
+
+            picked = userId;
+            markZones(userId);
+
+            if (userId) {
+                source(userId).classList.add('is-picked');
+                pickedToast = toast(planner.dataset.pickedLabel.replace(':name', source(userId).textContent.trim()), 'info');
+            }
+        };
+
+        planner.addEventListener('dragstart', function (event) {
+            var pill = event.target.closest('[data-drag-user], [data-assignment]');
+
+            if (!pill) {
+                return;
+            }
+
+            dragged = pill;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', pill.dataset.dragUser || pill.dataset.user);
+            markZones(pill.dataset.dragUser || pill.dataset.user);
+        });
+        planner.addEventListener('dragend', function () {
+            dragged = null;
+            markZones(picked);
+            planner.querySelectorAll('.is-drop-target').forEach(function (zone) { zone.classList.remove('is-drop-target'); });
+        });
+        planner.addEventListener('dragover', function (event) {
+            var zone = event.target.closest('[data-drop]');
+
+            if (zone && dragged) {
+                event.preventDefault();
+                zone.classList.add('is-drop-target');
+            }
+        });
+        planner.addEventListener('dragleave', function (event) {
+            var zone = event.target.closest('[data-drop]');
+
+            if (zone && !zone.contains(event.relatedTarget)) {
+                zone.classList.remove('is-drop-target');
+            }
+        });
+        planner.addEventListener('drop', function (event) {
+            var zone = event.target.closest('[data-drop]');
+
+            if (!zone || !dragged) {
+                return;
+            }
+
+            event.preventDefault();
+            zone.classList.remove('is-drop-target');
+
+            if (dragged.dataset.assignment) {
+                move(dragged, zone);
+            } else {
+                place(dragged.dataset.dragUser, zone);
+            }
+        });
+
+        planner.addEventListener('click', function (event) {
+            var remove = event.target.closest('[data-remove]');
+            var person = event.target.closest('[data-drag-user]');
+            var zone = event.target.closest('[data-drop]');
+
+            if (remove) {
+                var pill = remove.closest('[data-assignment]');
+
+                send('DELETE', itemUrl(pill.dataset.assignment))
+                    .then(function (data) {
+                        pill.remove();
+                        updateStats(data.stats);
+                    })
+                    .catch(function (error) { toast(error.message, 'error'); });
+            } else if (person) {
+                setPicked(picked === person.dataset.dragUser ? null : person.dataset.dragUser);
+            } else if (zone && picked && !event.target.closest('[data-assignment]')) {
+                place(picked, zone);
+            }
+        });
+        planner.addEventListener('keydown', function (event) {
+            var person = event.target.closest('[data-drag-user]');
+
+            if (person && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                person.click();
+            } else if (event.key === 'Escape' && picked) {
+                setPicked(null);
+            }
+        });
+    }
+
 })();

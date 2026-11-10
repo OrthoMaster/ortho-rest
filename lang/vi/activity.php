@@ -61,6 +61,8 @@ return [
         'tag' => 'nhãn :name',
         'area' => 'khu vực :name',
         'station' => 'khu phục vụ :name',
+        'department' => 'bộ phận :name',
+        'task' => 'việc :name',
         'discount' => 'mã giảm giá :code',
         'shift_opening' => 'ca mở cửa :name (:day)',
         'shift_work' => 'ca làm việc :name (:day)',

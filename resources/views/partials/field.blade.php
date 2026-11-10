@@ -8,6 +8,9 @@
            @if ($accept ?? false) accept="{{ $accept }}" @endif
            @if ($autocomplete ?? false) autocomplete="{{ $autocomplete }}" @endif
            @if ($maxlength ?? false) maxlength="{{ $maxlength }}" @endif
+           @isset($step) step="{{ $step }}" inputmode="decimal" @endisset
+           @isset($min) min="{{ $min }}" @endisset
+           @isset($max) max="{{ $max }}" @endisset
            @if ($required ?? true) required @endif
            @error($name, $bag ?? 'default') aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>
     @if ($password)

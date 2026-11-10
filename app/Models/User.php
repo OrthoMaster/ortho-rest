@@ -37,6 +37,9 @@ class User extends Authenticatable
             'devices_locked' => 'boolean',
             'is_active' => 'boolean',
             'permissions' => 'array',
+            'started_on' => 'immutable_date',
+            'paid_leave_per_month' => 'float',
+            'contract_hours' => 'float',
         ];
     }
 
@@ -45,6 +48,12 @@ class User extends Authenticatable
 
     /** @var list<string>|null quyền gộp từ các chức vụ, nhớ trong một request */
     private ?array $permissionKeysCache = null;
+
+    /** Bộ phận theo hợp đồng (Bếp, Phục vụ...). */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
 
     public function positions(): BelongsToMany
     {

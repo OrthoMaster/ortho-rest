@@ -28,7 +28,7 @@
         </div>
     </aside>
     <div class="nav-backdrop"></div>
-    <main class="content">
+    <main class="content @yield('content_class')">
         @include('partials.flash')
         @yield('content')
     </main>

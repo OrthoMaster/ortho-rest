@@ -49,6 +49,28 @@
             </section>
         </div>
 
+        {{-- Hợp đồng: bộ phận, ngày bắt đầu, phép có lương, giờ làm. --}}
+        <section class="panel stack">
+            <div>
+                <h2>{{ __('staff.contract') }}</h2>
+                <small class="section-hint">{{ __('staff.contract_hint') }}</small>
+            </div>
+            <div class="form-row">
+                @include('partials.select', ['name' => 'department_id', 'label' => __('staff.department'), 'value' => $account->department_id, 'required' => false,
+                    'options' => ['' => __('staff.no_department')] + $departments->pluck('name', 'id')->all()])
+                @include('partials.date-picker', ['name' => 'started_on', 'label' => __('staff.started_on'), 'value' => $account->started_on?->toDateString(), 'withYear' => true, 'placeholder' => __('staff.not_set')])
+            </div>
+            @include('partials.field', ['name' => 'paid_leave_per_month', 'type' => 'number', 'label' => __('staff.paid_leave_per_month'), 'required' => false,
+                'value' => $account->paid_leave_per_month !== null ? rtrim(rtrim(number_format($account->paid_leave_per_month, 2, '.', ''), '0'), '.') : null,
+                'step' => '0.25', 'min' => 0, 'max' => 10, 'hint' => __('staff.paid_leave_hint')])
+            <div class="form-row">
+                @include('partials.field', ['name' => 'contract_hours', 'type' => 'number', 'label' => __('staff.contract_hours'), 'required' => false,
+                    'value' => $account->contract_hours !== null ? rtrim(rtrim(number_format($account->contract_hours, 1, '.', ''), '0'), '.') : null,
+                    'step' => '0.5', 'min' => 0, 'max' => 400, 'hint' => __('staff.contract_hours_hint')])
+                @include('partials.select', ['name' => 'contract_period', 'label' => __('staff.contract_period'), 'value' => $account->contract_period ?? 'week', 'required' => false, 'options' => __('staff.periods')])
+            </div>
+        </section>
+
         {{-- Quyền riêng: ngoại lệ ngoài chức vụ, ví dụ nhân viên được thêm một quyền của quản lý. --}}
         @php($extraCount = count(array_intersect($extras, \App\Support\Permissions::visibleKeys(tenant()))))
         <details class="panel extra-perms" @if ($extraCount > 0 || $errors->has('permissions.*')) open @endif>

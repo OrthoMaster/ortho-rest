@@ -42,7 +42,7 @@
                                 @if ($entry['slot']['time'])<small>{{ $entry['slot']['time'] }}</small>@endif
                                 <span>
                                     @if ($entry['target']['code'])<span class="area-code">{{ $entry['target']['code'] }}</span>@endif
-                                    {{ $entry['target']['name'] }}
+                                    {{ $entry['target']['name'] }}@if ($entry['lane']['task_id']) · {{ $entry['lane']['name'] }}@endif
                                 </span>
                             </span>
                         @empty
@@ -52,9 +52,6 @@
                 </li>
             @endforeach
         </ul>
-        <p class="row-note person-total">{{ __('schedule.person_total', [
-            'shifts' => collect($schedule)->sum(fn ($entries) => collect($entries)->unique(fn ($entry) => $entry['slot']['key'])->count()),
-            'hours' => rtrim(rtrim(number_format($minutes / 60, 1, ',', '.'), '0'), ','),
-        ]) }}</p>
+        <p class="row-note person-total">{{ __('schedule.person_total', ['shifts' => $total['shifts'], 'hours' => \App\Modules\Schedule\Roster::hours($total['minutes'])]) }}</p>
     </section>
 @endsection

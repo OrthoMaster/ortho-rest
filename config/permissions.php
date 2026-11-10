@@ -26,6 +26,7 @@ return [
     'schedule' => [
         'schedule.view' => ['manager', 'staff'],
         'schedule.manage' => ['manager'],
+        'schedule.leave' => ['manager'],
     ],
     'staff' => [
         'staff.manage' => [],
