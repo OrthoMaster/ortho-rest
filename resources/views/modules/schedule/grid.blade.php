@@ -9,13 +9,14 @@
     $usedLanes: list<string>|null chỉ hiện các hàng này (khi đang lọc)
 --}}
 @php($editable = $mode !== 'view')
+@php($slotRows = max(1, ...array_map(fn ($column) => count($column['slots']), $columns)))
 <div class="schedule-wrap planner-board">
     <table class="schedule">
         <thead>
             <tr>
                 <th scope="col" class="schedule-target">{{ __('schedule.target') }}</th>
                 @foreach ($columns as $column)
-                    <th scope="col" @class(['is-today' => $column['today']])>
+                    <th scope="col" @class(['is-today' => $column['today'], 'is-closed' => $column['slots'] === []])>
                         {{ $column['head'] }}
                         @if ($column['sub'])<span>{{ $column['sub'] }}</span>@endif
                     </th>
@@ -31,32 +32,48 @@
                 @foreach ($visible as $target)
                     @foreach ($target['lanes'] as $index => $lane)
                         @continue($usedLanes !== null && ! in_array($lane['key'], $usedLanes, true) && ! ($index === 0 && $lane['task_id'] === null))
-                        <tr @class(['lane-task' => $lane['task_id'], 'lane-first' => $index === 0, 'lane-general' => $kind === 'general'])>
-                            <th scope="row" class="schedule-target">
-                                @if ($lane['task_id'])
-                                    @if ($index === 0 && $kind !== 'general')
-                                        <strong class="lane-head">{{ $target['name'] }}</strong>
-                                    @endif
-                                    <span class="lane-name">{{ $lane['name'] }}</span>
-                                @else
-                                    @if ($target['code'])<span class="area-code">{{ $target['code'] }}</span>@endif
-                                    {{ $target['name'] }}
+                        {{-- Mỗi ca là một dòng ngang riêng (ca thứ 1, 2... của ngày), để các ca thẳng hàng qua cả tuần. --}}
+                        @for ($row = 0; $row < $slotRows; $row++)
+                            <tr @class(['lane-task' => $lane['task_id'], 'lane-first' => $index === 0, 'lane-general' => $kind === 'general', 'slot-row', 'slot-tone-'.($row % 3 + 1) => $slotRows > 1, 'slot-row-next' => $row > 0])>
+                                @if ($row === 0)
+                                    <th scope="row" class="schedule-target" rowspan="{{ $slotRows }}">
+                                        @if ($lane['task_id'])
+                                            @if ($index === 0 && $kind !== 'general')
+                                                <strong class="lane-head">@if ($target['code'])<span class="area-code">{{ $target['code'] }}</span>@endif{{ $target['name'] }}</strong>
+                                            @endif
+                                            <span class="lane-name">{{ $lane['name'] }}</span>
+                                        @else
+                                            {{-- Khu bàn: mã ở dòng trên, tên ở dòng dưới. --}}
+                                            @if ($target['code'])<span class="area-code">{{ $target['code'] }}</span>@endif
+                                            <span class="target-name">{{ $target['name'] }}</span>
+                                        @endif
+                                    </th>
                                 @endif
-                            </th>
-                            @foreach ($columns as $column)
-                                <td @class(['is-today' => $column['today']])>
-                                    <div class="cell-slots">
-                                        @foreach ($column['slots'] as $slot)
-                                            @php($people = $pills($column, $slot, $lane))
-                                            @php($needed = $need($column, $slot, $lane))
-                                            <div @class(['slot-zone', 'is-short' => $mode === 'assign' && $needed && count($people) < $needed])
-                                                 @if ($editable) data-drop data-slot="{{ $slot['key'] }}" data-lane="{{ $lane['key'] }}" @endif
-                                                 @if ($mode === 'assign') data-date="{{ $column['date'] }}" data-needed="{{ $needed ?? 0 }}" @endif
-                                                 @if ($mode === 'defaults') data-weekday="{{ $column['weekday'] }}" @endif
-                                                 @if (count($column['slots']) > 1) title="{{ $slot['name'] }} {{ $slot['time'] }}" @endif>
-                                                @if (count($column['slots']) > 1 || $mode !== 'view')
+                                @foreach ($columns as $column)
+                                    @php($slot = $column['slots'][$row] ?? null)
+                                    {{-- Ngày chưa khai ca: một ô cả ngày, kéo dài qua các dòng ca. --}}
+                                    @php($wholeDay = count($column['slots']) === 1 && $column['slots'][0]['key'] === \App\Modules\Schedule\Roster::WHOLE_DAY)
+                                    @continue($wholeDay && $row > 0)
+                                    @if ($column['slots'] === [])
+                                        {{-- Quán nghỉ ngày này: không xếp người. --}}
+                                        @if ($row === 0)
+                                            <td class="is-closed" rowspan="{{ $slotRows }}"><small class="slot-closed">{{ __('schedule.closed_day') }}</small></td>
+                                        @endif
+                                    @elseif ($slot === null)
+                                        <td @class(['is-today' => $column['today'], 'is-none'])></td>
+                                    @else
+                                        @php($people = $pills($column, $slot, $lane))
+                                        @php($needed = $need($column, $slot, $lane))
+                                        {{-- Ô là cả ô bảng (không dùng height: 100%), để ô luôn cao theo số người bên trong. --}}
+                                        <td @if ($wholeDay && $slotRows > 1) rowspan="{{ $slotRows }}" @endif @class(['slot-zone', 'is-today' => $column['today'], 'is-short' => $mode === 'assign' && $needed && count($people) < $needed])
+                                            @if ($editable) data-drop data-slot="{{ $slot['key'] }}" data-lane="{{ $lane['key'] }}" @endif
+                                            @if ($mode === 'assign') data-date="{{ $column['date'] }}" data-needed="{{ $needed ?? 0 }}" @endif
+                                            @if ($mode === 'defaults') data-weekday="{{ $column['weekday'] }}" @endif
+                                            title="{{ $slot['name'] }}@if ($slot['time']) {{ $slot['time'] }}@endif">
+                                            <div class="slot-body">
+                                                @if ($slotRows > 1 || $mode !== 'view')
                                                     <span class="slot-head">
-                                                        @if (count($column['slots']) > 1)<small class="slot-label">{{ $slot['name'] }}</small>@endif
+                                                        @if ($slotRows > 1)<small class="slot-label">{{ $slot['name'] }}</small>@endif
                                                         @if ($mode === 'assign' && $needed)
                                                             <small class="slot-need" data-need-badge>{{ count($people) }}/{{ $needed }}</small>
                                                         @endif
@@ -74,11 +91,11 @@
                                                           @if ($mode === 'assign') data-assignment="{{ $person['id'] }}" @endif>{{ short_name($person['user']->name) }}</span>
                                                 @endforeach
                                             </div>
-                                        @endforeach
-                                    </div>
-                                </td>
-                            @endforeach
-                        </tr>
+                                        </td>
+                                    @endif
+                                @endforeach
+                            </tr>
+                        @endfor
                     @endforeach
                 @endforeach
             </tbody>

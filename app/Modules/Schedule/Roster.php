@@ -3,7 +3,9 @@
 namespace App\Modules\Schedule;
 
 use App\Enums\ShiftType;
+use App\Enums\SpecialDayType;
 use App\Models\Shift;
+use App\Models\SpecialDay;
 use App\Models\User;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\ModuleManager;
@@ -130,15 +132,24 @@ class Roster
 
     /**
      * Các ô thời gian của một ngày: từng ca làm, hoặc cả ngày nếu chưa khai ca.
+     * Ngày quán nghỉ thì không có ô nào (không xếp lịch được).
+     * $weekdayOnly: chỉ xét theo thứ (lịch mặc định), bỏ qua ngày đặc biệt.
      *
      * @param  array<int, Collection<int, Shift>>  $shifts
      * @return list<array{key: string, shift: ?Shift, name: string, time: ?string, minutes: int}>
      */
-    public static function slots(CarbonImmutable $date, array $shifts): array
+    public static function slots(CarbonImmutable $date, array $shifts, bool $weekdayOnly = false): array
     {
         $dayShifts = $shifts[$date->dayOfWeekIso] ?? collect();
+        $special = $weekdayOnly ? null : SpecialDay::whereDate('date', $date->toDateString())->first();
+
+        // Ngày đặc biệt đóng cả ngày, hoặc thứ quán nghỉ (trừ khi ngày đặc biệt mở cửa).
+        if ($special?->isWholeDay() || ($special?->type !== SpecialDayType::Open && self::closedWeekday($date->dayOfWeekIso))) {
+            return [];
+        }
 
         if ($dayShifts->isEmpty()) {
+
             return [['key' => self::WHOLE_DAY, 'shift' => null, 'name' => __('schedule.whole_day'), 'time' => null, 'minutes' => self::workdayMinutes()]];
         }
 
@@ -149,6 +160,17 @@ class Roster
             'time' => $shift->timeRange(),
             'minutes' => self::minutes($shift),
         ])->all();
+    }
+
+    /**
+     * Thứ quán nghỉ: quán đã khai giờ mở cửa mà thứ này không có ca mở cửa nào.
+     * Chưa khai giờ mở cửa thì không thứ nào nghỉ.
+     */
+    public static function closedWeekday(int $weekday): bool
+    {
+        $open = Shift::where('type', ShiftType::Opening)->pluck('weekday')->map(fn ($day) => (int) $day)->unique()->all();
+
+        return $open !== [] && ! in_array($weekday, $open, true);
     }
 
     /** @return Collection<int, Assignment> phân công trong khoảng ngày */

@@ -34,7 +34,7 @@ class DefaultsController extends Controller
         return view('modules.schedule.defaults', [
             'date' => $days[0],
             'days' => $days,
-            'slots' => collect($days)->mapWithKeys(fn (CarbonImmutable $day) => [$day->dayOfWeekIso => Roster::slots($day, $shifts)])->all(),
+            'slots' => collect($days)->mapWithKeys(fn (CarbonImmutable $day) => [$day->dayOfWeekIso => Roster::slots($day, $shifts, true)])->all(),
             'grid' => $grid,
             'targets' => Roster::targets(),
             'users' => $users,
@@ -56,7 +56,7 @@ class DefaultsController extends Controller
         ]);
 
         $weekday = (int) $data['weekday'];
-        $slots = array_column(Roster::slots(Roster::week(CarbonImmutable::today())[$weekday - 1], Roster::shiftsByWeekday()), 'key');
+        $slots = array_column(Roster::slots(Roster::week(CarbonImmutable::today())[$weekday - 1], Roster::shiftsByWeekday(), true), 'key');
         abort_unless(in_array($data['slot'], $slots, true) && isset(Roster::lanes(Roster::targets())[$data['lane']]), 422);
 
         $keys = ['weekday' => $weekday, 'shift_id' => $data['slot'] === Roster::WHOLE_DAY ? null : (int) $data['slot'], ...Roster::laneColumns($data['lane'])];

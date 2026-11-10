@@ -51,6 +51,7 @@ return [
 
     'pick_person' => 'Nhân viên',
     'everyone' => 'Tất cả',
+    'closed_day' => 'Quán nghỉ',
     'only_me' => 'Chỉ xem lịch của tôi',
     'nothing_this_week' => 'Tuần này không có lịch nào khớp bộ lọc.',
     'show_stats' => 'Hiện số ca và giờ',

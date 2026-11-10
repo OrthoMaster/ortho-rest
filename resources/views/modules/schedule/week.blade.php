@@ -96,7 +96,7 @@
                         @endforeach
                     @endforeach
                     @unless ($any)
-                        <small class="row-note">{{ __('schedule.empty_cell') }}</small>
+                        <small class="row-note">{{ $daySlots === [] ? __('schedule.closed_day') : __('schedule.empty_cell') }}</small>
                     @endunless
                 </section>
             @endforeach

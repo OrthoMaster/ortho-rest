@@ -9,6 +9,10 @@
     --ink: #1f3a52;
     --ink-soft: #566b7f;
     --surface: #ffffff;
+    /* Nền nhạt cho từng dòng ca trên lịch (ca 1, 2, 3) */
+    --slot-1: color-mix(in srgb, var(--tone-1-bg) 32%, var(--surface));
+    --slot-2: color-mix(in srgb, var(--tone-4-bg) 32%, var(--surface));
+    --slot-3: color-mix(in srgb, var(--tone-3-bg) 38%, var(--surface));
     --ground: color-mix(in srgb, var(--primary) 12%, white);
     --primary-soft: color-mix(in srgb, var(--primary) 30%, white);
     /* Màu bộ phận trên lịch làm việc (pill tên nhân viên). */
@@ -1048,7 +1052,8 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule .schedule-target { position: sticky; left: 0; z-index: 1; width: 8.5rem; padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
 .schedule thead .schedule-target { background: var(--ground); }
 .schedule tbody th.schedule-target { display: table-cell; }
-.schedule .schedule-target .area-code { margin-right: .25rem; }
+.schedule .schedule-target .area-code { margin: 0 0 .25rem; }
+.schedule .schedule-target .target-name { display: block; }
 .schedule-group th { padding: .45rem .75rem; font-size: .8125rem; font-weight: 600; color: var(--ink-soft); background: var(--ground); }
 .schedule td.is-today { background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface)); }
 .schedule td, .schedule th { white-space: normal; }
@@ -1122,23 +1127,28 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule tr.lane-general .lane-name { padding-left: 0; color: inherit; font-size: .9375rem; }
 .lane-head { display: block; margin-bottom: .2rem; font-weight: 600; }
 .lane-name { font-size: .875rem; color: var(--ink-soft); }
-.planner .schedule td { height: 1px; }
-.cell-slots { display: flex; flex-direction: column; height: 100%; }
-.cell-slots .slot-zone { flex: 1; }
-.slot-zone { display: flex; flex-wrap: wrap; align-content: flex-start; gap: .25rem; min-height: 2.75rem; padding: .35rem .45rem; }
-.slot-zone + .slot-zone { border-top: 1px dashed var(--line); }
-.slot-head { display: flex; flex-basis: 100%; align-items: center; justify-content: space-between; gap: .25rem; min-height: 1.1rem; }
-.slot-label { font-size: .6875rem; color: var(--ink-soft); }
+.schedule td.slot-zone { padding: .35rem .45rem; }
+.slot-body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: .25rem; min-height: 2rem; }
+/* Mỗi ca một dòng: dòng ca trong cùng một khu ngăn bằng nét đứt, mỗi ca một nền nhạt. */
+.schedule tr.slot-row:has(+ tr.slot-row-next) > td { border-bottom-style: dashed; }
+.schedule tr.slot-tone-1 > td { background: var(--slot-1); }
+.schedule tr.slot-tone-2 > td { background: var(--slot-2); }
+.schedule tr.slot-tone-3 > td { background: var(--slot-3); }
+.schedule tr[class*="slot-tone-"] > td.is-today { box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--primary-soft) 35%, transparent); }
+.schedule tr[class] > td.is-closed { vertical-align: middle; text-align: center; background: var(--ground); }
+.slot-closed { display: block; padding: .5rem; font-size: .75rem; color: var(--ink-soft); }
+.slot-head { display: flex; flex-basis: 100%; align-items: center; flex-wrap: nowrap; justify-content: space-between; gap: .25rem; min-height: 1.1rem; }
+.slot-label { min-width: 0; overflow: hidden; font-size: .6875rem; color: var(--ink-soft); white-space: nowrap; text-overflow: ellipsis; }
 .slot-need { margin-left: auto; padding: 0 .35rem; font-size: .6875rem; font-weight: 600; color: var(--ink-soft); background: var(--ground); border-radius: .5rem; }
-.slot-zone.is-short { background: var(--warn-bg); }
+.schedule td.slot-zone.is-short { background: var(--warn-bg); }
 .slot-zone.is-short .slot-need { color: var(--warn-ink); background: var(--surface); }
 .need-input { margin-left: auto; }
 .need-input input { width: 2.6rem; min-height: 0; padding: .05rem .25rem; font-size: .75rem; text-align: center; -moz-appearance: textfield; }
 .need-input input::-webkit-inner-spin-button, .need-input input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 .planner.is-editable .slot-zone { cursor: copy; }
-.slot-zone.is-drop-target { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary-ink); }
-.slot-zone.is-warned { background: var(--warn-bg); }
-.slot-zone.is-blocked { background: var(--bad-bg); cursor: not-allowed; }
+.schedule td.slot-zone.is-drop-target { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary-ink); }
+.schedule td.slot-zone.is-warned { background: var(--warn-bg); }
+.schedule td.slot-zone.is-blocked { background: var(--bad-bg); cursor: not-allowed; }
 .person-pill[draggable="true"] { cursor: grab; user-select: none; }
 .person-pill[draggable="true"]:active { cursor: grabbing; }
 .slot-zone .person-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; -webkit-touch-callout: none; }

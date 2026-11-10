@@ -2524,6 +2524,9 @@
         var source = function (userId) {
             return planner.querySelector('[data-drag-user="' + userId + '"]');
         };
+        var bodyOf = function (zone) {
+            return zone.querySelector('.slot-body') || zone;
+        };
         var pillsIn = function (zone) {
             return Array.prototype.slice.call(zone.querySelectorAll('[data-user]'));
         };
@@ -2610,7 +2613,7 @@
 
                 var pill = makePill(userId, null);
 
-                zone.appendChild(pill);
+                bodyOf(zone).appendChild(pill);
                 refresh(zone);
                 syncCell(zone).catch(function (error) {
                     pill.remove();
@@ -2623,14 +2626,14 @@
 
             send('POST', planner.dataset.storeUrl, { user: Number(userId), date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
-                    zone.appendChild(makePill(userId, data.id));
+                    bodyOf(zone).appendChild(makePill(userId, data.id));
                     refresh(zone);
                     report(data);
                 })
                 .catch(function (error) { toast(error.message, 'error'); });
         };
         var move = function (pill, zone) {
-            var from = pill.parentElement;
+            var from = pill.closest('[data-drop]');
 
             if (from === zone) {
                 return;
@@ -2641,7 +2644,7 @@
                     return;
                 }
 
-                zone.appendChild(pill);
+                bodyOf(zone).appendChild(pill);
                 refresh(from);
                 refresh(zone);
                 syncCell(from).then(function () { return syncCell(zone); }).catch(function (error) { toast(error.message, 'error'); });
@@ -2651,7 +2654,7 @@
 
             send('PATCH', itemUrl(pill.dataset.assignment), { date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
-                    zone.appendChild(pill);
+                    bodyOf(zone).appendChild(pill);
                     refresh(from);
                     refresh(zone);
                     report(data);
@@ -2659,13 +2662,13 @@
                 .catch(function (error) { toast(error.message, 'error'); });
         };
         var removePill = function (pill) {
-            var zone = pill.parentElement;
+            var zone = pill.closest('[data-drop]');
 
             if (mode === 'defaults') {
                 pill.remove();
                 refresh(zone);
                 syncCell(zone).catch(function (error) {
-                    zone.appendChild(pill);
+                    bodyOf(zone).appendChild(pill);
                     refresh(zone);
                     toast(error.message, 'error');
                 });

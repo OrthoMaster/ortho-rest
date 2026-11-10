@@ -243,6 +243,24 @@ class ScheduleTest extends TestCase
         $this->actingAs($lan)->get("$this->base/defaults")->assertForbidden();
     }
 
+    public function test_closed_weekdays_cannot_be_scheduled(): void
+    {
+        $lan = $this->staff('Lan', $this->kitchenDept);
+        $kitchen = 's'.$this->kitchen->id;
+        // Quán chỉ mở thứ ba: các thứ khác là ngày nghỉ.
+        app(TenantContext::class)->set($this->restaurant);
+        Shift::create(['type' => ShiftType::Opening, 'weekday' => 2, 'name' => 'Trưa', 'start_time' => '11:00', 'end_time' => '14:00']);
+        app(TenantContext::class)->forget();
+
+        $this->get("$this->base/defaults")->assertOk()->assertSee(__('schedule.closed_day'));
+        $this->putJson("$this->base/defaults", ['weekday' => 3, 'slot' => 'day', 'lane' => $kitchen, 'users' => [$lan->id]])->assertUnprocessable();
+        $this->place($lan, '2026-11-11', 'day', $kitchen)->assertUnprocessable();
+        $this->place($lan, '2026-11-10', (string) $this->lunch->id, $kitchen)->assertOk();
+
+        // Ca của thứ ba nằm thành dòng riêng, mã khu ở dòng trên tên khu.
+        $this->get("$this->base/week?date=2026-11-10")->assertSee('slot-tone-2', false)->assertSee('<span class="target-name">', false);
+    }
+
     public function test_settings_tasks_and_departments_of_areas(): void
     {
         $this->get("$this->base/settings")->assertOk()->assertSee(__('schedule.workday_hours'))->assertSee('Bếp');
