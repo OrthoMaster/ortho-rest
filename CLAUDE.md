@@ -12,6 +12,7 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Link của quán sinh bằng `tenant_route()`.
 - Chữ giao diện qua `__()` và `lang/vi`, không viết cứng trong Blade.
 - Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.
+- Chữ không bao giờ dính sát mép khung, nền hoặc viền (panel, dòng đang rê chuột, thẻ, badge). `ul.rows` luôn nằm trong một `section.panel`, không ghép `class="rows panel"` (`.rows` xoá lề của panel). Thiết kế xong phải chụp màn hình cả máy tính và điện thoại, rê chuột lên dòng, và kiểm tra lề trái phải của chữ trước khi đẩy lên.
 - Dòng có nhiều thao tác thì gom vào nút 3 chấm dọc ở cuối dòng (`partials/kebab`).
 - Thao tác Xoá luôn có chữ màu danger: `is-danger` trong menu 3 chấm, `link-danger` cho link, `btn-danger` cho nút.
 - Thao tác đổi trạng thái (nhận, đã đến, huỷ...) luôn hỏi lại bằng hộp thoại chung: thêm `data-confirm` (nội dung), `data-confirm-title`, `data-confirm-ok`, `data-confirm-danger` vào form. Không dùng `confirm()` của trình duyệt cho thao tác mới.

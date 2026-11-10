@@ -268,6 +268,8 @@ tr.is-muted td { color: var(--ink-soft); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .row-link a { color: inherit; font-weight: 600; text-decoration: none; }
 .row-link:hover { background: var(--ground); }
+/* Dòng bấm được có nền khi rê chuột: chừa lề hai bên để chữ không dính mép nền, chữ vẫn thẳng hàng với tiêu đề. */
+.rows li.row-link { margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius); }
 .rows li.is-sold-out { margin-inline: -.5rem; padding-inline: .5rem .25rem; background: var(--bad-bg); border-radius: var(--radius); }
 .rows li.is-sold-out + li.is-sold-out { margin-top: .25rem; border-top: 0; }
 .rows li.is-sold-out:hover { background: color-mix(in srgb, var(--bad-bg) 88%, var(--bad-ink)); }
@@ -440,6 +442,8 @@ tr.is-muted td { color: var(--ink-soft); }
 .tags li { padding: .2rem .65rem; background: var(--primary-soft); border-radius: var(--radius); font-size: .9375rem; }
 
 .rows { margin: 0; padding: 0; list-style: none; }
+/* .rows đặt sau .panel nên xoá mất lề của panel; ghép chung thì trả lại lề. */
+.rows.panel { padding: .5rem 1.25rem; }
 .rows li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .75rem; min-height: 3rem; padding: .4rem 0; border-top: 1px solid var(--line); }
 .rows li:first-child { border-top: 0; }
 .row-name { font-weight: 500; margin-right: auto; overflow-wrap: anywhere; }
