@@ -9,6 +9,7 @@ use App\Modules\DineIn\Models\Station;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Schedule\Models\Assignment;
+use App\Modules\Schedule\Models\DefaultSlot;
 use App\Modules\Schedule\Models\Task;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -28,13 +29,13 @@ class Roster
     public const GENERAL = 'g';
 
     /**
-     * @return Collection<string, array{key: string, kind: string, name: string, code: ?string, department_id: ?int, lanes: list<array{key: string, task_id: ?int, name: string}>}>
+     * @return Collection<string, array{key: string, kind: string, name: string, code: ?string, departments: list<int>, lanes: list<array{key: string, task_id: ?int, name: string}>}>
      */
     public static function targets(): Collection
     {
         $tasks = Task::orderBy('sort_order')->orderBy('id')->get()->groupBy(fn (Task $task) => $task->targetKey());
         $targets = collect();
-        $add = function (string $key, string $kind, string $name, ?string $code, ?int $department) use ($targets, $tasks): void {
+        $add = function (string $key, string $kind, string $name, ?string $code, ?array $departments) use ($targets, $tasks): void {
             $lanes = $key === self::GENERAL ? [] : [['key' => $key, 'task_id' => null, 'name' => __('schedule.lane_general')]];
 
             foreach ($tasks->get($key, collect()) as $task) {
@@ -42,18 +43,18 @@ class Roster
             }
 
             if ($lanes !== []) {
-                $targets->put($key, compact('key', 'kind', 'name', 'code') + ['department_id' => $department, 'lanes' => $lanes]);
+                $targets->put($key, compact('key', 'kind', 'name', 'code') + ['departments' => array_map('intval', $departments ?? []), 'lanes' => $lanes]);
             }
         };
 
         if (has_module('dinein')) {
             foreach (Station::orderBy('sort_order')->orderBy('id')->get() as $station) {
-                $add('s'.$station->id, 'station', $station->name, null, $station->department_id);
+                $add('s'.$station->id, 'station', $station->name, null, $station->department_ids);
             }
         }
 
         foreach (Area::where('is_active', true)->whereNotNull('code')->orderBy('sort_order')->orderBy('id')->get() as $area) {
-            $add('a'.$area->id, 'area', $area->name, $area->code, $area->department_id);
+            $add('a'.$area->id, 'area', $area->name, $area->code, $area->department_ids);
         }
 
         $add(self::GENERAL, 'general', __('schedule.general_tasks'), null, null);
@@ -87,7 +88,8 @@ class Roster
         ];
     }
 
-    public static function laneKey(Assignment $row): string
+    /** Khoá hàng của một phân công hoặc một ô lịch mặc định. */
+    public static function laneKey(Assignment|DefaultSlot $row): string
     {
         $target = match (true) {
             $row->dinein_station_id !== null => 's'.$row->dinein_station_id,
@@ -209,6 +211,48 @@ class Roster
         $length = $toMinutes($shift->end_time) - $toMinutes($shift->start_time);
 
         return $length <= 0 ? $length + 1440 : $length;
+    }
+
+    /**
+     * Số ca, số giờ của một người so với giờ hợp đồng: bản ngắn (một dòng cạnh tên)
+     * và bản đầy đủ (chú thích khi rê chuột).
+     *
+     * @return array{short: string, label: string, over: bool}
+     */
+    public static function stat(int $shifts, int $minutes, ?int $limit, bool $monthly = false, ?int $used = null, ?int $month = null): array
+    {
+        $hours = self::hours($minutes);
+
+        if ($limit === null) {
+            return [
+                'short' => __('schedule.stat_short', ['shifts' => $shifts, 'hours' => $hours]),
+                'label' => __('schedule.stat_week', ['shifts' => $shifts, 'hours' => $hours]),
+                'over' => false,
+            ];
+        }
+
+        $used ??= $minutes;
+        $values = ['shifts' => $shifts, 'hours' => $hours, 'used' => self::hours($used), 'limit' => self::hours($limit), 'month' => $month];
+
+        return [
+            'short' => __($monthly ? 'schedule.stat_short_month' : 'schedule.stat_short_limit', $values),
+            'label' => __($monthly ? 'schedule.stat_contract_month' : 'schedule.stat_contract_week', $values),
+            'over' => $used > $limit,
+        ];
+    }
+
+    /** @return array<int, array<string, array<string, int>>> số người cần theo [thứ][ô thời gian][hàng] */
+    public static function neededByWeekday(): array
+    {
+        $needed = [];
+
+        foreach (DefaultSlot::all() as $default) {
+            if ($default->required() > 0) {
+                $needed[$default->weekday][$default->slotKey()][$default->laneKey()] = $default->required();
+            }
+        }
+
+        return $needed;
     }
 
     /** 9,5 giờ: giờ dạng chữ, bỏ số 0 thừa. */

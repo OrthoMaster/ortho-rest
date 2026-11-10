@@ -115,6 +115,16 @@ class AccountController extends Controller
             $this->signOutEverywhere($account);
         }
 
+        // Tắt "Đang làm việc": không đăng nhập được nữa, đăng xuất ngay mọi thiết bị.
+        if ($request->has('is_active') && $account->is_active !== $request->boolean('is_active') && ! $account->is($request->user())) {
+            $account->forceFill(['is_active' => $request->boolean('is_active')])->save();
+            $lines[] = __($account->is_active ? 'staff.log_activated' : 'staff.log_deactivated', ['name' => $account->name]);
+
+            if (! $account->is_active) {
+                $this->signOutEverywhere($account);
+            }
+        }
+
         if ($lines !== []) {
             ActivityLog::record(tenant()->getKey(), 'staff', __('staff.log_updated', ['name' => $account->name]), $lines);
         }

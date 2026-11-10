@@ -13,6 +13,7 @@ use App\Modules\DineIn\Models\Station;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\Assignment;
+use App\Modules\Schedule\Models\DefaultSlot;
 use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Models\Task;
 use App\Tenancy\TenantContext;
@@ -57,7 +58,7 @@ class ScheduleTest extends TestCase
         $this->kitchen = Station::orderBy('sort_order')->first();
         $this->area = Area::sole();
         [$this->serviceDept, $this->kitchenDept] = Department::orderBy('sort_order')->get()->all();
-        $this->kitchen->update(['department_id' => $this->kitchenDept->id]);
+        $this->kitchen->update(['department_ids' => [$this->kitchenDept->id]]);
         $this->lunch = Shift::create(['type' => ShiftType::Work, 'weekday' => 2, 'name' => 'Ca trưa', 'start_time' => '10:00', 'end_time' => '14:00']);
         $this->dinner = Shift::create(['type' => ShiftType::Work, 'weekday' => 2, 'name' => 'Ca tối', 'start_time' => '17:00', 'end_time' => '22:30']);
         app(TenantContext::class)->forget();
@@ -86,7 +87,7 @@ class ScheduleTest extends TestCase
         $lan = $this->staff('Lan', $this->kitchenDept, ['contract_hours' => 40, 'contract_period' => 'week']);
 
         $this->get($this->base)->assertRedirect("$this->base/week");
-        $this->get("$this->base/week?date=2026-11-10")->assertOk()
+        $this->get("$this->base/assign?date=2026-11-10")->assertOk()
             ->assertSee('data-planner', false)->assertSee('Lan')->assertSee('Ca trưa')
             ->assertSee(__('schedule.stat_contract_week', ['shifts' => 0, 'used' => 0, 'limit' => 40]));
 
@@ -97,7 +98,7 @@ class ScheduleTest extends TestCase
         // Cùng ô thì lỗi; hàng khác cùng ca thì nhắc; khu của bộ phận khác thì nhắc.
         $this->place($lan, '2026-11-10', (string) $this->lunch->id, 's'.$this->kitchen->id)->assertUnprocessable()
             ->assertJsonPath('message', __('schedule.already_here', ['name' => 'Lan']));
-        $this->area->update(['department_id' => $this->serviceDept->id]);
+        $this->area->update(['department_ids' => [$this->serviceDept->id]]);
         $this->place($lan, '2026-11-10', (string) $this->lunch->id, 'a'.$this->area->id)->assertOk()
             ->assertJsonPath('warnings', [
                 __('schedule.also_in', ['name' => 'Lan', 'lane' => 'Bếp', 'slot' => 'Ca trưa']),
@@ -139,7 +140,9 @@ class ScheduleTest extends TestCase
         $this->assertNull($rows[1]->shift_id);
         $this->assertNull($rows[1]->area_id);
 
-        $this->get("$this->base/person?user={$lan->id}&date=2026-11-10")->assertOk()
+        // Lịch tuần lọc theo một người: chỉ còn hàng người đó làm, kèm tổng tuần.
+        $this->get("$this->base/week?people[]={$lan->id}&date=2026-11-10")->assertOk()
+            ->assertDontSee('data-planner', false)
             ->assertSee('Đứng thanh toán')->assertSee('Dọn vệ sinh cuối buổi')
             ->assertSee(__('schedule.person_total', ['shifts' => 2, 'hours' => '13,5']));
     }
@@ -158,7 +161,7 @@ class ScheduleTest extends TestCase
         $this->place($lan, '2026-11-13', 'day', 's'.$this->kitchen->id)->assertOk()
             ->assertJsonPath('warnings', [__('schedule.leave_pending', ['name' => 'Lan', 'date' => '13/11'])]);
 
-        $this->get("$this->base/week?date=2026-11-10")->assertSee(__('schedule.leave_off'))->assertSee(__('schedule.leave_asked'));
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee(__('schedule.leave_off'))->assertSee(__('schedule.leave_asked'));
     }
 
     public function test_viewers_without_permission(): void
@@ -168,8 +171,10 @@ class ScheduleTest extends TestCase
         Assignment::create(['work_date' => '2026-11-10', 'shift_id' => $this->lunch->id, 'dinein_station_id' => $this->kitchen->id, 'user_id' => $lan->id]);
         app(TenantContext::class)->forget();
 
-        // Nhân viên xem được lịch tuần nhưng không kéo thả.
-        $this->actingAs($lan)->get("$this->base/week?date=2026-11-10")->assertOk()->assertDontSee('data-planner', false)->assertSee('Lan');
+        // Nhân viên xem được lịch tuần nhưng không phân công; có toggle chỉ xem lịch của mình.
+        $this->actingAs($lan)->get("$this->base/week?date=2026-11-10")->assertOk()->assertDontSee('data-planner', false)->assertSee('Lan')
+            ->assertSee(__('schedule.only_me'))->assertDontSee(__('schedule.assign'));
+        $this->get("$this->base/assign")->assertForbidden();
         $this->place($lan, '2026-11-10', (string) $this->dinner->id, 's'.$this->kitchen->id)->assertForbidden();
 
         // Bỏ quyền xem lịch mọi người: chỉ thấy lịch của mình.
@@ -180,10 +185,10 @@ class ScheduleTest extends TestCase
         app(TenantContext::class)->forget();
         $minh = $this->staff('Minh');
 
-        $this->actingAs($minh)->get($this->base)->assertRedirect("$this->base/person");
-        $this->get("$this->base/week")->assertForbidden();
-        $this->get("$this->base/person?user={$lan->id}&date=2026-11-10")->assertOk()
-            ->assertSee(__('schedule.person_total', ['shifts' => 0, 'hours' => '0']))->assertDontSee('Ca trưa');
+        $this->actingAs($minh)->get($this->base)->assertRedirect("$this->base/week");
+        // Lọc người khác cũng bị bỏ qua: chỉ lịch của mình (tuần này chưa có gì).
+        $this->get("$this->base/week?people[]={$lan->id}&date=2026-11-10")->assertOk()
+            ->assertSee(__('schedule.nothing_this_week'))->assertDontSee(__('schedule.only_me'));
     }
 
     public function test_copy_previous_week_keeps_tasks(): void
@@ -197,7 +202,7 @@ class ScheduleTest extends TestCase
         app(TenantContext::class)->forget();
 
         $this->post("$this->base/week/copy", ['date' => '2026-11-12'])
-            ->assertRedirect("$this->base/week?date=2026-11-09")
+            ->assertRedirect("$this->base/assign?date=2026-11-09")
             ->assertSessionHas('status', trans_choice('schedule.copied', 2, ['count' => 2]));
 
         $rows = Assignment::withoutGlobalScopes()->whereDate('work_date', '>=', '2026-11-09')->orderBy('work_date')->get();
@@ -206,14 +211,47 @@ class ScheduleTest extends TestCase
         $this->assertTrue(ActivityLog::where('area', 'schedule')->exists());
     }
 
+    public function test_default_schedule_fills_week_and_flags_short_cells(): void
+    {
+        $lan = $this->staff('Lan', $this->kitchenDept);
+        $minh = $this->staff('Minh', $this->kitchenDept);
+        $kitchen = 's'.$this->kitchen->id;
+
+        $this->get("$this->base/defaults")->assertOk()->assertSee('data-mode="defaults"', false)->assertSee('Ca trưa');
+
+        // Thứ ba ca trưa ở bếp: cần 3 người, mặc định Lan và Minh.
+        $this->putJson("$this->base/defaults", ['weekday' => 2, 'slot' => (string) $this->lunch->id, 'lane' => $kitchen, 'needed' => 3, 'users' => [$lan->id, $minh->id]])
+            ->assertOk()->assertJsonPath("stats.{$lan->id}.label", __('schedule.stat_week', ['shifts' => 1, 'hours' => '4']));
+        $this->putJson("$this->base/defaults", ['weekday' => 2, 'slot' => '999', 'lane' => $kitchen, 'users' => []])->assertUnprocessable();
+
+        // Minh đã được duyệt nghỉ thứ ba: bỏ qua; Lan đã có trong ô ở tuần sau thì không thêm lại.
+        LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $minh->id, 'days' => 1, 'starts_on' => '2026-11-10', 'ends_on' => '2026-11-10', 'status' => LeaveStatus::Approved]);
+        $this->post("$this->base/week/defaults", ['date' => '2026-11-10'])
+            ->assertRedirect("$this->base/assign?date=2026-11-09")
+            ->assertSessionHas('status', trans_choice('schedule.defaults_applied', 1, ['count' => 1]).' '.__('schedule.defaults_skipped', ['count' => 1]));
+        $this->post("$this->base/week/defaults", ['date' => '2026-11-10'])
+            ->assertSessionHas('status', trans_choice('schedule.defaults_applied', 0, ['count' => 0]).' '.__('schedule.defaults_skipped', ['count' => 1]));
+        $this->assertSame([$lan->id], Assignment::withoutGlobalScopes()->pluck('user_id')->all());
+
+        // Ô có 1/3 người: tô vàng ở Phân công.
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee('1/3')->assertSee('is-short', false);
+
+        // Bỏ hết người và số cần thì ô mặc định bị xoá.
+        $this->putJson("$this->base/defaults", ['weekday' => 2, 'slot' => (string) $this->lunch->id, 'lane' => $kitchen, 'needed' => null, 'users' => []])->assertOk();
+        $this->assertSame(0, DefaultSlot::withoutGlobalScopes()->count());
+
+        $this->actingAs($lan)->get("$this->base/defaults")->assertForbidden();
+    }
+
     public function test_settings_tasks_and_departments_of_areas(): void
     {
         $this->get("$this->base/settings")->assertOk()->assertSee(__('schedule.workday_hours'))->assertSee('Bếp');
 
-        $this->put("$this->base/settings", ['workday_hours' => 7.5, 'departments' => ['a'.$this->area->id => $this->serviceDept->id, 's'.$this->kitchen->id => '']])
+        $this->put("$this->base/settings", ['workday_hours' => 7.5, 'departments' => ['a'.$this->area->id => [$this->serviceDept->id, $this->kitchenDept->id]]])
             ->assertSessionHas('status');
-        $this->assertSame($this->serviceDept->id, $this->area->fresh()->department_id);
-        $this->assertNull($this->kitchen->fresh()->department_id);
+        // Một khu có thể thuộc nhiều bộ phận; khu không gửi lên thì không thuộc bộ phận nào.
+        $this->assertSame([$this->serviceDept->id, $this->kitchenDept->id], $this->area->fresh()->department_ids);
+        $this->assertSame([], $this->kitchen->fresh()->department_ids ?? []);
 
         $this->post("$this->base/tasks", ['name' => 'Tiếp thực', 'target' => 'a'.$this->area->id])->assertSessionHas('status');
         $this->post("$this->base/tasks", ['name' => 'Kiểm kho', 'target' => 'g'])->assertSessionHas('status');

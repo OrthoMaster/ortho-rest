@@ -2418,15 +2418,55 @@
         syncLeave();
     }
 
-    // Xếp lịch tuần: kéo tên nhân viên vào ô (hoặc bấm tên rồi bấm ô), kéo pill sang ô khác, ✕ để bỏ. Lưu ngay.
+    // Phân công và Lịch mặc định: kéo tên vào ô (hoặc bấm tên rồi bấm ô), kéo tên sang ô khác,
+    // giữ lâu một tên trong lịch để hiện nút Xoá. Mọi thay đổi lưu ngay.
     var planner = document.querySelector('[data-planner]');
 
     if (planner) {
+        var mode = planner.dataset.mode;
         var plannerLeaves = JSON.parse(planner.querySelector('[data-planner-leaves]').textContent || '{}');
         var toasts = planner.querySelector('[data-planner-toasts]');
+        var peopleCard = planner.querySelector('[data-people-card]');
+        var peopleOpen = planner.querySelector('[data-people-open]');
+        var statsButton = planner.querySelector('[data-toggle-stats]');
         var dragged = null;
         var picked = null;
         var pickedToast = null;
+        var holdTimer = null;
+        var holdStart = null;
+        var held = null;
+        var skipClick = false;
+        var deleteButton = document.createElement('button');
+
+        deleteButton.type = 'button';
+        deleteButton.className = 'pill-delete';
+        deleteButton.textContent = planner.dataset.deleteLabel;
+        deleteButton.hidden = true;
+        document.body.appendChild(deleteButton);
+
+        var remember = function (key, value) {
+            try { window.localStorage.setItem('liresto.people.' + key, value ? '1' : '0'); } catch (error) {}
+        };
+        var recall = function (key) {
+            try { return window.localStorage.getItem('liresto.people.' + key) === '1'; } catch (error) { return false; }
+        };
+        var minimize = function (on) {
+            peopleCard.hidden = on;
+            peopleOpen.hidden = !on;
+            planner.classList.toggle('is-card-min', on);
+            remember('min', on);
+        };
+        var showStats = function (on) {
+            peopleCard.classList.toggle('is-stats', on);
+            statsButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+            remember('stats', on);
+        };
+
+        minimize(recall('min'));
+        showStats(recall('stats'));
+        statsButton.addEventListener('click', function () { showStats(!peopleCard.classList.contains('is-stats')); });
+        planner.querySelector('[data-minimize]').addEventListener('click', function () { minimize(true); });
+        peopleOpen.addEventListener('click', function () { minimize(false); });
 
         var toast = function (message, kind) {
             var item = document.createElement('div');
@@ -2473,32 +2513,65 @@
                 var stat = planner.querySelector('[data-stat="' + userId + '"]');
 
                 if (stat) {
-                    stat.textContent = stats[userId].label;
-                    stat.closest('[data-person]').classList.toggle('is-over', stats[userId].over);
+                    var row = stat.closest('[data-person]');
+
+                    stat.textContent = stats[userId].short;
+                    row.title = row.title.split(' · ')[0] + ' · ' + stats[userId].label;
+                    row.classList.toggle('is-over', stats[userId].over);
                 }
             });
         };
         var source = function (userId) {
             return planner.querySelector('[data-drag-user="' + userId + '"]');
         };
+        var pillsIn = function (zone) {
+            return Array.prototype.slice.call(zone.querySelectorAll('[data-user]'));
+        };
+        // Ô thiếu người so với lịch mặc định thì tô vàng; ở lịch mặc định, ô số người cần gợi ý số đang có.
+        var refresh = function (zone) {
+            var count = pillsIn(zone).length;
+
+            if (mode === 'assign') {
+                var needed = Number(zone.dataset.needed || 0);
+                var badge = zone.querySelector('[data-need-badge]');
+
+                if (badge) {
+                    badge.textContent = count + '/' + needed;
+                }
+                zone.classList.toggle('is-short', needed > 0 && count < needed);
+            } else {
+                zone.querySelector('[data-needed-input]').placeholder = count || '–';
+            }
+        };
         var makePill = function (userId, assignmentId) {
             var from = source(userId);
             var pill = document.createElement('span');
-            var remove = document.createElement('button');
 
             pill.className = from.className.replace(' is-picked', '');
             pill.draggable = true;
-            pill.dataset.assignment = assignmentId;
             pill.dataset.user = userId;
-            pill.appendChild(document.createTextNode(from.textContent.trim() + ' '));
-            remove.type = 'button';
-            remove.className = 'pill-remove';
-            remove.dataset.remove = '';
-            remove.setAttribute('aria-label', planner.dataset.removeLabel + ' ' + from.textContent.trim());
-            remove.textContent = '✕';
-            pill.appendChild(remove);
+            pill.title = from.dataset.full;
+            pill.textContent = from.dataset.name;
+
+            if (assignmentId) {
+                pill.dataset.assignment = assignmentId;
+            }
 
             return pill;
+        };
+        // Lịch mặc định lưu cả ô mỗi lần đổi.
+        var syncCell = function (zone) {
+            var input = zone.querySelector('[data-needed-input]');
+
+            return send('PUT', planner.dataset.storeUrl, {
+                weekday: Number(zone.dataset.weekday),
+                slot: zone.dataset.slot,
+                lane: zone.dataset.lane,
+                needed: input.value === '' ? null : Number(input.value),
+                users: pillsIn(zone).map(function (pill) { return Number(pill.dataset.user); }),
+            }).then(function (data) {
+                updateStats(data.stats);
+            });
         };
         var report = function (data) {
             updateStats(data.stats);
@@ -2512,7 +2585,7 @@
                 var date = zone.dataset.date;
                 var inShift = leave.shifts === null || zone.dataset.slot === 'day' || leave.shifts.indexOf(Number(zone.dataset.slot)) !== -1;
 
-                if (date >= leave.from && date <= leave.to && inShift) {
+                if (date && date >= leave.from && date <= leave.to && inShift) {
                     state = leave.approved ? 'is-blocked' : (state || 'is-warned');
                 }
             });
@@ -2530,24 +2603,105 @@
             });
         };
         var place = function (userId, zone) {
+            if (mode === 'defaults') {
+                if (zone.querySelector('[data-user="' + userId + '"]')) {
+                    return;
+                }
+
+                var pill = makePill(userId, null);
+
+                zone.appendChild(pill);
+                refresh(zone);
+                syncCell(zone).catch(function (error) {
+                    pill.remove();
+                    refresh(zone);
+                    toast(error.message, 'error');
+                });
+
+                return;
+            }
+
             send('POST', planner.dataset.storeUrl, { user: Number(userId), date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
                     zone.appendChild(makePill(userId, data.id));
+                    refresh(zone);
                     report(data);
                 })
                 .catch(function (error) { toast(error.message, 'error'); });
         };
         var move = function (pill, zone) {
-            if (pill.parentElement === zone) {
+            var from = pill.parentElement;
+
+            if (from === zone) {
+                return;
+            }
+
+            if (mode === 'defaults') {
+                if (zone.querySelector('[data-user="' + pill.dataset.user + '"]')) {
+                    return;
+                }
+
+                zone.appendChild(pill);
+                refresh(from);
+                refresh(zone);
+                syncCell(from).then(function () { return syncCell(zone); }).catch(function (error) { toast(error.message, 'error'); });
+
                 return;
             }
 
             send('PATCH', itemUrl(pill.dataset.assignment), { date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
                     zone.appendChild(pill);
+                    refresh(from);
+                    refresh(zone);
                     report(data);
                 })
                 .catch(function (error) { toast(error.message, 'error'); });
+        };
+        var removePill = function (pill) {
+            var zone = pill.parentElement;
+
+            if (mode === 'defaults') {
+                pill.remove();
+                refresh(zone);
+                syncCell(zone).catch(function (error) {
+                    zone.appendChild(pill);
+                    refresh(zone);
+                    toast(error.message, 'error');
+                });
+
+                return;
+            }
+
+            send('DELETE', itemUrl(pill.dataset.assignment))
+                .then(function (data) {
+                    pill.remove();
+                    refresh(zone);
+                    updateStats(data.stats);
+                })
+                .catch(function (error) { toast(error.message, 'error'); });
+        };
+        var hideDelete = function () {
+            if (held) {
+                held.classList.remove('is-holding');
+            }
+            held = null;
+            deleteButton.hidden = true;
+        };
+        var showDelete = function (pill) {
+            var box = pill.getBoundingClientRect();
+
+            hideDelete();
+            held = pill;
+            pill.classList.add('is-holding');
+            deleteButton.hidden = false;
+            deleteButton.style.left = Math.min(box.left, window.innerWidth - deleteButton.offsetWidth - 8) + 'px';
+            deleteButton.style.top = (box.bottom + 6 + deleteButton.offsetHeight > window.innerHeight ? box.top - deleteButton.offsetHeight - 6 : box.bottom + 6) + 'px';
+            deleteButton.focus();
+        };
+        var cancelHold = function () {
+            window.clearTimeout(holdTimer);
+            holdTimer = null;
         };
         var setPicked = function (userId) {
             planner.querySelectorAll('[data-drag-user].is-picked').forEach(function (pill) { pill.classList.remove('is-picked'); });
@@ -2562,12 +2716,64 @@
 
             if (userId) {
                 source(userId).classList.add('is-picked');
-                pickedToast = toast(planner.dataset.pickedLabel.replace(':name', source(userId).textContent.trim()), 'info');
+                pickedToast = toast(planner.dataset.pickedLabel.replace(':name', source(userId).dataset.full), 'info');
             }
         };
 
+        deleteButton.addEventListener('click', function () {
+            var pill = held;
+
+            hideDelete();
+            if (pill) {
+                removePill(pill);
+            }
+        });
+        document.addEventListener('pointerdown', function (event) {
+            if (held && event.target !== deleteButton && event.target !== held) {
+                hideDelete();
+            }
+        });
+        document.addEventListener('scroll', hideDelete, true);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                hideDelete();
+            }
+        });
+
+        // Giữ lâu tên trong lịch: hiện nút Xoá (không hỏi lại).
+        planner.addEventListener('pointerdown', function (event) {
+            var pill = event.target.closest('[data-drop] [data-user]');
+
+            if (!pill || event.button > 0) {
+                return;
+            }
+
+            holdStart = { x: event.clientX, y: event.clientY };
+            cancelHold();
+            holdTimer = window.setTimeout(function () {
+                holdTimer = null;
+                skipClick = true;
+                showDelete(pill);
+            }, 550);
+        });
+        planner.addEventListener('pointermove', function (event) {
+            if (holdTimer && holdStart && Math.abs(event.clientX - holdStart.x) + Math.abs(event.clientY - holdStart.y) > 8) {
+                cancelHold();
+            }
+        });
+        planner.addEventListener('pointerup', cancelHold);
+        planner.addEventListener('pointercancel', cancelHold);
+        planner.addEventListener('contextmenu', function (event) {
+            if (event.target.closest('[data-drop] [data-user]')) {
+                event.preventDefault();
+            }
+        });
+
         planner.addEventListener('dragstart', function (event) {
-            var pill = event.target.closest('[data-drag-user], [data-assignment]');
+            var pill = event.target.closest('[data-drag-user], [data-drop] [data-user]');
+
+            cancelHold();
+            hideDelete();
 
             if (!pill) {
                 return;
@@ -2608,30 +2814,26 @@
             event.preventDefault();
             zone.classList.remove('is-drop-target');
 
-            if (dragged.dataset.assignment) {
-                move(dragged, zone);
-            } else {
+            if (dragged.dataset.dragUser) {
                 place(dragged.dataset.dragUser, zone);
+            } else {
+                move(dragged, zone);
             }
         });
 
         planner.addEventListener('click', function (event) {
-            var remove = event.target.closest('[data-remove]');
             var person = event.target.closest('[data-drag-user]');
             var zone = event.target.closest('[data-drop]');
 
-            if (remove) {
-                var pill = remove.closest('[data-assignment]');
+            if (skipClick) {
+                skipClick = false;
 
-                send('DELETE', itemUrl(pill.dataset.assignment))
-                    .then(function (data) {
-                        pill.remove();
-                        updateStats(data.stats);
-                    })
-                    .catch(function (error) { toast(error.message, 'error'); });
-            } else if (person) {
+                return;
+            }
+
+            if (person) {
                 setPicked(picked === person.dataset.dragUser ? null : person.dataset.dragUser);
-            } else if (zone && picked && !event.target.closest('[data-assignment]')) {
+            } else if (zone && picked && !event.target.closest('[data-user]') && !event.target.closest('.need-input')) {
                 place(picked, zone);
             }
         });
@@ -2645,6 +2847,51 @@
                 setPicked(null);
             }
         });
+
+        // Lịch mặc định: đổi số người cần thì lưu ô đó.
+        planner.addEventListener('change', function (event) {
+            if (event.target.matches('[data-needed-input]')) {
+                syncCell(event.target.closest('[data-drop]')).catch(function (error) { toast(error.message, 'error'); });
+            }
+        });
     }
+
+    // Tab trong một form (sửa tài khoản nhân viên): tab có lỗi mở trước; nhớ tab qua #hash.
+    document.querySelectorAll('[data-tabs]').forEach(function (tabs) {
+        var form = tabs.closest('form');
+        var buttons = Array.prototype.slice.call(tabs.querySelectorAll('[data-tab]'));
+        var panels = form.querySelectorAll('[data-tab-panel]');
+        var show = function (name) {
+            buttons.forEach(function (button) { button.setAttribute('aria-selected', button.dataset.tab === name ? 'true' : 'false'); });
+            panels.forEach(function (panel) { panel.hidden = panel.dataset.tabPanel !== name; });
+        };
+        var withError = null;
+
+        panels.forEach(function (panel) {
+            if (panel.querySelector('.error')) {
+                tabs.querySelector('[data-tab="' + panel.dataset.tabPanel + '"]').classList.add('has-error');
+                withError = withError || panel.dataset.tabPanel;
+            }
+        });
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                show(button.dataset.tab);
+                try { window.history.replaceState(null, '', '#' + button.dataset.tab); } catch (error) {}
+            });
+        });
+
+        // Ô bắt buộc nằm ở tab đang ẩn thì mở tab đó để trình duyệt chỉ được chỗ thiếu.
+        form.addEventListener('invalid', function (event) {
+            var panel = event.target.closest('[data-tab-panel]');
+
+            if (panel && panel.hidden) {
+                show(panel.dataset.tabPanel);
+            }
+        }, true);
+
+        var hash = window.location.hash.slice(1);
+        show(withError || (buttons.some(function (button) { return button.dataset.tab === hash; }) ? hash : buttons[0].dataset.tab));
+    });
 
 })();

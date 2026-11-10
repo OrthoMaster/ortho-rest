@@ -56,12 +56,12 @@ class Placement
             }
         }
 
-        $department = $lanes[$laneKey]['target']['department_id'];
-        if ($department !== null && $user->department_id !== $department) {
+        $departments = $lanes[$laneKey]['target']['departments'];
+        if ($departments !== [] && ! in_array($user->department_id, $departments, true)) {
             $warnings[] = __('schedule.other_department', [
                 'name' => $user->name,
                 'mine' => $user->department?->name ?? __('staff.no_department'),
-                'area' => Department::find($department)?->name,
+                'area' => Department::whereKey($departments)->orderBy('sort_order')->pluck('name')->implode(', '),
             ]);
         }
 

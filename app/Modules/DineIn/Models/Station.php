@@ -2,12 +2,10 @@
 
 namespace App\Modules\DineIn\Models;
 
-use App\Models\Department;
 use App\Modules\Menu\Models\MenuItem;
 use App\Support\Activity\RecordsActivity;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Khu phục vụ làm món: Bếp, Bar... Mỗi món thuộc một khu. */
@@ -18,6 +16,12 @@ class Station extends Model
     protected $table = 'dinein_stations';
 
     protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        // Bộ phận làm ở khu này (để lịch làm việc nhắc khi xếp người bộ phận khác).
+        return ['department_ids' => 'array'];
+    }
 
     public function items(): HasMany
     {
@@ -33,12 +37,6 @@ class Station extends Model
     public static function fallback(): ?self
     {
         return self::orderBy('sort_order')->orderBy('id')->first();
-    }
-
-    /** Bộ phận làm ở khu này; xếp người bộ phận khác vào thì lịch nhắc. */
-    public function department(): BelongsTo
-    {
-        return $this->belongsTo(Department::class);
     }
 
     public function activityArea(): string

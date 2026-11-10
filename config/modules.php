@@ -83,12 +83,6 @@ return [
         // schedule.open: ai cũng xem được lịch của mình; xem của mọi người cần schedule.view.
         'menu' => ['route' => 'schedule.index', 'permission' => ['schedule.open']],
     ],
-    'leave' => [
-        'name' => 'modules.leave',
-        'depends' => ['staff'],
-        'phase' => 2,
-        'available' => false,
-    ],
     'sop' => [
         'name' => 'modules.sop',
         'depends' => ['staff'],

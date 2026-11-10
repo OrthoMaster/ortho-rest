@@ -42,18 +42,21 @@ class SettingsController extends Controller
         $data = $request->validate([
             'workday_hours' => ['required', 'numeric', 'min:1', 'max:24'],
             'departments' => ['array'],
-            'departments.*' => ['nullable', 'integer', Rule::exists('departments', 'id')->where('restaurant_id', $restaurantId)],
+            'departments.*' => ['array'],
+            'departments.*.*' => ['integer', Rule::exists('departments', 'id')->where('restaurant_id', $restaurantId)],
         ]);
 
         $modules->updateSettings(tenant(), 'schedule', ['workday_hours' => round((float) $data['workday_hours'], 1)]);
 
-        foreach ($data['departments'] ?? [] as $key => $department) {
+        // Khu không có trong form (không chọn bộ phận nào) thì về "bộ phận nào cũng được".
+        foreach (Roster::targets()->except('g')->keys() as $key) {
+            $ids = array_values(array_unique(array_map('intval', $data['departments'][$key] ?? [])));
             $model = match (true) {
                 str_starts_with($key, 's') && has_module('dinein') => Station::find((int) substr($key, 1)),
                 str_starts_with($key, 'a') => Area::find((int) substr($key, 1)),
                 default => null,
             };
-            $model?->update(['department_id' => $department ? (int) $department : null]);
+            $model?->update(['department_ids' => $ids ?: null]);
         }
 
         return back()->with('status', __('schedule.settings_saved'));

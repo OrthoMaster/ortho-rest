@@ -9,6 +9,5 @@ return [
     'dinein' => 'Lấy đơn tại bàn',
     'staff' => 'Nội bộ',
     'schedule' => 'Lịch làm việc',
-    'leave' => 'Nghỉ phép',
     'sop' => 'Quy trình',
 ];

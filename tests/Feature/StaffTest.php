@@ -181,6 +181,16 @@ class StaffTest extends TestCase
         $this->get("$this->admin/staff/accounts")->assertSee(__('staff.inactive'))->assertSee(__('staff.activate'));
         $this->post("$this->admin/staff/accounts/{$lan->id}/active");
         $this->assertTrue($lan->fresh()->is_active);
+
+        // Form sửa chia tab; tắt Đang làm việc ở tab Tài khoản cũng cho nghỉ và đăng xuất.
+        $this->get("$this->admin/staff/accounts/{$lan->id}/edit")->assertOk()->assertSee('data-tabs', false)
+            ->assertSee(__('staff.tab_account'))->assertSee(__('staff.tab_roles'))->assertSee(__('staff.active'));
+        UserDevice::create(['user_id' => $lan->id, 'token_hash' => hash('sha256', 'y'), 'name' => 'iPhone', 'last_seen_at' => now()]);
+        $this->put("$this->admin/staff/accounts/{$lan->id}", ['name' => 'Lan', 'phone' => '0902223333', 'is_active' => '0', 'positions' => [$this->position('manager')->id]])
+            ->assertSessionHasNoErrors();
+        $this->assertFalse($lan->fresh()->is_active);
+        $this->assertSame(0, $lan->devices()->count());
+        $this->assertContains(__('staff.log_deactivated', ['name' => 'Lan']), ActivityLog::where('area', 'staff')->latest('id')->first()->changes);
     }
 
     public function test_owner_and_other_restaurants_accounts_are_off_limits(): void

@@ -9,10 +9,10 @@
 
     @include('modules.schedule.subnav')
 
-    @php($targets = $stations->map(fn ($station) => ['key' => 's'.$station->id, 'name' => $station->name, 'code' => null, 'department' => $station->department_id])
-        ->concat($areas->map(fn ($area) => ['key' => 'a'.$area->id, 'name' => $area->name, 'code' => $area->code, 'department' => $area->department_id])))
+    @php($targets = $stations->map(fn ($station) => ['key' => 's'.$station->id, 'name' => $station->name, 'code' => null, 'departments' => $station->department_ids ?? []])
+        ->concat($areas->map(fn ($area) => ['key' => 'a'.$area->id, 'name' => $area->name, 'code' => $area->code, 'departments' => $area->department_ids ?? []])))
 
-    <form method="post" action="{{ route('tenant.admin.schedule.settings.update') }}" class="stack settings-stack" data-guard>
+    <form method="post" action="{{ route('tenant.admin.schedule.settings.update') }}" class="stack settings-stack" data-guard data-multi-manual>
         @csrf
         @method('put')
         <section class="panel stack">
@@ -29,15 +29,16 @@
                 </div>
                 <div class="toggle-list">
                     @foreach ($targets as $target)
-                        <label class="toggle-row target-department">
+                        <div class="toggle-row target-department">
                             <span>@if ($target['code'])<span class="area-code">{{ $target['code'] }}</span> @endif{{ $target['name'] }}</span>
-                            <select name="departments[{{ $target['key'] }}]" aria-label="{{ __('staff.department') }} · {{ $target['name'] }}">
-                                <option value="">{{ __('schedule.any_department') }}</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}" @selected((int) old('departments.'.$target['key'], $target['department']) === $department->id)>{{ $department->name }}</option>
-                                @endforeach
-                            </select>
-                        </label>
+                            @include('partials.filter-multi', [
+                                'name' => 'departments['.$target['key'].']',
+                                'label' => __('staff.department'),
+                                'options' => $departments->pluck('name', 'id')->all(),
+                                'values' => array_map('intval', old('departments.'.$target['key'], $target['departments'])),
+                                'all' => __('schedule.any_department'),
+                            ])
+                        </div>
                     @endforeach
                 </div>
             </section>

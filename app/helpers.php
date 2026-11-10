@@ -100,6 +100,37 @@ if (! function_exists('mask_phone')) {
     }
 }
 
+if (! function_exists('short_name')) {
+    /**
+     * Tên ngắn tối đa 12 ký tự cho lịch làm việc: đủ thì giữ nguyên; không thì lấy
+     * chữ đầu các từ trước, nối bằng dấu chấm, giữ tên cuối (Nguyễn Thành Tiến → N.T.Tiến);
+     * vẫn quá dài thì 9 ký tự đầu và "...".
+     */
+    function short_name(string $name, int $max = 12): string
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $name));
+
+        if (mb_strlen($name) <= $max) {
+            return $name;
+        }
+
+        $words = explode(' ', $name);
+
+        if (count($words) > 1) {
+            $last = array_pop($words);
+            $short = implode('', array_map(fn (string $word) => mb_strtoupper(mb_substr($word, 0, 1)).'.', $words)).$last;
+
+            if (mb_strlen($short) <= $max) {
+                return $short;
+            }
+
+            $name = $short;
+        }
+
+        return mb_substr($name, 0, $max - 3).'...';
+    }
+}
+
 if (! function_exists('tenant_route')) {
     /**
      * Sinh link của nhà hàng, đúng kiểu URL: domain riêng nếu quán có domain đã
