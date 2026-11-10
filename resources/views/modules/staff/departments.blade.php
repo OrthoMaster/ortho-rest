@@ -10,6 +10,7 @@
 
     @include('modules.staff.subnav')
 
+    <div class="stack w-md">
     <p class="lead">{{ __('staff.departments_lead') }}</p>
 
     @if ($departments->isEmpty())
@@ -41,6 +42,7 @@
             </ul>
         </section>
     @endif
+    </div>
 
     @foreach ([null, ...$departments] as $department)
         @php($bag = 'department-'.($department?->id ?? 'new'))

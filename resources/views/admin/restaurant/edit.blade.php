@@ -7,6 +7,7 @@
 
     @include('admin.restaurant.subnav')
 
+    <div class="cols cols-2">
     <section class="panel">
         <h2>{{ __('ui.logo.title') }}</h2>
         @include('partials.logo-form', [
@@ -36,4 +37,5 @@
             </div>
         </form>
     </section>
+    </div>
 @endsection

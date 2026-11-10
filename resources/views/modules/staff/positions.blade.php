@@ -10,8 +10,10 @@
 
     @include('modules.staff.subnav')
 
+    <div class="stack w-md">
     <p class="lead">{{ __('staff.positions_lead') }}</p>
 
+    <section class="panel">
     <ul class="rows">
         {{-- Chủ quán luôn toàn quyền, không sửa được. --}}
         <li class="is-fixed">
@@ -21,10 +23,12 @@
             </span>
         </li>
     </ul>
+    </section>
 
     @if ($positions->isEmpty())
         <p class="empty">{{ __('staff.no_positions') }}</p>
     @else
+        <section class="panel">
         <ul class="rows" data-sortable data-sort-url="{{ route('tenant.admin.staff.positions.reorder') }}">
             @foreach ($positions as $position)
                 <li class="row-link" data-sort-id="{{ $position->id }}">
@@ -48,5 +52,7 @@
                 </li>
             @endforeach
         </ul>
+        </section>
     @endif
+    </div>
 @endsection

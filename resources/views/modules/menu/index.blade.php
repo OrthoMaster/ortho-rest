@@ -16,6 +16,8 @@
 
     @include('modules.menu.subnav', ['current' => $menu])
 
+    {{-- Danh sách món không dài: một cột vừa phải, không kéo hết màn hình. --}}
+    <div class="stack w-md">
     @if ($categories->isEmpty())
         <p class="empty">{{ __('menu.empty') }}</p>
     @else
@@ -169,5 +171,6 @@
             </div>
         </section>
     @endforeach
+    </div>
     </div>
 @endsection

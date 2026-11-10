@@ -440,6 +440,40 @@ tr.is-muted td { color: var(--ink-soft); }
 .content { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 1.25rem; min-width: 0; padding: 2rem clamp(1rem, 3vw, 3rem); }
 /* Bảng rộng chỉ cuộn trong khung của nó, không làm cả trang cuộn ngang trên điện thoại. */
 .content > * { min-width: 0; }
+/*
+ * Bố cục theo lượng dữ liệu (giống col-lg-* / col-xl-*). Điện thoại luôn một cột rộng 100%.
+ * Danh sách hay thẻ ít dữ liệu không kéo hết màn hình: dùng .w-sm / .w-md / .w-lg, hoặc chia cột bằng .cols-*.
+ */
+.w-sm, .w-md, .w-lg { width: 100%; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.layout-side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem 2rem; align-items: start; }
+@media (min-width: 1024px) {
+    .w-sm { width: 66%; }
+    .w-md { width: 80%; }
+    .cols-2, .cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Cột trái hẹp (bộ lọc), cột phải rộng (danh sách). */
+    .layout-side { grid-template-columns: minmax(18rem, 1fr) minmax(0, 3fr); }
+    .layout-side > aside { position: sticky; top: 1rem; }
+    /* Thanh lọc đặt ở cột trái: các ô xếp dọc, rộng hết cột. */
+    .filter-bar.is-side { display: grid; gap: .75rem; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .filter-bar.is-side .filter-top, .filter-bar.is-side .filter-panel, .filter-bar.is-side .filter-fields { display: grid; gap: .6rem; }
+    .filter-bar.is-side .multi-trigger { width: 100%; }
+    .filter-bar.is-side .date-nav { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+    .filter-bar.is-side .date-nav form { flex: 1 1 auto; min-width: 0; }
+    .filter-bar.is-side .date-nav .picker-trigger { width: 100%; min-width: 0; overflow: hidden; }
+    .filter-bar.is-side .date-full { display: none; }
+    .filter-bar.is-side .date-short { display: inline; }
+    .filter-bar.is-side .multi-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .filter-bar.is-side .multi-trigger svg { margin-left: auto; }
+    .filter-bar.is-side .multi-panel { left: 0; right: auto; width: 100%; min-width: 15rem; }
+}
+@media (min-width: 1440px) {
+    .w-sm { width: 45%; }
+    .w-md { width: 60%; }
+    .w-lg { width: 80%; }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-2-xl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
 .page-head h1 { margin-bottom: .25rem; }
@@ -546,7 +580,9 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
 .form-tabs button:hover { color: var(--ink); }
 .form-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--secondary); }
 .form-tabs button.has-error { color: var(--bad-ink); }
-.narrow-panel { max-width: 44rem; }
+.narrow-panel { width: 100%; }
+@media (min-width: 1024px) { .narrow-panel { width: 80%; } }
+@media (min-width: 1440px) { .narrow-panel { width: 60%; } }
 .filters .inline-form { flex-wrap: nowrap; }
 .filters .inline-form select { flex: 0 1 auto; width: auto; }
 .filters { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1rem; }

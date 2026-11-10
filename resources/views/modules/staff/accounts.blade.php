@@ -10,6 +10,7 @@
 
     @include('modules.staff.subnav')
 
+    <section class="panel w-md">
     <ul class="rows">
         @foreach ($accounts as $account)
             @php($owner = $account->isOwner())
@@ -59,4 +60,5 @@
             </li>
         @endforeach
     </ul>
+    </section>
 @endsection

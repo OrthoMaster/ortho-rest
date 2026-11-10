@@ -12,7 +12,11 @@ Cách chạy và cấu trúc thư mục xem `README.md`. Chức năng và các q
 - Link của quán sinh bằng `tenant_route()`.
 - Chữ giao diện qua `__()` và `lang/vi`, không viết cứng trong Blade.
 - Danh sách: nếu dòng mở được chi tiết thì bấm cả dòng, không chỉ phần tên (dùng class `row-link`), vì trên điện thoại rất khó chạm trúng link nhỏ.
-- Bố cục không cố định bề ngang trên máy tính: nội dung dùng hết bề ngang màn hình laptop (không đặt `max-width` cho cả trang, không để nội dung dồn một bên). Đồng thời phải responsive, dùng tốt trên điện thoại, nhất là các màn hình cho nhân viên và quản lý. Bảng rộng chỉ cuộn ngang trong khung của nó (`table-wrap`, `schedule-wrap`), cả trang không bao giờ cuộn ngang.
+- Bố cục không cố định bề ngang cả trang (không đặt `max-width` cho `.content`), nhưng độ rộng của từng khối đi theo lượng dữ liệu, giống `col-lg-*` / `col-xl-*`:
+  - Dữ liệu ít (danh sách ngắn, thẻ vài dòng) thì không kéo dài sọc hết màn hình: đặt trong một cột vừa phải (`w-sm`, `w-md`, `w-lg`), hoặc chia nhiều thẻ thành cột (`cols cols-2`, `cols-3`, `cols-2-xl`).
+  - Trang có bộ lọc và danh sách dài (Nhật ký...): bộ lọc cột trái hẹp, danh sách cột phải rộng (`layout-side`, filter-bar `class => 'is-side'`).
+  - Bảng hay lịch nhiều cột thì dùng hết bề ngang.
+  - Điện thoại mọi khối về một cột 100%. Phải dùng tốt trên điện thoại, nhất là màn hình cho nhân viên và quản lý. Bảng rộng chỉ cuộn ngang trong khung của nó (`table-wrap`, `schedule-wrap`), cả trang không bao giờ cuộn ngang.
 - Chữ không bao giờ dính sát mép khung, nền hoặc viền (panel, dòng đang rê chuột, thẻ, badge). `ul.rows` luôn nằm trong một `section.panel`, không ghép `class="rows panel"` (`.rows` xoá lề của panel). Thiết kế xong phải chụp màn hình cả máy tính và điện thoại, rê chuột lên dòng, và kiểm tra lề trái phải của chữ trước khi đẩy lên.
 - Dòng có nhiều thao tác thì gom vào nút 3 chấm dọc ở cuối dòng (`partials/kebab`).
 - Thao tác Xoá luôn có chữ màu danger: `is-danger` trong menu 3 chấm, `link-danger` cho link, `btn-danger` cho nút.

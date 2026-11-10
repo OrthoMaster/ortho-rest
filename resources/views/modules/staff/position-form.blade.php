@@ -14,7 +14,7 @@
         @csrf
         @if ($editing) @method('put') @endif
 
-        <section class="panel stack">
+        <section class="panel stack w-sm">
             @include('partials.field', ['name' => 'name', 'label' => __('staff.position_name'), 'value' => $position->name, 'maxlength' => 60, 'autocomplete' => 'off', 'hint' => __('staff.position_name_hint')])
         </section>
 

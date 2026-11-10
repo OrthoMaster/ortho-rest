@@ -15,7 +15,7 @@
     @if ($columns->isEmpty())
         <p class="empty">{{ __('shifts.none') }}</p>
     @else
-        <div class="table-wrap shift-table">
+        <div class="table-wrap shift-table w-md">
             <table>
                 <thead>
                     <tr>

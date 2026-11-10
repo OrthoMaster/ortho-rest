@@ -9,6 +9,8 @@
 
     @include('admin.restaurant.subnav')
 
+    {{-- Màn hình rộng: Khu bàn và Khu phục vụ đặt cạnh nhau. --}}
+    <div class="cols cols-2-xl">
     {{-- Khu bàn: khách ngồi ở đâu (mã khu, số bàn, số chỗ). --}}
     <section class="stack area-section">
         <div class="panel-head">
@@ -98,6 +100,10 @@
                 <small class="row-note">{{ __('dinein.station_fallback') }}</small>
             </section>
         </section>
+    @endif
+    </div>
+
+    @if ($stations !== null)
 
         <dialog id="station-dialog" @if ($errors->hasBag('station-dialog')) data-auto-open @endif>
             <form method="post" action="{{ route('tenant.admin.dinein.stations.store') }}" class="stack">

@@ -7,6 +7,7 @@
     @php($roleLabel = $user->isOwner() ? $user->role->label() : ($user->positions->pluck('name')->implode(', ') ?: $user->role?->label()))
     <p class="lead">{{ __('ui.dashboard.role_at', ['role' => $roleLabel, 'restaurant' => $restaurant->name]) }}</p>
 
+    <div class="cols cols-2">
     <section class="panel">
         <h2>{{ __('ui.dashboard.public_url') }}</h2>
         @if ($restaurant->hasModule('website'))
@@ -29,4 +30,5 @@
             <p>{{ __('ui.dashboard.modules_empty') }}</p>
         @endif
     </section>
+    </div>
 @endsection

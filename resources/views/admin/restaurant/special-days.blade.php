@@ -10,6 +10,7 @@
 
     @include('admin.restaurant.subnav')
 
+    <div class="stack w-md">
     <p class="lead">{{ __('special_days.lead') }}</p>
 
     @foreach (['upcoming' => $upcoming, 'past' => $past] as $group => $days)
@@ -19,6 +20,7 @@
                 @if ($days->isEmpty())
                     <p class="empty">{{ __('special_days.none') }}</p>
                 @else
+                    <section class="panel">
                     <ul class="rows">
                         @foreach ($days as $day)
                             <li class="row-link">
@@ -40,8 +42,10 @@
                             </li>
                         @endforeach
                     </ul>
+                    </section>
                 @endif
             </section>
         @endif
     @endforeach
+    </div>
 @endsection
