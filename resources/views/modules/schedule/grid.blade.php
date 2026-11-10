@@ -28,7 +28,7 @@
             @php($visible = $group->filter(fn ($target) => $usedLanes === null || collect($target['lanes'])->pluck('key')->intersect($usedLanes)->isNotEmpty()))
             @continue($visible->isEmpty())
             <tbody>
-                <tr class="schedule-group"><th scope="rowgroup" colspan="{{ count($columns) + 1 }}">{{ $heading }}</th></tr>
+                <tr class="schedule-group"><th scope="rowgroup" colspan="{{ count($columns) + 1 }}"><span>{{ $heading }}</span></th></tr>
                 @foreach ($visible as $target)
                     @foreach ($target['lanes'] as $index => $lane)
                         @continue($usedLanes !== null && ! in_array($lane['key'], $usedLanes, true) && ! ($index === 0 && $lane['task_id'] === null))

@@ -32,6 +32,8 @@
     --tone-7-ink: #0f5560;
     --tone-8-bg: #e6e8ec;
     --tone-8-ink: #374151;
+    /* Ô ngày quán nghỉ trên lịch */
+    --closed-bg: color-mix(in srgb, var(--ink) 7%, var(--surface));
     --line: color-mix(in srgb, var(--primary) 35%, #dfe5ea);
     --field-line: color-mix(in srgb, var(--primary-ink) 45%, white);
 
@@ -1061,7 +1063,8 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule thead th a { display: block; color: inherit; text-decoration: none; }
 .schedule thead th span { display: block; font-weight: 400; color: var(--ink-soft); }
 .schedule thead th.is-today { color: var(--primary-ink); background: var(--primary-soft); }
-.schedule .schedule-target { position: sticky; left: 0; z-index: 1; width: 8.5rem; padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
+/* Cột Khu / việc: màn hình to thì rộng ra; màn hình nhỏ giữ cố định bên trái, các cột ngày cuộn ngang. */
+.schedule .schedule-target { position: sticky; left: 0; z-index: 1; width: clamp(8.5rem, 14vw, 16rem); padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
 .schedule thead .schedule-target { background: var(--ground); }
 .schedule tbody th.schedule-target { display: table-cell; }
 .schedule .schedule-target .area-code { margin: 0 0 .25rem; }
@@ -1131,7 +1134,7 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .week-totals { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: 0 0 1rem; font-size: .875rem; color: var(--ink-soft); }
 .week-totals .person-pill { margin-right: .35rem; }
 .planner .schedule { min-width: 46rem; }
-.planner.is-editable .schedule .schedule-target { width: 7.5rem; }
+.planner.is-editable .schedule .schedule-target { width: clamp(7.5rem, 11vw, 14rem); }
 .schedule tr.lane-task .schedule-target { padding-left: 1.5rem; font-weight: 400; }
 .schedule tr.lane-task.lane-first .schedule-target { padding-left: .75rem; }
 .schedule tr.lane-task.lane-first .lane-name { display: block; padding-left: .75rem; }
@@ -1146,7 +1149,10 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule tr.slot-tone-2 > td { background: var(--slot-2); }
 .schedule tr.slot-tone-3 > td { background: var(--slot-3); }
 .schedule tr[class*="slot-tone-"] > td.is-today { box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--primary-soft) 35%, transparent); }
-.schedule tr[class] > td.is-closed { vertical-align: middle; text-align: center; background: var(--ground); }
+.schedule tr[class] > td.is-closed { vertical-align: middle; text-align: center; background: var(--closed-bg); }
+/* Tên nhóm khu luôn thấy khi cuộn ngang. */
+.schedule-group th > span { position: sticky; left: .75rem; }
+.schedule thead th.is-closed { color: var(--ink-soft); background: var(--closed-bg); }
 .slot-closed { display: block; padding: .5rem; font-size: .75rem; color: var(--ink-soft); }
 .slot-head { display: flex; flex-basis: 100%; align-items: center; flex-wrap: nowrap; justify-content: space-between; gap: .25rem; min-height: 1.1rem; }
 .slot-label { min-width: 0; overflow: hidden; font-size: .6875rem; color: var(--ink-soft); white-space: nowrap; text-overflow: ellipsis; }
@@ -1166,7 +1172,9 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .slot-zone .person-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; -webkit-touch-callout: none; }
 .slot-zone .person-pill.has-leave { position: relative; overflow: visible; margin-right: .35rem; }
 /* Người có đơn nghỉ chờ duyệt ở ca này: chấm cảnh báo ở góc phải trên của tên, rê chuột xem lời nhắc. */
-.leave-badge { position: absolute; top: -.4rem; right: -.45rem; display: grid; place-items: center; width: 1rem; height: 1rem; font-size: .625rem; font-weight: 700; line-height: 1; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-ink); border-radius: 50%; cursor: help; }
+.leave-badge { position: absolute; top: -.55rem; right: -.6rem; display: grid; place-items: center; width: 1.15rem; height: 1.15rem; padding: 0; color: var(--warn-ink); background: none; border: 0; cursor: pointer; }
+.leave-badge svg { width: 100%; height: 100%; fill: var(--warn-bg); }
+.leave-tip { position: fixed; z-index: 46; max-width: 18rem; padding: .55rem .75rem; font-size: .875rem; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-ink); border-radius: var(--radius); box-shadow: 0 6px 18px rgb(23 40 56 / .18); }
 .slot-zone .person-pill.is-holding { outline: 2px solid var(--bad-ink); outline-offset: 1px; }
 /* Giữ lâu một tên trong lịch thì hiện nút Xoá ngay cạnh. */
 .pill-delete { position: fixed; z-index: 46; min-height: 2.25rem; padding: .3rem .8rem; font: inherit; font-size: .875rem; font-weight: 600; color: var(--bad-ink); background: var(--surface); border: 1px solid var(--bad-ink); border-radius: var(--radius); box-shadow: 0 6px 18px rgb(23 40 56 / .18); cursor: pointer; }

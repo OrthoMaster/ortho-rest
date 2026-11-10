@@ -2510,6 +2510,22 @@
         deleteButton.hidden = true;
         document.body.appendChild(deleteButton);
 
+        // Bấm chấm cảnh báo trên tên: hiện lời nhắc ngay cạnh.
+        var leaveTip = document.createElement('div');
+        leaveTip.className = 'leave-tip';
+        leaveTip.setAttribute('role', 'status');
+        leaveTip.hidden = true;
+        document.body.appendChild(leaveTip);
+        var showTip = function (badge) {
+            var box = badge.getBoundingClientRect();
+
+            leaveTip.textContent = badge.dataset.message;
+            leaveTip.hidden = false;
+            leaveTip.style.left = Math.max(8, Math.min(box.left, window.innerWidth - leaveTip.offsetWidth - 8)) + 'px';
+            leaveTip.style.top = (box.bottom + 6 + leaveTip.offsetHeight > window.innerHeight ? box.top - leaveTip.offsetHeight - 6 : box.bottom + 6) + 'px';
+        };
+        var hideTip = function () { leaveTip.hidden = true; };
+
         var remember = function (key, value) {
             try { window.localStorage.setItem('liresto.people.' + key, value ? '1' : '0'); } catch (error) {}
         };
@@ -2678,15 +2694,18 @@
             }
 
             if (!badge) {
-                badge = document.createElement('span');
+                badge = document.createElement('button');
+                badge.type = 'button';
                 badge.className = 'leave-badge';
-                badge.textContent = '!';
+                badge.draggable = false;
+                badge.innerHTML = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                    + '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4" fill="none"/><path d="M12 17h.01" fill="none"/></svg>';
                 pill.appendChild(badge);
             }
 
             var day = zone.dataset.date.split('-');
-            badge.title = planner.dataset.pendingLabel.replace(':name', pill.title).replace(':date', day[2] + '/' + day[1]);
-            badge.setAttribute('aria-label', badge.title);
+            badge.dataset.message = planner.dataset.pendingLabel.replace(':name', pill.title).replace(':date', day[2] + '/' + day[1]);
+            badge.setAttribute('aria-label', badge.dataset.message);
         };
         var markZones = function (userId) {
             planner.querySelectorAll('[data-drop]').forEach(function (zone) {
@@ -2832,11 +2851,18 @@
             if (held && event.target !== deleteButton && event.target !== held) {
                 hideDelete();
             }
+            if (!leaveTip.hidden && !event.target.closest('.leave-badge')) {
+                hideTip();
+            }
         });
-        document.addEventListener('scroll', hideDelete, true);
+        document.addEventListener('scroll', function () {
+            hideDelete();
+            hideTip();
+        }, true);
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 hideDelete();
+                hideTip();
             }
         });
 
@@ -2844,7 +2870,7 @@
         planner.addEventListener('pointerdown', function (event) {
             var pill = event.target.closest('[data-drop] [data-user]');
 
-            if (!pill || event.button > 0) {
+            if (!pill || event.button > 0 || event.target.closest('.leave-badge')) {
                 return;
             }
 
@@ -2934,6 +2960,19 @@
         });
 
         planner.addEventListener('click', function (event) {
+            var badge = event.target.closest('.leave-badge');
+
+            if (badge) {
+                event.stopPropagation();
+                if (leaveTip.hidden || leaveTip.textContent !== badge.dataset.message) {
+                    showTip(badge);
+                } else {
+                    hideTip();
+                }
+
+                return;
+            }
+
             var person = event.target.closest('[data-drag-user]');
             var zone = event.target.closest('[data-drop]');
 
