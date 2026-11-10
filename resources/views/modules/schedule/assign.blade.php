@@ -1,7 +1,6 @@
 @extends('layouts.admin')
 
 @section('title', __('schedule.assign'))
-@section('content_class', 'is-wide')
 
 @section('content')
     <div class="page-head">

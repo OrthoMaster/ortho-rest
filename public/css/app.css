@@ -436,8 +436,10 @@ tr.is-muted td { color: var(--ink-soft); }
 .sidebar-foot { margin-top: auto; display: grid; gap: .25rem; padding: 0 .6rem; font-size: .875rem; }
 .sidebar-foot button { justify-self: start; padding: 0; color: inherit; text-decoration: underline; font: inherit; background: none; border: 0; cursor: pointer; }
 
-.content { display: grid; align-content: start; gap: 1.25rem; padding: 2rem clamp(1rem, 4vw, 3rem); max-width: 60rem; }
-.content.is-wide { max-width: 96rem; }
+/* Nội dung dùng hết bề ngang màn hình (không giới hạn cố định); điện thoại tự xếp lại. */
+.content { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 1.25rem; min-width: 0; padding: 2rem clamp(1rem, 3vw, 3rem); }
+/* Bảng rộng chỉ cuộn trong khung của nó, không làm cả trang cuộn ngang trên điện thoại. */
+.content > * { min-width: 0; }
 
 .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
 .page-head h1 { margin-bottom: .25rem; }
@@ -493,7 +495,7 @@ tr.is-muted td { color: var(--ink-soft); }
 
 .search { display: flex; gap: .5rem; max-width: 28rem; }
 
-.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.table-wrap { position: relative; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: .65rem .85rem; text-align: left; white-space: nowrap; }
 .name-cell { display: flex; align-items: center; gap: .6rem; }
