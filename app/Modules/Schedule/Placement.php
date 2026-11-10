@@ -49,9 +49,12 @@ class Placement
             $warnings[] = __('schedule.leave_pending', ['name' => $user->name, 'date' => $date->format('d/m')]);
         }
 
+        // Chỉ nhắc khi cùng ca mà ở hai khu khác nhau. Khu và việc của chính khu đó, hoặc Việc chung, thì không nhắc.
+        $area = fn (string $key) => explode('-t', $key, 2)[0];
         foreach ($sameSlot as $row) {
-            $other = $lanes[Roster::laneKey($row)] ?? null;
-            if ($other) {
+            $otherKey = Roster::laneKey($row);
+            $other = $lanes[$otherKey] ?? null;
+            if ($other && $area($otherKey) !== $area($laneKey) && $area($otherKey) !== Roster::GENERAL && $area($laneKey) !== Roster::GENERAL) {
                 $warnings[] = __('schedule.also_in', ['name' => $user->name, 'lane' => $this->laneName($other), 'slot' => $slot['name']]);
             }
         }

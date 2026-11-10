@@ -132,7 +132,12 @@ class ScheduleTest extends TestCase
 
         $this->get("$this->base/week?date=2026-11-10")->assertSee('Đứng thanh toán')->assertSee(__('schedule.general_tasks'))->assertSee('Dọn vệ sinh cuối buổi');
 
-        $this->place($lan, '2026-11-10', (string) $this->dinner->id, "a{$this->area->id}-t{$cashier->id}")->assertOk();
+        // Cùng ca: ở khu rồi nhận thêm việc của chính khu đó, hoặc Việc chung, thì không nhắc.
+        $this->place($lan, '2026-11-10', (string) $this->dinner->id, "a{$this->area->id}")->assertOk()->assertJsonPath('warnings', []);
+        $this->place($lan, '2026-11-10', (string) $this->dinner->id, "a{$this->area->id}-t{$cashier->id}")->assertOk()->assertJsonPath('warnings', []);
+        $this->place($lan, '2026-11-10', (string) $this->dinner->id, "g-t{$cleaning->id}")->assertOk()->assertJsonPath('warnings', []);
+        Assignment::withoutGlobalScopes()->whereIn('area_id', [$this->area->id])->whereNull('schedule_task_id')->delete();
+        Assignment::withoutGlobalScopes()->where('schedule_task_id', $cleaning->id)->delete();
         $this->place($lan, '2026-11-11', 'day', "g-t{$cleaning->id}")->assertOk(); // thứ tư chưa khai ca: cả ngày
 
         $rows = Assignment::withoutGlobalScopes()->orderBy('id')->get();
