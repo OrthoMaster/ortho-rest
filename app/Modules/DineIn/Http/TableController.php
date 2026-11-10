@@ -29,8 +29,7 @@ class TableController extends Controller
         return redirect()->route(match (true) {
             $user->can('dinein.order') => 'tenant.admin.dinein.tables.index',
             Gate::allows('dinein.screen') => 'tenant.admin.dinein.screens.index',
-            $user->can('dinein.assign') => 'tenant.admin.dinein.assign.index',
-            $user->can('dinein.settings') => 'tenant.admin.dinein.stations.index',
+            $user->can('dinein.settings') => 'tenant.admin.restaurant.capacity.index',
             default => abort(403),
         });
     }

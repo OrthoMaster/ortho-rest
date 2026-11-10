@@ -21,8 +21,11 @@ return [
         'dinein.close' => ['manager', 'staff'],
         'dinein.cancel' => ['manager'],
         'dinein.stations' => ['manager'],
-        'dinein.assign' => ['manager'],
         'dinein.settings' => ['manager'],
+    ],
+    'schedule' => [
+        'schedule.view' => ['manager', 'staff'],
+        'schedule.manage' => ['manager'],
     ],
     'staff' => [
         'staff.manage' => [],

@@ -3,10 +3,10 @@
 namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
-use App\Modules\DineIn\Duty;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
+use App\Modules\Schedule\Duty;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

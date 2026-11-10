@@ -3,6 +3,7 @@
 use App\Modules\DineIn\Installer as DineInInstaller;
 use App\Modules\Menu\Installer as MenuInstaller;
 use App\Modules\Reservation\Installer as ReservationInstaller;
+use App\Modules\Schedule\Installer as ScheduleInstaller;
 use App\Modules\Staff\Installer as StaffInstaller;
 use App\Modules\Takeaway\Installer as TakeawayInstaller;
 use App\Modules\Website\Installer as WebsiteInstaller;
@@ -63,7 +64,7 @@ return [
         'installer' => DineInInstaller::class,
         'routes' => 'DineIn/routes.php',
         // dinein.screen: có quyền mở màn hình khu, hoặc đang được phân công ở một khu (bếp, bar).
-        'menu' => ['route' => 'dinein.index', 'permission' => ['dinein.order', 'dinein.screen', 'dinein.assign', 'dinein.settings']],
+        'menu' => ['route' => 'dinein.index', 'permission' => ['dinein.order', 'dinein.screen', 'dinein.settings']],
     ],
     'staff' => [
         'name' => 'modules.staff',
@@ -77,7 +78,10 @@ return [
         'name' => 'modules.schedule',
         'depends' => ['staff'],
         'phase' => 2,
-        'available' => false,
+        'installer' => ScheduleInstaller::class,
+        'routes' => 'Schedule/routes.php',
+        // schedule.open: ai cũng xem được lịch của mình; xem của mọi người cần schedule.view.
+        'menu' => ['route' => 'schedule.index', 'permission' => ['schedule.open']],
     ],
     'leave' => [
         'name' => 'modules.leave',

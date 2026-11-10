@@ -26,7 +26,7 @@ Route::middleware('module:reservation')
             Route::put('booking', [SettingsController::class, 'updateBooking'])->name('booking');
         });
 
-        // Khu vực đã chuyển sang Cài đặt chung → Sức chứa.
+        // Khu vực đã chuyển sang Cài đặt chung → Khu vực.
         Route::get('areas', fn () => redirect()->route('tenant.admin.restaurant.capacity.index', status: 301));
 
         Route::get('{reservation}', [ReservationController::class, 'show'])->whereNumber('reservation')->middleware('can:reservation.view')->name('show');

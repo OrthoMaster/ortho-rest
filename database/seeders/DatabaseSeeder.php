@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
         $manager = $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Staff, phone: '0900000001');
         $staff = $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff, phone: '0900000002');
 
-        foreach (['website', 'menu', 'reservation', 'takeaway', 'dinein', 'staff'] as $module) {
+        foreach (['website', 'menu', 'reservation', 'takeaway', 'dinein', 'staff', 'schedule'] as $module) {
             $modules->enable($demo, $module);
         }
 

@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\DineIn\Http\AssignmentController;
 use App\Modules\DineIn\Http\PollController;
 use App\Modules\DineIn\Http\ScreenController;
 use App\Modules\DineIn\Http\StationController;
@@ -31,11 +30,6 @@ Route::middleware('module:dinein')
             Route::get('screens', [ScreenController::class, 'index'])->name('screens.index');
             Route::get('screens/{station}', [ScreenController::class, 'show'])->whereNumber('station')->name('screens.show');
             Route::post('screens/{station}/done', [ScreenController::class, 'done'])->whereNumber('station')->name('screens.done');
-        });
-
-        Route::middleware('can:dinein.assign')->group(function () {
-            Route::get('assign', [AssignmentController::class, 'index'])->name('assign.index');
-            Route::put('assign', [AssignmentController::class, 'update'])->name('assign.update');
         });
 
         Route::middleware('can:dinein.settings')->prefix('stations')->name('stations.')->group(function () {

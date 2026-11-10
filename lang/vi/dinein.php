@@ -6,7 +6,6 @@ return [
     // Tab
     'tables' => 'Bàn',
     'screens' => 'Màn hình khu',
-    'assign' => 'Phân công',
     'stations' => 'Khu phục vụ',
 
     // Bàn
@@ -20,8 +19,8 @@ return [
     'table_title' => 'Bàn :table',
     'table_free' => 'Bàn đang trống',
     'table_free_hint' => 'Gọi món đầu tiên thì bàn mở.',
-    'no_areas' => 'Chưa có khu vực nào có mã. Thêm mã khu vực và số bàn ở Cài đặt chung → Sức chứa.',
-    'manage_areas' => 'Mở Sức chứa',
+    'no_areas' => 'Chưa có khu vực nào có mã. Thêm mã khu vực và số bàn ở Cài đặt chung → Khu vực.',
+    'manage_areas' => 'Mở Khu vực',
     'opened_by' => 'Mở lúc :time bởi :name',
     'in_progress' => ':count đang làm',
     'ready_count' => ':count đã xong',
@@ -104,21 +103,11 @@ return [
     'alert_open_screen' => 'Mở màn hình',
     'alert_close' => 'Đóng',
 
-    // Phân công
-    'assign_lead' => 'Chọn người làm ở bếp, bar (nhận báo món mới) và người phục vụ từng khu vực bàn (nhận báo món đã xong) cho từng ca làm.',
-    'assign_no_shifts' => 'Ngày này chưa khai ca làm việc nên phân công cho cả ngày. Khai ca làm ở Cài đặt chung → Ca làm việc.',
-    'whole_day' => 'Cả ngày',
-    'nobody' => 'Chưa có ai',
-    'assign_save' => 'Lưu phân công',
-    'assign_saved' => 'Đã lưu phân công.',
-    'assign_log' => 'Phân công ngày :date, :shift',
-    'service_areas' => 'Khu vực bàn',
-
     // Khu phục vụ
     'stations_lead' => 'Mỗi khu có một màn hình riêng và chỉ thấy món của khu mình, ví dụ Bếp thấy món ăn, Quầy nước thấy đồ uống.',
     'station_name' => 'Tên khu',
     'station_example' => 'Ví dụ: Bếp, Bar',
-    'station_add' => 'Thêm khu',
+    'station_add' => 'Thêm khu phục vụ',
     'station_items' => 'Món của khu',
     'station_items_hint' => 'Bật các món khu này làm. Mỗi món thuộc một khu; bật ở đây thì món chuyển khỏi khu cũ.',
     'station_item_count' => ':count món',

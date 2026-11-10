@@ -18,17 +18,15 @@ use Illuminate\View\View;
 /** Khu phục vụ (Bếp, Bar...) và món của từng khu. */
 class StationController extends Controller
 {
-    public function index(): View
+    /** Khu phục vụ nằm ở Cài đặt chung → Khu vực. */
+    public function index(): RedirectResponse
     {
-        return view('modules.dinein.stations', [
-            'stations' => Station::withCount('items')->orderBy('sort_order')->orderBy('id')->get(),
-            'unassigned' => MenuItem::whereNotNull('price_dine_in')->whereNull('dinein_station_id')->count(),
-        ]);
+        return redirect()->route('tenant.admin.restaurant.capacity.index', status: 301);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $station = Station::create([...$this->validated($request), 'sort_order' => SortOrder::next(Station::query())]);
+        $station = Station::create([...$this->validated($request, null, 'station-dialog'), 'sort_order' => SortOrder::next(Station::query())]);
 
         return redirect()->route('tenant.admin.dinein.stations.edit', $station)->with('status', __('dinein.station_created'));
     }
@@ -72,7 +70,7 @@ class StationController extends Controller
             }
         });
 
-        return redirect()->route('tenant.admin.dinein.stations.index')->with('status', __('dinein.station_saved'));
+        return redirect()->route('tenant.admin.restaurant.capacity.index')->with('status', __('dinein.station_saved'));
     }
 
     public function reorder(Request $request): Response
@@ -93,13 +91,13 @@ class StationController extends Controller
 
         $station->delete();
 
-        return redirect()->route('tenant.admin.dinein.stations.index')->with('status', __('dinein.station_deleted'));
+        return redirect()->route('tenant.admin.restaurant.capacity.index')->with('status', __('dinein.station_deleted'));
     }
 
     /** @return array{name: string} */
-    private function validated(Request $request, ?Station $station = null): array
+    private function validated(Request $request, ?Station $station = null, ?string $bag = null): array
     {
-        return $request->validate([
+        return $request->validateWithBag($bag ?? 'default', [
             'name' => ['required', 'string', 'max:60', Rule::unique('dinein_stations')->where('restaurant_id', tenant()->getKey())->ignore($station)],
         ], ['name.unique' => __('dinein.station_taken')]);
     }

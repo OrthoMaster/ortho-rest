@@ -9,6 +9,7 @@ return [
         'reservation' => 'Đặt bàn trước',
         'takeaway' => 'Đặt mang đi',
         'dinein' => 'Lấy đơn tại bàn',
+        'schedule' => 'Lịch làm việc',
     ],
     'labels' => [
         'customers.view' => 'Xem danh sách khách hàng',
@@ -35,8 +36,9 @@ return [
         'dinein.close' => 'Xem tạm tính và đóng bàn',
         'dinein.cancel' => 'Huỷ món khu đã làm xong',
         'dinein.stations' => 'Mở màn hình mọi khu (bếp, bar) dù không được phân công',
-        'dinein.assign' => 'Phân công người vào khu theo ca',
         'dinein.settings' => 'Cài đặt khu phục vụ và món của từng khu',
+        'schedule.view' => 'Xem lịch làm việc của mọi người',
+        'schedule.manage' => 'Xếp lịch làm việc, phân công vào khu',
     ],
     'presets' => [
         'manager' => 'Quản lý',

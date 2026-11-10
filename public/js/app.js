@@ -1937,7 +1937,8 @@
                 if (search && !narrow.matches) {
                     search.focus();
                 }
-            } else if (!narrow.matches && state() !== opened) {
+            } else if (!narrow.matches && state() !== opened && !form.hasAttribute('data-multi-manual')) {
+                // Form lọc: đóng danh sách là lọc. Form sửa (data-multi-manual) thì chờ bấm Lưu.
                 form.submit();
             }
         };

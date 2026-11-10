@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\DineIn;
+namespace App\Modules\Schedule;
 
 use App\Enums\ShiftType;
 use App\Models\Shift;
 use App\Models\User;
-use App\Modules\DineIn\Models\Assignment;
+use App\Modules\Schedule\Models\Assignment;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -51,15 +51,29 @@ class Duty
         });
     }
 
+    /** Tắt Lịch làm việc thì không ai được tính là đang làm theo phân công. */
+    private static function active(User $user): bool
+    {
+        return (bool) $user->restaurant?->hasModule('schedule');
+    }
+
     /** @return list<int> khu (bếp, bar) người này đang làm */
     public static function stationIds(User $user): array
     {
+        if (! self::active($user)) {
+            return [];
+        }
+
         return self::current()->where('user_id', $user->id)->whereNotNull('dinein_station_id')->pluck('dinein_station_id')->unique()->values()->all();
     }
 
     /** @return list<int> khu vực bàn người này đang phục vụ */
     public static function areaIds(User $user): array
     {
+        if (! self::active($user)) {
+            return [];
+        }
+
         return self::current()->where('user_id', $user->id)->whereNotNull('area_id')->pluck('area_id')->unique()->values()->all();
     }
 

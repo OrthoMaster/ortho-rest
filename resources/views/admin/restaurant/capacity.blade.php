@@ -5,61 +5,117 @@
 @section('content')
     <div class="page-head">
         <h1>{{ __('ui.restaurant.title') }}</h1>
-        <button class="btn" type="button" data-open-dialog="area-dialog-new">{{ __('reservation.area_add') }}</button>
     </div>
 
     @include('admin.restaurant.subnav')
 
-    <p class="lead">{{ __('reservation.area_hint') }}</p>
-
-    @if ($areas->isEmpty())
-        <p class="empty">{{ __('reservation.no_areas') }}</p>
-    @else
-        <div class="table-wrap area-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th scope="col" class="col-handle"><span class="visually-hidden">{{ __('reservation.area_order') }}</span></th>
-                        <th scope="col" class="col-code">{{ __('reservation.area_code') }}</th>
-                        <th scope="col">{{ __('reservation.area_name') }}</th>
-                        <th scope="col" class="num">{{ __('reservation.area_tables_short') }}</th>
-                        <th scope="col" class="num">{{ __('reservation.area_seats_short') }}</th>
-                        <th scope="col" class="col-tools"><span class="visually-hidden">{{ __('reservation.area_actions') }}</span></th>
-                    </tr>
-                </thead>
-                <tbody data-sortable data-sort-url="{{ route('tenant.admin.restaurant.capacity.reorder') }}">
-                    @foreach ($areas as $area)
-                        <tr class="row-link" data-sort-id="{{ $area->id }}">
-                            <td class="col-handle">@include('partials.drag-handle', ['label' => __('reservation.area_move', ['name' => $area->name])])</td>
-                            <td class="col-code"><span class="area-code">{{ $area->code }}</span></td>
-                            <td><button class="row-open" type="button" data-open-dialog="area-dialog-{{ $area->id }}">{{ $area->name }}</button></td>
-                            <td class="num">{{ $area->table_count }}</td>
-                            <td class="num">{{ $area->capacity }}</td>
-                            <td class="col-tools">
-                                @component('partials.kebab', ['label' => __('reservation.area_actions_for', ['name' => $area->name])])
-                                    <button type="button" data-open-dialog="area-dialog-{{ $area->id }}">{{ __('reservation.area_edit') }}</button>
-                                    <form method="post" action="{{ route('tenant.admin.restaurant.capacity.destroy', $area) }}" data-confirm-danger data-confirm="{{ __('reservation.area_delete_confirm', ['name' => $area->name]) }}">
-                                        @csrf
-                                        @method('delete')
-                                        <button class="is-danger" type="submit">{{ __('reservation.area_delete') }}</button>
-                                    </form>
-                                @endcomponent
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <th scope="row">{{ __('reservation.area_total') }}</th>
-                        <td class="num"><strong>{{ $areas->sum('table_count') }}</strong></td>
-                        <td class="num"><strong>{{ $areas->sum('capacity') }}</strong></td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
+    {{-- Khu bàn: khách ngồi ở đâu (mã khu, số bàn, số chỗ). --}}
+    <section class="stack area-section">
+        <div class="panel-head">
+            <div>
+                <h2>{{ __('reservation.table_areas') }}</h2>
+                <small class="section-hint">{{ __('reservation.area_hint') }}</small>
+            </div>
+            <button class="btn" type="button" data-open-dialog="area-dialog-new">{{ __('reservation.area_add') }}</button>
         </div>
+
+        @if ($areas->isEmpty())
+            <p class="empty">{{ __('reservation.no_areas') }}</p>
+        @else
+            <div class="table-wrap area-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-handle"><span class="visually-hidden">{{ __('reservation.area_order') }}</span></th>
+                            <th scope="col" class="col-code">{{ __('reservation.area_code') }}</th>
+                            <th scope="col">{{ __('reservation.area_name') }}</th>
+                            <th scope="col" class="num">{{ __('reservation.area_tables_short') }}</th>
+                            <th scope="col" class="num">{{ __('reservation.area_seats_short') }}</th>
+                            <th scope="col" class="col-tools"><span class="visually-hidden">{{ __('reservation.area_actions') }}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody data-sortable data-sort-url="{{ route('tenant.admin.restaurant.capacity.reorder') }}">
+                        @foreach ($areas as $area)
+                            <tr class="row-link" data-sort-id="{{ $area->id }}">
+                                <td class="col-handle">@include('partials.drag-handle', ['label' => __('reservation.area_move', ['name' => $area->name])])</td>
+                                <td class="col-code"><span class="area-code">{{ $area->code }}</span></td>
+                                <td><button class="row-open" type="button" data-open-dialog="area-dialog-{{ $area->id }}">{{ $area->name }}</button></td>
+                                <td class="num">{{ $area->table_count }}</td>
+                                <td class="num">{{ $area->capacity }}</td>
+                                <td class="col-tools">
+                                    @component('partials.kebab', ['label' => __('reservation.area_actions_for', ['name' => $area->name])])
+                                        <button type="button" data-open-dialog="area-dialog-{{ $area->id }}">{{ __('reservation.area_edit') }}</button>
+                                        <form method="post" action="{{ route('tenant.admin.restaurant.capacity.destroy', $area) }}" data-confirm-danger data-confirm="{{ __('reservation.area_delete_confirm', ['name' => $area->name]) }}">
+                                            @csrf
+                                            @method('delete')
+                                            <button class="is-danger" type="submit">{{ __('reservation.area_delete') }}</button>
+                                        </form>
+                                    @endcomponent
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <th scope="row">{{ __('reservation.area_total') }}</th>
+                            <td class="num"><strong>{{ $areas->sum('table_count') }}</strong></td>
+                            <td class="num"><strong>{{ $areas->sum('capacity') }}</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        @endif
+    </section>
+
+    @if ($stations !== null)
+        {{-- Khu phục vụ: nơi làm món (Bếp, Bar), mỗi khu có màn hình riêng. --}}
+        <section class="stack area-section">
+            <div class="panel-head">
+                <div>
+                    <h2>{{ __('dinein.stations') }}</h2>
+                    <small class="section-hint">{{ __('dinein.stations_lead') }}</small>
+                </div>
+                <button class="btn" type="button" data-open-dialog="station-dialog">{{ __('dinein.station_add') }}</button>
+            </div>
+
+            @if ($unassigned > 0 && $stations->isNotEmpty())
+                <p class="flash flash-warn">{{ __('dinein.unassigned', ['count' => $unassigned, 'name' => $stations->first()->name]) }}</p>
+            @endif
+
+            <section class="panel">
+                <ul class="rows" data-sortable data-sort-url="{{ route('tenant.admin.dinein.stations.reorder') }}">
+                    @foreach ($stations as $station)
+                        <li class="row-link" data-sort-id="{{ $station->id }}">
+                            @include('partials.drag-handle', ['label' => $station->name])
+                            <span class="row-name"><a href="{{ route('tenant.admin.dinein.stations.edit', $station) }}">{{ $station->name }}</a></span>
+                            <small class="row-note">{{ __('dinein.station_item_count', ['count' => $station->items_count]) }}</small>
+                        </li>
+                    @endforeach
+                </ul>
+                <small class="row-note">{{ __('dinein.station_fallback') }}</small>
+            </section>
+        </section>
+
+        <dialog id="station-dialog" @if ($errors->hasBag('station-dialog')) data-auto-open @endif>
+            <form method="post" action="{{ route('tenant.admin.dinein.stations.store') }}" class="stack">
+                @csrf
+                <h2>{{ __('dinein.station_add') }}</h2>
+                <div class="field">
+                    <label for="station-name">{{ __('dinein.station_name') }}@include('partials.required')</label>
+                    <input id="station-name" name="name" value="{{ old('name') }}" maxlength="60" placeholder="{{ __('dinein.station_example') }}" required>
+                    @if ($errors->hasBag('station-dialog'))
+                        <small class="error">{{ $errors->getBag('station-dialog')->first('name') }}</small>
+                    @endif
+                </div>
+                <div class="dialog-foot">
+                    <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
+                    <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.close') }}</button>
+                </div>
+            </form>
+        </dialog>
     @endif
 
     @foreach ([null, ...$areas] as $area)

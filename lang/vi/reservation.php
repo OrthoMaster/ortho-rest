@@ -132,7 +132,8 @@ return [
     'count_no_show' => 'Không đến',
 
     'areas' => 'Khu vực',
-    'capacity' => 'Sức chứa',
+    'capacity' => 'Khu vực',
+    'table_areas' => 'Khu bàn',
     'area_code' => 'Mã khu',
     'area_code_hint' => '1–2 chữ cái, không trùng. Bàn sẽ gọi theo mã và số, ví dụ A12.',
     'area_code_invalid' => 'Mã khu là 1 hoặc 2 chữ cái, ví dụ A hoặc VIP thì viết VP.',
@@ -144,7 +145,7 @@ return [
     'area_name' => 'Tên khu vực',
     'area_example' => 'Ví dụ: Ngoài sân',
     'area_capacity' => 'Chỗ ngồi tối đa',
-    'area_add' => 'Thêm khu vực',
+    'area_add' => 'Thêm khu bàn',
     'area_delete' => 'Xoá',
     'area_delete_confirm' => 'Xoá khu vực :name?',
     'area_saved' => 'Đã lưu khu vực.',

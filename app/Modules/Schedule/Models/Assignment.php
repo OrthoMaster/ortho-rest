@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Modules\DineIn\Models;
+namespace App\Modules\Schedule\Models;
 
 use App\Models\Shift;
 use App\Models\User;
+use App\Modules\DineIn\Models\Station;
 use App\Modules\Reservation\Models\Area;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ class Assignment extends Model
 {
     use BelongsToRestaurant;
 
-    protected $table = 'dinein_assignments';
+    protected $table = 'schedule_assignments';
 
     protected $guarded = ['id'];
 

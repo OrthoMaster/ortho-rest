@@ -17,7 +17,7 @@
         return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
     })
     {{-- Ba mục phục vụ khách hằng ngày đứng riêng một nhóm, có đường kẻ trên dưới. --}}
-    @php($service = implode('', array_map($moduleLink, ['reservation', 'takeaway', 'dinein', 'menu'])))
+    @php($service = implode('', array_map($moduleLink, ['dinein', 'reservation', 'takeaway', 'menu'])))
 
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard')])>{{ __('ui.nav.dashboard') }}</a>
     {!! $moduleLink('website') !!}
@@ -33,6 +33,7 @@
         <a href="{{ route('tenant.admin.activity') }}" @class(['active' => request()->routeIs('tenant.admin.activity')])>{{ __('activity.title') }}</a>
     @endcan
     {!! $moduleLink('staff') !!}
+    {!! $moduleLink('schedule') !!}
     @can('settings.manage')
         <a href="{{ route('tenant.admin.restaurant.edit') }}" @class(['active' => request()->routeIs('tenant.admin.restaurant.*')])>{{ __('ui.restaurant.title') }}</a>
     @endcan

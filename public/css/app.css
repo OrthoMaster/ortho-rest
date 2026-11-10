@@ -655,7 +655,7 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .filter-toggle, .filter-head, .filter-foot, .filter-backdrop { display: none; }
 /* Điều kiện đang lọc: nhiều thì xuống dòng, không cuộn ngang. */
 .filter-pills { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: .4rem; min-width: 0; }
-.filter-pill { flex: none; display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; min-height: 2.25rem; padding: 0 .5rem 0 .8rem; font-size: .875rem; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: 999px; }
+.filter-pill { flex: none; display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; min-height: 2.25rem; padding: 0 .5rem 0 .8rem; font-size: .875rem; color: var(--ink); text-decoration: none; background: var(--primary-soft); border-radius: .6rem; }
 .filter-pill span { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; font-size: .75rem; color: var(--ink-soft); border-radius: 50%; }
 .filter-pill:hover span { color: var(--ink); background: var(--surface); }
 .multi { position: relative; }
@@ -970,13 +970,19 @@ dialog.dine-dialog { width: min(32rem, calc(100vw - 2rem)); max-height: calc(100
 .ticket-foot .btn, .ticket-lines .btn { white-space: nowrap; }
 .recent-done { margin-top: 1rem; }
 
+.area-section + .area-section { margin-top: 1.5rem; }
+.area-section .panel-head { align-items: flex-end; flex-wrap: wrap; }
+.area-section .panel-head > div { flex: 1 1 20rem; }
 .station-items { display: grid; gap: .1rem; }
 .station-items h3 { margin: .5rem 0 .2rem; font-size: .9375rem; }
 .station-items .row-note { font-weight: 400; }
 
-.assign-shift .panel-head { align-items: baseline; }
 .assign-group { margin: .25rem 0 0; font-size: .875rem; font-weight: 600; color: var(--ink-soft); }
-.assign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .5rem .75rem; }
+.assign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem .75rem; }
+.assign-grid > [data-multi] { min-width: 0; }
+.assign-grid [data-multi-trigger] { width: 100%; max-width: 100%; }
+.assign-grid .multi-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.assign-grid .multi-trigger svg { flex: none; margin-left: auto; }
 .assign-target { display: grid; gap: .25rem; }
 
 .dine-alerts { position: fixed; right: 1rem; bottom: 1rem; z-index: 40; display: grid; justify-items: end; gap: .5rem; }
@@ -995,3 +1001,55 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 @media (prefers-reduced-motion: reduce) {
     .ticket.is-new, .dine-alerts.is-ringing .dine-alerts-toggle { animation: none; }
 }
+
+/* Lịch làm việc */
+.week-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.week-nav strong { min-width: 7.5rem; text-align: center; }
+.schedule-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.schedule { width: 100%; min-width: 50rem; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.schedule th, .schedule td { padding: 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
+.schedule tr > :first-child { border-left: 0; }
+.schedule tbody:last-child tr:last-child > * { border-bottom: 0; }
+.schedule thead th { padding: .6rem .75rem; font-size: .875rem; font-weight: 600; background: var(--ground); }
+.schedule thead th a { display: block; color: inherit; text-decoration: none; }
+.schedule thead th span { display: block; font-weight: 400; color: var(--ink-soft); }
+.schedule thead th.is-today { color: var(--primary-ink); background: var(--primary-soft); }
+.schedule .schedule-target { position: sticky; left: 0; z-index: 1; width: 8.5rem; padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
+.schedule thead .schedule-target { background: var(--ground); }
+.schedule tbody th.schedule-target { display: table-cell; }
+.schedule .schedule-target .area-code { margin-right: .25rem; }
+.schedule-group th { padding: .45rem .75rem; font-size: .8125rem; font-weight: 600; color: var(--ink-soft); background: var(--ground); }
+.schedule td.is-today { background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface)); }
+.schedule td, .schedule th { white-space: normal; }
+.schedule-cell { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; align-content: start; min-height: 3.25rem; height: 100%; padding: .5rem .6rem; color: inherit; text-decoration: none; }
+.schedule-cell:hover { background: var(--ground); }
+.schedule-slot { display: flex; flex-wrap: wrap; gap: .25rem; min-width: 0; }
+.schedule-slot .person-pill { min-width: 0; }
+.schedule-slot small { flex-basis: 100%; font-size: .75rem; color: var(--ink-soft); }
+.schedule-none { color: var(--ink-soft); }
+.person-pill { display: inline-block; max-width: 100%; padding: .1rem .5rem; font-size: .8125rem; line-height: 1.35; overflow-wrap: anywhere; background: var(--primary-soft); border-radius: .6rem; }
+.schedule-day { display: grid; gap: 1rem; }
+.schedule-cards { display: none; gap: .75rem; }
+.schedule-card { color: inherit; text-decoration: none; gap: .6rem; }
+.schedule-card.is-today { border-color: var(--primary-ink); }
+.schedule-card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.schedule-card-row { display: grid; gap: .3rem; padding-top: .6rem; border-top: 1px solid var(--line); }
+.schedule-card-target { font-weight: 600; font-size: .9375rem; }
+@media (max-width: 760px) {
+    .schedule-wrap { display: none; }
+    .schedule-cards { display: grid; }
+}
+.assign-readonly { display: grid; gap: .3rem; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.assign-readonly > span:first-child { font-weight: 600; }
+.assign-readonly > span:last-child { display: flex; flex-wrap: wrap; gap: .25rem; }
+.person-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.person-pick select { width: auto; min-width: 12rem; }
+.person-week li { flex-wrap: nowrap; align-items: flex-start; gap: 1rem; padding-block: .6rem; }
+.person-week li.is-today .person-day strong { color: var(--primary-ink); }
+.person-week li.is-off .person-day { color: var(--ink-soft); }
+.person-day { display: grid; flex: none; width: 6.5rem; }
+.person-day small { color: var(--ink-soft); }
+.person-entries { display: grid; flex: 1; gap: .5rem; min-width: 0; }
+.person-entry { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; }
+.person-entry small { color: var(--ink-soft); }
+.person-total { margin: 0; }

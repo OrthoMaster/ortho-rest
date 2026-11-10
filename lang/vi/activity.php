@@ -21,6 +21,7 @@ return [
         'customers' => 'Khách hàng',
         'staff' => 'Nội bộ',
         'dinein' => 'Lấy đơn tại bàn',
+        'schedule' => 'Lịch làm việc',
     ],
 
     'actor_customer' => 'Khách đặt online',
@@ -97,7 +98,7 @@ return [
         'is_visible' => 'Hiện trên menu',
         'menu_category_id' => 'Danh mục',
         'image_only' => 'Chỉ hiện ảnh',
-        'capacity' => 'Sức chứa',
+        'capacity' => 'Chỗ ngồi',
         'online_bookable' => 'Cho đặt online',
         'is_active' => 'Đang dùng',
         'code' => 'Mã',

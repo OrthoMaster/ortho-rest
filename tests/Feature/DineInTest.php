@@ -7,16 +7,17 @@ use App\Models\ActivityLog;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
-use App\Modules\DineIn\Duty;
 use App\Modules\DineIn\LineStatus;
-use App\Modules\DineIn\Models\Assignment;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOption;
+use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Schedule\Duty;
+use App\Modules\Schedule\Models\Assignment;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,7 +52,7 @@ class DineInTest extends TestCase
 
         $this->travelTo(CarbonImmutable::parse('2026-11-09 12:00'));
         $this->restaurant = Restaurant::factory()->create();
-        $this->enableModules($this->restaurant, 'menu', 'dinein');
+        $this->enableModules($this->restaurant, 'menu', 'dinein', 'staff', 'schedule');
         $this->owner = User::factory()->owner($this->restaurant)->create();
         $this->base = "/{$this->restaurant->slug}/admin/dinein";
         $this->actingAs($this->owner);
@@ -89,7 +90,7 @@ class DineInTest extends TestCase
         $manager = $this->member($this->restaurant, 'manager');
         $staff = $this->member($this->restaurant, 'staff');
 
-        foreach (['dinein.order', 'dinein.close', 'dinein.cancel', 'dinein.stations', 'dinein.assign', 'dinein.settings'] as $key) {
+        foreach (['dinein.order', 'dinein.close', 'dinein.cancel', 'dinein.stations', 'dinein.settings'] as $key) {
             $this->assertTrue($manager->can($key), $key);
         }
         $this->assertTrue($staff->can('dinein.order'));
@@ -222,14 +223,10 @@ class DineInTest extends TestCase
         // Ca làm 10:00–14:00 thứ Hai; bây giờ 12:00 thứ Hai.
         $shift = Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Work, 'weekday' => 1, 'name' => 'Ca trưa', 'start_time' => '10:00', 'end_time' => '14:00']);
 
-        $this->actingAs($this->owner)->get("$this->base/assign?date=2026-11-09")->assertOk()->assertSee('Ca trưa')->assertSee($cook->name);
-        $this->put("$this->base/assign", ['date' => '2026-11-09', 'targets' => ['s'.$this->kitchen->id => [$cook->id]]])->assertSessionHasErrors('shift');
-        $this->put("$this->base/assign", ['date' => '2026-11-09', 'shift' => $shift->id, 'targets' => [
-            's'.$this->kitchen->id => [$cook->id],
-            'a'.$this->area->id => [$this->owner->id],
+        $this->actingAs($this->owner)->put("/{$this->restaurant->slug}/admin/schedule/day", ['date' => '2026-11-09', 'slots' => [
+            $shift->id => ['s'.$this->kitchen->id => [$cook->id], 'a'.$this->area->id => [$this->owner->id]],
         ]])->assertSessionHas('status');
         $this->assertSame(2, Assignment::withoutGlobalScopes()->count());
-        $this->assertTrue(ActivityLog::where('area', 'dinein')->exists());
 
         $this->actingAs($cook)->get("$this->base/screens")->assertRedirect("$this->base/screens/{$this->kitchen->id}");
         $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk();
@@ -244,9 +241,11 @@ class DineInTest extends TestCase
         $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
         $this->getJson("$this->base/poll")->assertJsonCount(0, 'stations');
 
-        // Lưu lại cùng ca thì thay danh sách cũ.
-        $this->actingAs($this->owner)->put("$this->base/assign", ['date' => '2026-11-09', 'shift' => $shift->id, 'targets' => []]);
-        $this->assertSame(0, Assignment::withoutGlobalScopes()->count());
+        // Tắt Lịch làm việc thì phân công không còn tác dụng.
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 12:00'));
+        $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk();
+        app(ModuleManager::class)->disable($this->restaurant, 'schedule');
+        $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
     }
 
     public function test_shift_crossing_midnight_counts_for_previous_day(): void
@@ -266,10 +265,13 @@ class DineInTest extends TestCase
 
     public function test_station_settings_move_items(): void
     {
-        $this->get("$this->base/stations")->assertOk()->assertSee(__('dinein.unassigned', ['count' => 1, 'name' => 'Bếp']));
+        $capacity = "/{$this->restaurant->slug}/admin/restaurant/capacity";
+        $this->get("$this->base/stations")->assertRedirect($capacity);
+        $this->get($capacity)->assertOk()->assertSee(__('dinein.stations'))->assertSee('Quầy nước')
+            ->assertSee(__('dinein.unassigned', ['count' => 1, 'name' => 'Bếp']));
         $this->get("$this->base/stations/{$this->bar->id}/edit")->assertOk()->assertSee('Cơm tấm');
 
-        $this->put("$this->base/stations/{$this->bar->id}", ['name' => 'Bar', 'items' => [$this->comTam->id]])->assertRedirect("$this->base/stations");
+        $this->put("$this->base/stations/{$this->bar->id}", ['name' => 'Bar', 'items' => [$this->comTam->id]])->assertRedirect($capacity);
         $this->assertSame($this->bar->id, $this->comTam->fresh()->dinein_station_id);
         $this->assertNull($this->tra->fresh()->dinein_station_id, 'Bỏ chọn thì món về chưa chọn khu.');
         $log = ActivityLog::where('summary', __('dinein.station_items_log', ['name' => 'Bar']))->sole();
@@ -277,13 +279,15 @@ class DineInTest extends TestCase
         $this->assertSame([__('dinein.log_added', ['list' => 'Cơm tấm']), __('dinein.log_removed', ['list' => 'Trà đá'])], $log->changes);
 
         $this->put("$this->base/stations/{$this->bar->id}", ['name' => 'Bếp'])->assertSessionHasErrors(['name' => __('dinein.station_taken')]);
+        $this->post("$this->base/stations", ['name' => 'Bar'])->assertSessionHasErrorsIn('station-dialog', 'name');
+        $this->followingRedirects()->from($capacity)->post("$this->base/stations", ['name' => 'Bar'])->assertSee('data-auto-open', false);
         $this->post("$this->base/stations", ['name' => 'Bánh ngọt'])->assertRedirect();
 
-        $this->delete("$this->base/stations/{$this->bar->id}")->assertRedirect("$this->base/stations");
+        $this->delete("$this->base/stations/{$this->bar->id}")->assertRedirect($capacity);
         $this->assertNull($this->comTam->fresh()->dinein_station_id);
 
         // Nhân viên không có quyền cài đặt.
-        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/stations")->assertForbidden();
+        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/stations/{$this->kitchen->id}/edit")->assertForbidden();
     }
 
     public function test_other_restaurants_lines_are_not_reachable(): void

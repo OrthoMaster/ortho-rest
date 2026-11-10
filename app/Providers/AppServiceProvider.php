@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
-use App\Modules\DineIn\Duty;
 use App\Modules\ModuleManager;
+use App\Modules\Schedule\Duty;
 use App\Support\Permissions;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -28,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Quyền trong config/permissions.php: chủ quán luôn có, người khác theo chức vụ.
         Gate::before(fn (User $user, string $ability) => Permissions::exists($ability) ? Permissions::allows($user, $ability) : null);
+
+        // Lịch làm việc: ai trong quán cũng xem được lịch của mình.
+        Gate::define('schedule.open', fn (User $user) => (bool) $user->restaurant?->hasModule('schedule'));
 
         // Màn hình khu (bếp, bar): người có quyền, hoặc người đang được phân công ở một khu.
         Gate::define('dinein.screen', fn (User $user) => $user->restaurant?->hasModule('dinein')

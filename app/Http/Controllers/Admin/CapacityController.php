@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Modules\DineIn\Models\Station;
+use App\Modules\Menu\Models\MenuItem;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\ReservationStatus;
@@ -14,8 +16,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Sức chứa (Cài đặt chung): các khu vực của quán, mỗi khu có mã, số bàn và số
- * chỗ ngồi. Dùng chung cho đặt bàn trước và lấy đơn tại bàn.
+ * Khu vực (Cài đặt chung): khu bàn của quán, mỗi khu có mã, số bàn và số chỗ
+ * ngồi, dùng chung cho đặt bàn trước và lấy đơn tại bàn; khi bật Lấy đơn tại bàn
+ * thì có thêm khu phục vụ (Bếp, Bar...).
  */
 class CapacityController extends Controller
 {
@@ -25,6 +28,11 @@ class CapacityController extends Controller
     {
         return view('admin.restaurant.capacity', [
             'areas' => Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
+            // Khu phục vụ thuộc module Lấy đơn tại bàn, có quyền riêng.
+            'stations' => has_module('dinein') && request()->user()->can('dinein.settings')
+                ? Station::withCount('items')->orderBy('sort_order')->orderBy('id')->get()
+                : null,
+            'unassigned' => has_module('dinein') ? MenuItem::whereNotNull('price_dine_in')->whereNull('dinein_station_id')->count() : 0,
         ]);
     }
 

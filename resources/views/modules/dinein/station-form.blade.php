@@ -3,7 +3,7 @@
 @section('title', $station->name)
 
 @section('content')
-    @include('partials.page-title', ['title' => $station->name, 'back' => route('tenant.admin.dinein.stations.index')])
+    @include('partials.page-title', ['title' => $station->name, 'back' => route('tenant.admin.restaurant.capacity.index')])
 
     <form method="post" action="{{ route('tenant.admin.dinein.stations.update', $station) }}" class="stack narrow" data-guard>
         @csrf
