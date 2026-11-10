@@ -33,6 +33,7 @@ class SettingsController extends Controller
             'departments' => Department::orderBy('sort_order')->orderBy('id')->get(),
             'tasks' => $tasks,
             'workdayHours' => Roster::workdayMinutes() / 60,
+            'includeOwner' => Roster::includesOwner(),
         ]);
     }
 
@@ -41,12 +42,16 @@ class SettingsController extends Controller
         $restaurantId = tenant()->getKey();
         $data = $request->validate([
             'workday_hours' => ['required', 'numeric', 'min:1', 'max:24'],
+            'include_owner' => ['boolean'],
             'departments' => ['array'],
             'departments.*' => ['array'],
             'departments.*.*' => ['integer', Rule::exists('departments', 'id')->where('restaurant_id', $restaurantId)],
         ]);
 
-        $modules->updateSettings(tenant(), 'schedule', ['workday_hours' => round((float) $data['workday_hours'], 1)]);
+        $modules->updateSettings(tenant(), 'schedule', [
+            'workday_hours' => round((float) $data['workday_hours'], 1),
+            'include_owner' => $request->boolean('include_owner'),
+        ]);
 
         // Khu không có trong form (không chọn bộ phận nào) thì về "bộ phận nào cũng được".
         foreach (Roster::targets()->except('g')->keys() as $key) {

@@ -19,6 +19,13 @@
             <h2>{{ __('schedule.workday') }}</h2>
             @include('partials.field', ['name' => 'workday_hours', 'type' => 'number', 'label' => __('schedule.workday_hours'),
                 'value' => rtrim(rtrim(number_format($workdayHours, 1, '.', ''), '0'), '.'), 'step' => '0.5', 'min' => 1, 'max' => 24, 'hint' => __('schedule.workday_hint')])
+            <div class="toggle-list">
+                <label class="toggle-row">
+                    <span>{{ __('schedule.include_owner') }}<small>{{ __('schedule.include_owner_hint') }}</small></span>
+                    <input type="hidden" name="include_owner" value="0">
+                    <input type="checkbox" name="include_owner" value="1" @checked($includeOwner)>
+                </label>
+            </div>
         </section>
 
         @if ($targets->isNotEmpty())

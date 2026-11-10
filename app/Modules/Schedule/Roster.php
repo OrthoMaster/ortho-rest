@@ -4,6 +4,7 @@ namespace App\Modules\Schedule;
 
 use App\Enums\ShiftType;
 use App\Enums\SpecialDayType;
+use App\Enums\UserRole;
 use App\Models\Shift;
 use App\Models\SpecialDay;
 use App\Models\User;
@@ -106,12 +107,19 @@ class Roster
     public static function users(): Collection
     {
         return tenant()->users()->with('department')->where('is_active', true)
+            // Chủ quán chỉ có trong danh sách khi quán bật "Xếp lịch cho chủ quán" (mặc định bật).
+            ->when(! self::includesOwner(), fn ($query) => $query->where('role', '!=', UserRole::Owner))
             ->get()
             ->sortBy([
                 fn (User $a, User $b) => ($a->department?->sort_order ?? PHP_INT_MAX) <=> ($b->department?->sort_order ?? PHP_INT_MAX),
                 fn (User $a, User $b) => strcmp($a->name, $b->name),
             ])
             ->keyBy('id');
+    }
+
+    public static function includesOwner(): bool
+    {
+        return (bool) (app(ModuleManager::class)->settings(tenant(), 'schedule')['include_owner'] ?? true);
     }
 
     /** @return array<int, Collection<int, Shift>> ca làm theo thứ (1 = thứ hai) */

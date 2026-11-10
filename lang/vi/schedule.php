@@ -71,8 +71,10 @@ return [
     'person_off' => 'Không có lịch',
 
     // Cài đặt
-    'workday' => 'Ngày công',
+    'workday' => 'Chung',
     'workday_hours' => 'Số giờ một ngày công',
+    'include_owner' => 'Xếp lịch cho chủ quán',
+    'include_owner_hint' => 'Bật thì chủ quán có trong danh sách nhân viên để kéo vào lịch. Tắt thì ẩn chủ quán khỏi danh sách và khỏi lịch.',
     'workday_hint' => 'Dùng để quy ca nghỉ ra ngày phép (ca 4 giờ = 0,5 ngày khi ngày công 8 giờ) và tính giờ của ngày chưa khai ca.',
     'target_departments' => 'Bộ phận của từng khu',
     'target_departments_hint' => 'Một khu có thể nhận nhiều bộ phận. Xếp người ngoài các bộ phận này vào khu thì lịch nhắc, không chặn.',

@@ -261,6 +261,21 @@ class ScheduleTest extends TestCase
         $this->get("$this->base/week?date=2026-11-10")->assertSee('slot-tone-2', false)->assertSee('<span class="target-name">', false);
     }
 
+    public function test_owner_can_be_left_out_of_the_roster(): void
+    {
+        $owner = 'data-drag-user="'.$this->owner->id.'"';
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee($owner, false);
+        $this->place($this->owner, '2026-11-10', (string) $this->lunch->id, 's'.$this->kitchen->id)->assertOk();
+
+        $this->put("$this->base/settings", ['workday_hours' => 8, 'include_owner' => '0'])->assertSessionHas('status');
+        $this->get("$this->base/settings")->assertSee(__('schedule.include_owner'));
+        $this->get("$this->base/assign?date=2026-11-10")->assertDontSee($owner, false);
+        $this->place($this->owner, '2026-11-11', 'day', 's'.$this->kitchen->id)->assertUnprocessable();
+
+        $this->put("$this->base/settings", ['workday_hours' => 8, 'include_owner' => '1']);
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee($owner, false);
+    }
+
     public function test_settings_tasks_and_departments_of_areas(): void
     {
         $this->get("$this->base/settings")->assertOk()->assertSee(__('schedule.workday_hours'))->assertSee('Bếp');

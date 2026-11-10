@@ -1196,6 +1196,16 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .task-group h3 { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: 1rem; }
 .target-department select { width: auto; min-width: 12rem; }
 .target-department > span:first-child { display: flex; align-items: center; gap: .4rem; }
+.target-department .multi { min-width: 0; max-width: 60%; }
+.target-department .multi-trigger { max-width: 100%; }
+.target-department .multi-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 560px) {
+    .target-department { flex-wrap: wrap; }
+    .target-department > span:first-child { flex: 1 1 100%; }
+    .target-department .multi { flex: 1 1 100%; max-width: 100%; }
+    .target-department .multi-trigger { width: 100%; }
+    .target-department .multi-trigger svg { margin-left: auto; }
+}
 .leave-balance { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; margin: 0; }
 .leave-balance strong { font-size: 1.25rem; }
 .leave-balance strong.is-negative { color: var(--bad-ink); }
