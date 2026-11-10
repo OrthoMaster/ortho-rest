@@ -111,6 +111,33 @@ class LeaveTest extends TestCase
         $this->assertSame(10.0, LeaveBook::balance($this->lan->fresh())['left']);
     }
 
+    public function test_approver_can_approve_while_entering(): void
+    {
+        app(TenantContext::class)->set($this->restaurant);
+        $area = Area::create(['name' => 'Trong quán', 'code' => 'A', 'table_count' => 5, 'capacity' => 20]);
+        Assignment::create(['work_date' => '2026-11-12', 'shift_id' => $this->lunch->id, 'area_id' => $area->id, 'user_id' => $this->lan->id]);
+        app(TenantContext::class)->forget();
+
+        // Người duyệt: chọn người nghỉ có ô tìm, có nút Duyệt và Gửi đơn. Nhân viên chỉ thấy tên mình.
+        $this->actingAs($this->owner)->get("$this->base/create")->assertOk()->assertSee('data-pick', false)
+            ->assertSee('name="action" value="approve"', false)->assertSee('name="action" value="send"', false);
+        $this->actingAs($this->lan)->get("$this->base/create")->assertSee('Lan')->assertDontSee('data-pick', false)->assertDontSee('value="approve"', false);
+
+        $this->actingAs($this->owner)->post($this->base, ['user_id' => $this->lan->id, 'starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'whole_day' => 1, 'is_paid' => 1, 'action' => 'approve'])
+            ->assertSessionHas('status', __('leave.approved', ['name' => 'Lan']));
+        $leave = LeaveRequest::withoutGlobalScopes()->sole();
+        $this->assertSame(LeaveStatus::Approved, $leave->status);
+        $this->assertTrue($leave->is_paid);
+        $this->assertSame($this->owner->id, $leave->decided_by);
+        $this->assertSame(0, Assignment::withoutGlobalScopes()->count());
+        $this->assertSame(9.0, LeaveBook::balance($this->lan->fresh())['left']);
+
+        // Gửi đơn thì vẫn chờ duyệt; nhân viên gửi action=approve cũng chỉ là đơn chờ.
+        $this->post($this->base, ['user_id' => $this->lan->id, 'starts_on' => '2026-11-16', 'ends_on' => '2026-11-16', 'whole_day' => 1, 'action' => 'send']);
+        $this->actingAs($this->lan)->post($this->base, ['starts_on' => '2026-11-18', 'ends_on' => '2026-11-18', 'whole_day' => 1, 'action' => 'approve']);
+        $this->assertSame([LeaveStatus::Pending, LeaveStatus::Pending], LeaveRequest::withoutGlobalScopes()->where('id', '>', $leave->id)->orderBy('id')->pluck('status')->all());
+    }
+
     public function test_unpaid_and_rejected_do_not_use_balance(): void
     {
         $make = fn () => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);

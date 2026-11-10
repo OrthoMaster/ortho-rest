@@ -39,6 +39,8 @@ return [
     'decide' => 'Duyệt đơn',
     'decide_title' => 'Duyệt đơn của :name',
     'approve' => 'Duyệt',
+    'paid_on_approve' => 'Nghỉ có lương (trừ phép)',
+    'paid_on_approve_hint' => 'Dùng khi bấm Duyệt ngay. Bấm Gửi đơn thì để duyệt sau.',
     'reject' => 'Từ chối',
     'pay' => 'Nghỉ có lương (trừ :days ngày phép)',
     'pay_over' => 'Phép còn :left ngày, ít hơn số ngày nghỉ. Duyệt có lương thì phép sẽ âm.',

@@ -75,6 +75,8 @@ class LeaveController extends Controller
             'shifts' => ['array'],
             'shifts.*' => ['integer'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'action' => ['nullable', Rule::in(['send', 'approve'])],
+            'is_paid' => ['boolean'],
         ]);
 
         $userId = (int) ($data['user_id'] ?? $viewer->id);
@@ -107,18 +109,39 @@ class LeaveController extends Controller
             throw ValidationException::withMessages(['starts_on' => __('leave.overlap')]);
         }
 
-        $leave = LeaveRequest::create([
-            'user_id' => $userId,
-            'starts_on' => $from->toDateString(),
-            'ends_on' => $to->toDateString(),
-            'shift_ids' => $shiftIds,
-            'days' => LeaveBook::days($from, $to, $shiftIds),
-            'reason' => filled($data['reason'] ?? null) ? trim($data['reason']) : null,
-            'status' => LeaveStatus::Pending,
-            'created_by' => $viewer->id,
-        ]);
+        // Người duyệt bấm Duyệt: tạo đơn đã duyệt luôn, bỏ người đó khỏi các ô lịch trùng ngày nghỉ.
+        $approveNow = $approver && ($data['action'] ?? null) === 'approve';
 
-        ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_created', ['name' => $leave->user->name, 'period' => $leave->periodText()]));
+        $leave = DB::transaction(function () use ($userId, $from, $to, $shiftIds, $data, $viewer, $approveNow, $request): LeaveRequest {
+            $leave = LeaveRequest::create([
+                'user_id' => $userId,
+                'starts_on' => $from->toDateString(),
+                'ends_on' => $to->toDateString(),
+                'shift_ids' => $shiftIds,
+                'days' => LeaveBook::days($from, $to, $shiftIds),
+                'reason' => filled($data['reason'] ?? null) ? trim($data['reason']) : null,
+                'status' => $approveNow ? LeaveStatus::Approved : LeaveStatus::Pending,
+                'is_paid' => $approveNow ? $request->boolean('is_paid') : null,
+                'decided_by' => $approveNow ? $viewer->id : null,
+                'decided_at' => $approveNow ? now() : null,
+                'created_by' => $viewer->id,
+            ]);
+
+            if ($approveNow) {
+                LeaveBook::scheduled($leave)->each->delete();
+            }
+
+            return $leave;
+        });
+
+        $name = $leave->user->name;
+        ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_created', ['name' => $name, 'period' => $leave->periodText()]));
+
+        if ($approveNow) {
+            ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_approved', ['name' => $name, 'period' => $leave->periodText(), 'paid' => mb_strtolower(__($leave->is_paid ? 'leave.paid' : 'leave.unpaid'))]));
+
+            return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.approved', ['name' => $name]));
+        }
 
         return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.sent'));
     }

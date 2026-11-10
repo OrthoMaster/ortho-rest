@@ -11,9 +11,14 @@
     <form method="post" action="{{ route('tenant.admin.schedule.leave.store') }}" class="stack narrow" data-guard data-leave-form>
         @csrf
         <section class="panel stack">
+            {{-- Người duyệt chọn người nghỉ (có ô tìm); nhân viên chỉ xin nghỉ cho mình. --}}
             @if ($approver)
-                @include('partials.select', ['name' => 'user_id', 'label' => __('leave.person'), 'value' => old('user_id', auth()->id()), 'options' => $users->pluck('name', 'id')->all()])
+                @include('partials.select-search', ['name' => 'user_id', 'label' => __('leave.person'), 'value' => old('user_id', auth()->id()), 'options' => $users->pluck('name', 'id')->all()])
             @else
+                <div class="field">
+                    <span class="field-label">{{ __('leave.person') }}</span>
+                    <strong class="leave-person">{{ auth()->user()->name }}</strong>
+                </div>
                 @include('modules.schedule.leave.balance', ['balance' => $balance])
             @endif
 
@@ -23,11 +28,9 @@
                 <input type="checkbox" name="whole_day" value="1" @checked($wholeDay) data-leave-whole>
             </label>
 
-            <div class="form-row">
-                @include('partials.date-picker', ['name' => 'starts_on', 'label' => __('leave.from'), 'value' => $start, 'min' => $approver ? null : today()->toDateString(), 'required' => true])
-                <div data-leave-end @if (! $wholeDay) hidden @endif>
-                    @include('partials.date-picker', ['name' => 'ends_on', 'label' => __('leave.to'), 'value' => old('ends_on', $start), 'min' => $approver ? null : today()->toDateString(), 'required' => true])
-                </div>
+            @include('partials.date-picker', ['name' => 'starts_on', 'label' => __('leave.from'), 'value' => $start, 'min' => $approver ? null : today()->toDateString(), 'required' => true])
+            <div data-leave-end @if (! $wholeDay) hidden @endif>
+                @include('partials.date-picker', ['name' => 'ends_on', 'label' => __('leave.to'), 'value' => old('ends_on', $start), 'min' => $approver ? null : today()->toDateString(), 'required' => true])
             </div>
 
             {{-- Nghỉ theo ca: chỉ hiện các ca của thứ đang chọn. --}}
@@ -48,8 +51,23 @@
             </fieldset>
 
             @include('partials.textarea', ['name' => 'reason', 'label' => __('leave.reason'), 'value' => '', 'rows' => 2, 'maxlength' => 500, 'placeholder' => __('leave.reason_example')])
+            {{-- Người duyệt có thể duyệt ngay khi nhập đơn. --}}
+            @if ($approver)
+                <label class="toggle-row">
+                    <span>{{ __('leave.paid_on_approve') }}<small>{{ __('leave.paid_on_approve_hint') }}</small></span>
+                    <input type="hidden" name="is_paid" value="0">
+                    <input type="checkbox" name="is_paid" value="1" @checked(old('is_paid', true))>
+                </label>
+            @endif
         </section>
 
-        <div><button class="btn" type="submit">{{ __('leave.send') }}</button></div>
+        <div class="form-actions">
+            @if ($approver)
+                <button class="btn" type="submit" name="action" value="approve">{{ __('leave.approve') }}</button>
+                <button class="btn btn-quiet" type="submit" name="action" value="send">{{ __('leave.send') }}</button>
+            @else
+                <button class="btn" type="submit">{{ __('leave.send') }}</button>
+            @endif
+        </div>
     </form>
 @endsection

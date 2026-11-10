@@ -219,6 +219,8 @@ input[type=checkbox]:checked::after { transform: translateX(1.05rem); }
 dialog { width: min(26rem, calc(100vw - 2rem)); padding: 1.25rem; color: inherit; background: var(--surface); border: 0; border-radius: 12px; }
 dialog::backdrop { background: rgb(23 40 56 / .45); }
 .dialog-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; }
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.leave-person { font-weight: 600; }
 
 .kebab { position: relative; flex: none; }
 .kebab[open] { z-index: 6; }
@@ -715,6 +717,15 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .multi-option:has(input:checked) svg { visibility: visible; }
 .multi-option:has(input:focus-visible) { outline: 2px solid var(--primary-ink); outline-offset: -2px; }
 .multi-empty { margin: 0; padding: .5rem .65rem; font-size: .875rem; color: var(--ink-soft); }
+/* Ô chọn một giá trị có ô tìm (partials/select-search): trông như ô nhập, danh sách nổi rộng bằng ô. */
+.pick { position: relative; }
+.pick-trigger { display: flex; align-items: center; gap: .5rem; width: 100%; min-height: 3rem; padding: 0 .85rem; font: inherit; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--field-line); border-radius: var(--radius); cursor: pointer; }
+.pick-trigger:hover, .pick-trigger[aria-expanded=true] { border-color: var(--primary-ink); }
+.pick-trigger span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pick-trigger svg { flex: none; width: 1.1rem; height: 1.1rem; color: var(--ink-soft); transition: transform .15s; }
+.pick-trigger[aria-expanded=true] svg { transform: rotate(180deg); }
+.pick .pick-panel { top: calc(100% + .3rem); left: 0; right: 0; width: auto; }
+.multi-option input[type=radio] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .filter-panel, .filter-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; }
 .filter-field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .filter-field select { width: auto; }

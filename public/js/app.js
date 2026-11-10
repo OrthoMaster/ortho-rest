@@ -2016,6 +2016,72 @@
         }
     });
 
+    // Ô chọn một giá trị có ô tìm (partials/select-search): chọn xong thì đóng.
+    document.querySelectorAll('[data-pick]').forEach(function (pick) {
+        var trigger = pick.querySelector('[data-pick-trigger]');
+        var panel = pick.querySelector('[data-pick-panel]');
+        var search = pick.querySelector('[data-pick-search]');
+        var empty = pick.querySelector('[data-pick-empty]');
+        var valueText = pick.querySelector('[data-pick-value]');
+        var setOpen = function (open) {
+            panel.hidden = !open;
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+            if (open) {
+                search.value = '';
+                search.dispatchEvent(new Event('input'));
+                search.focus();
+            }
+        };
+
+        trigger.addEventListener('click', function () { setOpen(panel.hidden); });
+        pick.addEventListener('change', function (event) {
+            if (event.target.type === 'radio') {
+                valueText.textContent = event.target.dataset.label;
+                setOpen(false);
+                trigger.focus();
+            }
+        });
+        search.addEventListener('input', function () {
+            var query = plain(search.value.trim());
+            var shown = 0;
+
+            pick.querySelectorAll('[data-pick-option]').forEach(function (item) {
+                var match = plain(item.dataset.pickOption).indexOf(query) !== -1;
+
+                item.hidden = !match;
+                shown += match ? 1 : 0;
+            });
+            empty.hidden = shown > 0;
+        });
+        search.addEventListener('keydown', function (event) {
+            var first = pick.querySelector('[data-pick-option]:not([hidden]) input');
+
+            // Enter chọn mục đầu tiên đang hiện.
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (first) {
+                    first.checked = true;
+                    first.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        });
+        // Ô bắt buộc chưa chọn: mở danh sách để trình duyệt chỉ chỗ thiếu.
+        pick.addEventListener('invalid', function () { setOpen(true); }, true);
+        document.addEventListener('click', function (event) {
+            if (!panel.hidden && !pick.contains(event.target)) {
+                setOpen(false);
+            }
+        });
+        pick.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !panel.hidden) {
+                event.stopPropagation();
+                setOpen(false);
+                trigger.focus();
+            }
+        });
+    });
+
     // Ô số có nút + −: bước theo step, giữ trong min và max, báo input để nơi khác tính lại.
     document.addEventListener('click', function (event) {
         var button = event.target.closest('[data-number-step]');
