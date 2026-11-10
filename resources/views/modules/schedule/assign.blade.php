@@ -43,7 +43,7 @@
              data-store-url="{{ route('tenant.admin.schedule.assignments.store') }}"
              data-item-url="{{ route('tenant.admin.schedule.assignments.update', 0) }}" data-csrf="{{ csrf_token() }}"
              data-delete-label="{{ __('schedule.delete_from_cell') }}" data-close-label="{{ __('ui.common.close') }}"
-             data-picked-label="{{ __('schedule.picked') }}" data-error-label="{{ __('schedule.save_failed') }}">
+             data-picked-label="{{ __('schedule.picked') }}" data-pending-label="{{ __('schedule.leave_pending', ['name' => ':name', 'date' => ':date']) }}" data-error-label="{{ __('schedule.save_failed') }}">
             <script type="application/json" data-planner-leaves>@json($leaveMap)</script>
             @include('modules.schedule.grid', [
                 'mode' => 'assign',

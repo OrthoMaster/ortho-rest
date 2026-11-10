@@ -2661,6 +2661,33 @@
 
             return state;
         };
+        // Đơn nghỉ chờ duyệt trùng ca này: chấm cảnh báo ở góc tên, rê chuột xem lời nhắc.
+        var markLeave = function (pill) {
+            var zone = pill.closest('[data-drop]');
+            var badge = pill.querySelector('.leave-badge');
+            var warned = zone && leaveState(pill.dataset.user, zone) === 'is-warned';
+
+            pill.classList.toggle('has-leave', warned);
+
+            if (!warned) {
+                if (badge) {
+                    badge.remove();
+                }
+
+                return;
+            }
+
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'leave-badge';
+                badge.textContent = '!';
+                pill.appendChild(badge);
+            }
+
+            var day = zone.dataset.date.split('-');
+            badge.title = planner.dataset.pendingLabel.replace(':name', pill.title).replace(':date', day[2] + '/' + day[1]);
+            badge.setAttribute('aria-label', badge.title);
+        };
         var markZones = function (userId) {
             planner.querySelectorAll('[data-drop]').forEach(function (zone) {
                 zone.classList.remove('is-blocked', 'is-warned');
@@ -2692,7 +2719,10 @@
 
             send('POST', planner.dataset.storeUrl, { user: Number(userId), date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
-                    bodyOf(zone).appendChild(makePill(userId, data.id));
+                    var pill = makePill(userId, data.id);
+
+                    bodyOf(zone).appendChild(pill);
+                    markLeave(pill);
                     refresh(zone);
                     report(data);
                 })
@@ -2721,6 +2751,7 @@
             send('PATCH', itemUrl(pill.dataset.assignment), { date: zone.dataset.date, slot: zone.dataset.slot, lane: zone.dataset.lane })
                 .then(function (data) {
                     bodyOf(zone).appendChild(pill);
+                    markLeave(pill);
                     refresh(from);
                     refresh(zone);
                     report(data);
@@ -2849,22 +2880,34 @@
             }
 
             dragged = pill;
+            planner.classList.add('is-dragging');
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', pill.dataset.dragUser || pill.dataset.user);
             markZones(pill.dataset.dragUser || pill.dataset.user);
         });
         planner.addEventListener('dragend', function () {
             dragged = null;
+            planner.classList.remove('is-dragging');
             markZones(picked);
             planner.querySelectorAll('.is-drop-target').forEach(function (zone) { zone.classList.remove('is-drop-target'); });
         });
         planner.addEventListener('dragover', function (event) {
             var zone = event.target.closest('[data-drop]');
 
-            if (zone && dragged) {
-                event.preventDefault();
-                zone.classList.add('is-drop-target');
+            if (!zone || !dragged) {
+                return;
             }
+
+            // Ô người này đã được duyệt nghỉ: không cho thả, con trỏ thành dấu cấm.
+            if (zone.classList.contains('is-blocked')) {
+                event.dataTransfer.dropEffect = 'none';
+
+                return;
+            }
+
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            zone.classList.add('is-drop-target');
         });
         planner.addEventListener('dragleave', function (event) {
             var zone = event.target.closest('[data-drop]');
@@ -2876,7 +2919,7 @@
         planner.addEventListener('drop', function (event) {
             var zone = event.target.closest('[data-drop]');
 
-            if (!zone || !dragged) {
+            if (!zone || !dragged || zone.classList.contains('is-blocked')) {
                 return;
             }
 
@@ -2916,6 +2959,8 @@
                 setPicked(null);
             }
         });
+
+        planner.querySelectorAll('[data-drop] [data-user]').forEach(markLeave);
 
         // Lịch mặc định: đổi số người cần thì lưu ô đó.
         planner.addEventListener('change', function (event) {

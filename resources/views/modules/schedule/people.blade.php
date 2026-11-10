@@ -31,12 +31,6 @@
                         <li @class(['is-over' => $stats[$person->id]['over'] ?? false]) data-person="{{ $person->id }}" title="{{ $person->name }} · {{ $stats[$person->id]['label'] ?? '' }}">
                             <span class="person-pill tone-{{ $department?->tone ?? 0 }}" draggable="true" data-drag-user="{{ $person->id }}" data-name="{{ short_name($person->name) }}" data-full="{{ $person->name }}" role="button" tabindex="0">{{ short_name($person->name) }}</span>
                             <small class="person-stat" data-stat="{{ $person->id }}">{{ $stats[$person->id]['short'] ?? '' }}</small>
-                            {{-- Một chấm cho đơn đã duyệt (đỏ), một cho đơn chờ duyệt (vàng); rê chuột xem ngày. --}}
-                            @foreach (collect($leaves[$person->id] ?? [])->groupBy(fn ($leave) => $leave->status->value) as $group)
-                                @php($approved = $group->first()->status === \App\Modules\Schedule\LeaveStatus::Approved)
-                                <small @class(['leave-dot', 'is-approved' => $approved])
-                                       title="{{ $approved ? __('schedule.leave_off') : __('schedule.leave_asked') }}: {{ $group->map->periodText()->join(', ') }}">{{ __('schedule.leave_short') }}</small>
-                            @endforeach
                         </li>
                     @endforeach
                 </ul>

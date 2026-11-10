@@ -40,8 +40,6 @@ return [
     'leave_pending' => ':name có đơn xin nghỉ ngày :date đang chờ duyệt.',
     'also_in' => ':name cũng đang ở :lane trong :slot.',
     'other_department' => ':name thuộc bộ phận :mine, khu này của bộ phận :area.',
-    'leave_off' => 'Nghỉ',
-    'leave_asked' => 'Xin nghỉ (chờ duyệt)',
 
     'copy_week' => 'Chép tuần trước',
     'copy_title' => 'Chép lịch tuần trước?',
@@ -56,7 +54,6 @@ return [
     'nothing_this_week' => 'Tuần này không có lịch nào khớp bộ lọc.',
     'show_stats' => 'Hiện số ca và giờ',
     'minimize' => 'Thu nhỏ',
-    'leave_short' => 'Nghỉ',
     'needed' => 'Số người cần',
     'needed_hint' => 'Số người cần ở ô này. Để trống thì bằng số người mặc định.',
     'defaults_lead' => 'Lịch mẫu theo thứ trong tuần: kéo người mặc định vào ô, gõ số người cần ở góc ô. Ở Phân công, bấm Áp lịch mặc định để điền vào tuần; ô nào ít người hơn số cần thì tô vàng.',

@@ -161,7 +161,9 @@ class ScheduleTest extends TestCase
         $this->place($lan, '2026-11-13', 'day', 's'.$this->kitchen->id)->assertOk()
             ->assertJsonPath('warnings', [__('schedule.leave_pending', ['name' => 'Lan', 'date' => '13/11'])]);
 
-        $this->get("$this->base/assign?date=2026-11-10")->assertSee(__('schedule.leave_off'))->assertSee(__('schedule.leave_asked'));
+        // Phân công nhận danh sách đơn nghỉ để tô ô khi kéo và gắn chấm cảnh báo; bảng nhân viên không còn pill Nghỉ.
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee('"approved":true', false)->assertSee('"approved":false', false)
+            ->assertSee('data-pending-label', false)->assertDontSee('leave-dot', false);
     }
 
     public function test_viewers_without_permission(): void

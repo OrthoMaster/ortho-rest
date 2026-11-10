@@ -1160,9 +1160,13 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule td.slot-zone.is-drop-target { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary-ink); }
 .schedule td.slot-zone.is-warned { background: var(--warn-bg); }
 .schedule td.slot-zone.is-blocked { background: var(--bad-bg); cursor: not-allowed; }
+.planner.is-dragging .schedule td.slot-zone.is-blocked * { cursor: not-allowed; }
 .person-pill[draggable="true"] { cursor: grab; user-select: none; }
 .person-pill[draggable="true"]:active { cursor: grabbing; }
 .slot-zone .person-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; -webkit-touch-callout: none; }
+.slot-zone .person-pill.has-leave { position: relative; overflow: visible; margin-right: .35rem; }
+/* Người có đơn nghỉ chờ duyệt ở ca này: chấm cảnh báo ở góc phải trên của tên, rê chuột xem lời nhắc. */
+.leave-badge { position: absolute; top: -.4rem; right: -.45rem; display: grid; place-items: center; width: 1rem; height: 1rem; font-size: .625rem; font-weight: 700; line-height: 1; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-ink); border-radius: 50%; cursor: help; }
 .slot-zone .person-pill.is-holding { outline: 2px solid var(--bad-ink); outline-offset: 1px; }
 /* Giữ lâu một tên trong lịch thì hiện nút Xoá ngay cạnh. */
 .pill-delete { position: fixed; z-index: 46; min-height: 2.25rem; padding: .3rem .8rem; font: inherit; font-size: .875rem; font-weight: 600; color: var(--bad-ink); background: var(--surface); border: 1px solid var(--bad-ink); border-radius: var(--radius); box-shadow: 0 6px 18px rgb(23 40 56 / .18); cursor: pointer; }
@@ -1192,9 +1196,6 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .people-list small { font-size: .75rem; color: var(--ink-soft); }
 .people-list .person-stat { display: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .people-card.is-stats .person-stat { display: block; }
-.people-list .leave-dot { flex: none; margin-left: auto; padding: 0 .35rem; font-weight: 600; color: var(--warn-ink); background: var(--warn-bg); border-radius: .5rem; }
-.people-list .leave-dot.is-approved { color: var(--bad-ink); background: var(--bad-bg); }
-.people-list .leave-dot + .leave-dot { margin-left: 0; }
 .people-list li.is-over [data-stat] { color: var(--bad-ink); font-weight: 600; }
 .leave-note { color: var(--warn-ink) !important; }
 .leave-note.is-approved { color: var(--bad-ink) !important; }
