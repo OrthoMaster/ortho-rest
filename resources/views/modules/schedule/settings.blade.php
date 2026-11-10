@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('title', __('schedule.settings'))
+@section('content_class', 'is-wide')
 
 @section('content')
     <div class="page-head">
@@ -12,10 +13,12 @@
     @php($targets = $stations->map(fn ($station) => ['key' => 's'.$station->id, 'name' => $station->name, 'code' => null, 'departments' => $station->department_ids ?? []])
         ->concat($areas->map(fn ($area) => ['key' => 'a'.$area->id, 'name' => $area->name, 'code' => $area->code, 'departments' => $area->department_ids ?? []])))
 
-    <form method="post" action="{{ route('tenant.admin.schedule.settings.update') }}" class="stack settings-stack" data-guard data-multi-manual>
+    {{-- Máy tính: cột trái là cài đặt chung và bộ phận (nút Lưu ngay dưới), cột phải là việc trong ca. --}}
+    <div class="schedule-settings">
+    <form method="post" action="{{ route('tenant.admin.schedule.settings.update') }}" class="stack schedule-settings-main" data-guard data-multi-manual>
         @csrf
         @method('put')
-        <section class="panel stack">
+        <section class="stack">
             <h2>{{ __('schedule.workday') }}</h2>
             @include('partials.field', ['name' => 'workday_hours', 'type' => 'number', 'label' => __('schedule.workday_hours'),
                 'value' => rtrim(rtrim(number_format($workdayHours, 1, '.', ''), '0'), '.'), 'step' => '0.5', 'min' => 1, 'max' => 24, 'hint' => __('schedule.workday_hint')])
@@ -29,12 +32,12 @@
         </section>
 
         @if ($targets->isNotEmpty())
-            <section class="panel stack">
+            <section class="stack">
                 <div>
                     <h2>{{ __('schedule.target_departments') }}</h2>
                     <small class="section-hint">{{ __('schedule.target_departments_hint') }}</small>
                 </div>
-                <div class="toggle-list">
+                <div class="toggle-list has-menus">
                     @foreach ($targets as $target)
                         <div class="toggle-row target-department">
                             <span>@if ($target['code'])<span class="area-code">{{ $target['code'] }}</span> @endif{{ $target['name'] }}</span>
@@ -100,6 +103,7 @@
             </section>
         @endforeach
     </section>
+    </div>
 
     @foreach ($tasks->flatten() as $task)
         @php($bag = 'task-'.$task->id)

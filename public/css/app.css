@@ -1043,7 +1043,8 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .schedule { width: 100%; min-width: 50rem; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 .schedule th, .schedule td { padding: 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
-.schedule tr > :first-child { border-left: 0; }
+/* Chỉ ô tên hàng ở mép trái mới bỏ viền trái (dòng ca thứ 2 bắt đầu bằng ô td vì ô tên kéo dài). */
+.schedule tr > th:first-child { border-left: 0; }
 .schedule tbody:last-child tr:last-child > * { border-bottom: 0; }
 .schedule thead th { padding: .6rem .75rem; font-size: .875rem; font-weight: 600; background: var(--ground); }
 .schedule thead th a { display: block; color: inherit; text-decoration: none; }
@@ -1054,7 +1055,7 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule tbody th.schedule-target { display: table-cell; }
 .schedule .schedule-target .area-code { margin: 0 0 .25rem; }
 .schedule .schedule-target .target-name { display: block; }
-.schedule-group th { padding: .45rem .75rem; font-size: .8125rem; font-weight: 600; color: var(--ink-soft); background: var(--ground); }
+.schedule-group th { padding: .5rem .75rem; font-size: .8125rem; font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--primary) 60%, var(--surface)); }
 .schedule td.is-today { background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface)); }
 .schedule td, .schedule th { white-space: normal; }
 .schedule-cell { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; align-content: start; min-height: 3.25rem; height: 100%; padding: .5rem .6rem; color: inherit; text-decoration: none; }
@@ -1130,7 +1131,6 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule td.slot-zone { padding: .35rem .45rem; }
 .slot-body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: .25rem; min-height: 2rem; }
 /* Mỗi ca một dòng: dòng ca trong cùng một khu ngăn bằng nét đứt, mỗi ca một nền nhạt. */
-.schedule tr.slot-row:has(+ tr.slot-row-next) > td { border-bottom-style: dashed; }
 .schedule tr.slot-tone-1 > td { background: var(--slot-1); }
 .schedule tr.slot-tone-2 > td { background: var(--slot-2); }
 .schedule tr.slot-tone-3 > td { background: var(--slot-3); }
@@ -1191,7 +1191,15 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .planner-toasts .flash { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; box-shadow: 0 6px 18px rgb(23 40 56 / .18); }
 .flash-info { color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
 .flash-close { flex: none; padding: 0 .25rem; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-.task-settings { margin-top: 1.5rem; }
+.schedule-settings { display: grid; gap: 2rem; align-items: start; }
+@media (min-width: 1000px) {
+    .schedule-settings { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.5rem; }
+}
+/* Danh sách có ô chọn mở danh sách nổi: không cắt danh sách, danh sách đang mở nằm trên các dòng dưới. */
+.toggle-list.has-menus { overflow: visible; }
+.toggle-list.has-menus > :first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.toggle-list.has-menus > :last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.multi:has([aria-expanded="true"]) { z-index: 31; }
 .task-group { gap: .5rem; }
 .task-group h3 { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: 1rem; }
 .target-department select { width: auto; min-width: 12rem; }
