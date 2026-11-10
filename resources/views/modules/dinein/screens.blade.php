@@ -13,17 +13,20 @@
         <p class="empty">{{ __('dinein.screens_none') }}</p>
     @else
         <p class="lead">{{ __('dinein.screens_lead') }}</p>
-        <section class="panel">
-            <ul class="rows">
-                @foreach ($stations as $station)
-                    <li class="row-link">
-                        <span class="row-name"><a href="{{ route('tenant.admin.dinein.screens.show', $station) }}">{{ $station->name }}</a></span>
-                        @if (($pending[$station->id] ?? 0) > 0)
-                            <span class="badge badge-warn">{{ __('dinein.pending_count', ['count' => $pending[$station->id]]) }}</span>
+        <ul class="table-grid station-grid">
+            @foreach ($stations as $station)
+                @php($count = $pending[$station->id] ?? 0)
+                <li>
+                    <a href="{{ route('tenant.admin.dinein.screens.show', $station) }}" @class(['table-tile', 'is-open' => $count > 0])>
+                        <strong>{{ $station->name }}</strong>
+                        @if ($count > 0)
+                            <small class="badge badge-warn">{{ __('dinein.pending_count', ['count' => $count]) }}</small>
+                        @else
+                            <small>{{ __('dinein.no_pending') }}</small>
                         @endif
-                    </li>
-                @endforeach
-            </ul>
-        </section>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
     @endif
 @endsection

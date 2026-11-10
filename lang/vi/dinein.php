@@ -81,6 +81,7 @@ return [
     'screens_lead' => 'Chọn khu để mở màn hình món cần làm.',
     'screens_none' => 'Bạn chưa được phân công ở khu nào trong ca này.',
     'pending_count' => ':count món chờ',
+    'no_pending' => 'Không có món chờ',
     'board_empty' => 'Không có món nào đang chờ.',
     'done' => 'Xong',
     'done_all' => 'Xong cả phiếu',

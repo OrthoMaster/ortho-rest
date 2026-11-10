@@ -269,7 +269,7 @@ tr.is-muted td { color: var(--ink-soft); }
 .row-link a { color: inherit; font-weight: 600; text-decoration: none; }
 .row-link:hover { background: var(--ground); }
 /* Dòng bấm được có nền khi rê chuột: chừa lề hai bên để chữ không dính mép nền, chữ vẫn thẳng hàng với tiêu đề. */
-.rows li.row-link { margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius); }
+.panel .rows li.row-link { margin-inline: -.5rem; padding-inline: .5rem; }
 .rows li.is-sold-out { margin-inline: -.5rem; padding-inline: .5rem .25rem; background: var(--bad-bg); border-radius: var(--radius); }
 .rows li.is-sold-out + li.is-sold-out { margin-top: .25rem; border-top: 0; }
 .rows li.is-sold-out:hover { background: color-mix(in srgb, var(--bad-bg) 88%, var(--bad-ink)); }
@@ -914,6 +914,9 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .table-tile .badge { color: inherit; }
 .table-tile .badge-ok { color: var(--ok-ink); }
 .table-tile .badge-warn { color: var(--warn-ink); }
+.station-grid { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+.station-grid .table-tile { min-height: 6.5rem; }
+.station-grid .table-tile strong { overflow-wrap: anywhere; }
 
 .dine-lines li { flex-wrap: nowrap; }
 .dine-lines .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
