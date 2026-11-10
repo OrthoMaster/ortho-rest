@@ -456,7 +456,10 @@ tr.is-muted td { color: var(--ink-soft); }
     .layout-side > aside { position: sticky; top: 1rem; }
     /* Thanh lọc đặt ở cột trái: các ô xếp dọc, rộng hết cột. */
     .filter-bar.is-side { display: grid; gap: .75rem; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    /* Cột lọc: mọi ô rộng hết khung (track 1fr, không co theo nội dung). */
+    .filter-bar.is-side, .filter-bar.is-side .filter-top, .filter-bar.is-side .filter-panel, .filter-bar.is-side .filter-fields { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
     .filter-bar.is-side .filter-top, .filter-bar.is-side .filter-panel, .filter-bar.is-side .filter-fields { display: grid; gap: .6rem; }
+    .filter-bar.is-side .multi, .filter-bar.is-side .date-nav { width: 100%; }
     .filter-bar.is-side .multi-trigger { width: 100%; }
     .filter-bar.is-side .date-nav { display: flex; align-items: center; gap: .4rem; min-width: 0; }
     .filter-bar.is-side .date-nav form { flex: 1 1 auto; min-width: 0; }
