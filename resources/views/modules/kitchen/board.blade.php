@@ -1,7 +1,33 @@
+@use('App\Modules\Kitchen\Screens')
 {{--
     Phiếu của khu: mỗi bàn một phiếu (gộp các lần gọi), mỗi đơn mang đi một phiếu (màu khác).
     Mỗi món một dòng, có nút Xong riêng; món khác tuỳ chọn là dòng riêng.
 --}}
+{{-- Đơn đã xong trong ca: nút mở danh sách (không chiếm chỗ trên màn hình). --}}
+<div class="board-bar">
+    <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="finished-dialog">{{ __('kitchen.finished') }}@if ($finished->isNotEmpty()) ({{ $finished->count() }})@endif</button>
+</div>
+<dialog id="finished-dialog" class="dine-dialog" aria-labelledby="finished-title" data-backdrop-close>
+    <div class="stack">
+        <div class="panel-head dialog-head">
+            <h2 id="finished-title">{{ Screens::shiftStart() ? __('kitchen.finished_shift') : __('kitchen.finished_today') }}</h2>
+            <button class="row-btn" type="button" data-close-dialog aria-label="{{ __('ui.common.close') }}">✕</button>
+        </div>
+        @if ($finished->isEmpty())
+            <p class="row-note">{{ __('kitchen.finished_none') }}</p>
+        @else
+            <ul class="rows dine-lines">
+                @foreach ($finished as $row)
+                    <li>
+                        <span class="row-name">{{ $row['where'] }} · {{ $row['line']->quantity }} × {{ $row['line']->name }}@foreach ($row['line']->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach</span>
+                        <small class="row-note">{{ $row['at']->format('H:i') }}</small>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
+</dialog>
+
 @if ($tickets->isEmpty())
     <p class="empty">{{ __('kitchen.board_empty') }}</p>
 @else
@@ -68,19 +94,4 @@
             </section>
         @endforeach
     </div>
-@endif
-
-@if ($recent->isNotEmpty())
-    <section class="panel recent-done">
-        <h2>{{ __('kitchen.recent') }}</h2>
-        <ul class="rows">
-            @foreach ($recent as $row)
-                <li>
-                    <span class="row-name">{{ $row['where'] }} · {{ $row['text'] }}</span>
-                    <span @class(['badge', $row['badge']])>{{ $row['status'] }}</span>
-                    <small class="row-note">{{ $row['at']->format('H:i') }}</small>
-                </li>
-            @endforeach
-        </ul>
-    </section>
 @endif

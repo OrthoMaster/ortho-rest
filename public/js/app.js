@@ -1082,20 +1082,20 @@
         });
     }
 
-    // Hộp thoại có data-backdrop-close: bấm ra ngoài khung thì đóng.
-    document.querySelectorAll('dialog[data-backdrop-close]').forEach(function (dialog) {
-        dialog.addEventListener('click', function (event) {
-            if (event.target !== dialog) {
-                return;
-            }
+    // Hộp thoại có data-backdrop-close: bấm ra ngoài khung thì đóng (bắt ở document vì có hộp được tải lại).
+    document.addEventListener('click', function (event) {
+        var dialog = event.target;
 
-            var box = dialog.getBoundingClientRect();
-            var inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+        if (!(dialog instanceof HTMLDialogElement) || !dialog.hasAttribute('data-backdrop-close') || !dialog.open) {
+            return;
+        }
 
-            if (!inside) {
-                dialog.close();
-            }
-        });
+        var box = dialog.getBoundingClientRect();
+        var inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+
+        if (!inside) {
+            dialog.close();
+        }
     });
 
     // Ẩn hiện mật khẩu.
@@ -1115,16 +1115,17 @@
     });
 
     // Hộp thoại.
-    document.querySelectorAll('[data-open-dialog]').forEach(function (button) {
-        button.addEventListener('click', function () {
+    // Bắt ở document vì có phần tự tải lại (màn hình khu vực) thay nút mới.
+    document.addEventListener('click', function (event) {
+        var opener = event.target.closest('[data-open-dialog]');
+        var closer = event.target.closest('[data-close-dialog]');
+
+        if (opener) {
             closeKebabs(null);
-            document.getElementById(button.dataset.openDialog).showModal();
-        });
-    });
-    document.querySelectorAll('[data-close-dialog]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            button.closest('dialog').close();
-        });
+            document.getElementById(opener.dataset.openDialog).showModal();
+        } else if (closer && closer.closest('dialog')) {
+            closer.closest('dialog').close();
+        }
     });
 
     // Khung tải ảnh: xem trước, kéo thả, xoá.

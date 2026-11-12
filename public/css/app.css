@@ -1081,6 +1081,9 @@ dialog.item-dialog { padding: 0; overflow: hidden; }
 
 .screen-tools { display: flex; align-items: center; gap: .5rem; }
 .sound-toggle[aria-pressed="true"] { color: var(--ok-ink); background: var(--ok-bg); border-color: var(--ok-ink); }
+/* Màn hình khu vực: nút Đơn đã xong ở trên, bên phải. */
+.board-bar { display: flex; justify-content: flex-end; margin-bottom: .75rem; }
+.dashboard-screens { margin-bottom: 1.25rem; }
 .tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); gap: .75rem; align-items: start; }
 .ticket { display: grid; gap: .5rem; padding: .9rem 1rem; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--primary-ink); border-radius: var(--radius); }
 .ticket.is-late { border-top-color: var(--bad-ink); }

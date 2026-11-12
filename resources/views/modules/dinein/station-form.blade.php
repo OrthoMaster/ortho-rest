@@ -12,7 +12,7 @@
             @include('partials.field', ['name' => 'name', 'label' => __('dinein.station_name'), 'value' => $station->name, 'maxlength' => 60])
         </section>
 
-        {{-- Chọn món cho khu chỉ khi bật Màn hình khu. --}}
+        {{-- Chọn món cho khu chỉ khi bật Màn hình khu vực. --}}
         @if ($kitchen)
             <section class="panel">
                 <div>

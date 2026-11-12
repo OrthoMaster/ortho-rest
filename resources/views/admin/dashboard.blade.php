@@ -7,6 +7,14 @@
     @php($roleLabel = $user->isOwner() ? $user->role->label() : ($user->positions->pluck('name')->implode(', ') ?: $user->role?->label()))
     <p class="lead">{{ __('ui.dashboard.role_at', ['role' => $roleLabel, 'restaurant' => $restaurant->name]) }}</p>
 
+    @if ($screens && ($prep || $stations->isNotEmpty()))
+        {{-- Vào nhanh màn hình khu vực. --}}
+        <section class="stack dashboard-screens">
+            <h2>{{ __('kitchen.screens') }}</h2>
+            @include('modules.kitchen.tiles')
+        </section>
+    @endif
+
     <div class="cols cols-2">
     <section class="panel">
         <h2>{{ __('ui.dashboard.public_url') }}</h2>

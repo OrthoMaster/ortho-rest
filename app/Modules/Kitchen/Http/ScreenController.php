@@ -3,15 +3,14 @@
 namespace App\Modules\Kitchen\Http;
 
 use App\Http\Controllers\Controller;
-use App\Models\Shift;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
+use App\Modules\Kitchen\Screens;
 use App\Modules\Schedule\Duty;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,8 +26,8 @@ class ScreenController extends Controller
 {
     public function index(Request $request): View|RedirectResponse
     {
-        $stations = $this->stationsFor($request);
-        $prep = $this->canPrep($request);
+        $stations = Screens::stationsFor($request->user());
+        $prep = Screens::canPrep($request->user());
 
         if ($stations->count() + ($prep ? 1 : 0) === 1) {
             return $prep
@@ -38,9 +37,9 @@ class ScreenController extends Controller
 
         return view('modules.kitchen.screens', [
             'stations' => $stations,
-            'pending' => $this->pendingCounts(),
+            'pending' => Screens::pendingCounts(),
             'prep' => $prep,
-            'prepCount' => $prep ? $this->prepOrders()->count() : 0,
+            'prepCount' => $prep ? Screens::prepOrders()->count() : 0,
         ]);
     }
 
@@ -51,7 +50,7 @@ class ScreenController extends Controller
         $data = [
             'station' => $station,
             'tickets' => $this->tickets($station),
-            'recent' => $this->recent($station),
+            'finished' => $this->finished($station),
         ];
 
         // Màn hình tự tải lại phần danh sách món mỗi vài giây.
@@ -59,7 +58,7 @@ class ScreenController extends Controller
             return view('modules.kitchen.board', $data);
         }
 
-        return view('modules.kitchen.screen', $data + ['stations' => $this->stationsFor($request), 'prep' => $this->canPrep($request)]);
+        return view('modules.kitchen.screen', $data + ['stations' => Screens::stationsFor($request->user()), 'prep' => Screens::canPrep($request->user())]);
     }
 
     public function done(Request $request, Station $station): RedirectResponse
@@ -91,11 +90,11 @@ class ScreenController extends Controller
     /** Chuẩn bị đơn mang đi: các đơn chưa giao, món nào đã xong. */
     public function takeaway(Request $request): View
     {
-        abort_unless($this->canPrep($request), 403);
+        abort_unless(Screens::canPrep($request->user()), 403);
 
-        $shiftStart = $this->shiftStart();
+        $shiftStart = Screens::shiftStart();
         $data = [
-            'orders' => $this->prepOrders()->with(['items', 'customer'])->get(),
+            'orders' => Screens::prepOrders()->with(['items', 'customer'])->get(),
             'shiftStart' => $shiftStart,
             // Cột phải: đơn đã giao từ đầu ca (không có ca thì từ đầu ngày).
             'delivered' => TakeawayOrder::with(['items', 'customer'])->where('status', OrderStatus::Delivered)
@@ -106,13 +105,13 @@ class ScreenController extends Controller
             return view('modules.kitchen.prep-board', $data);
         }
 
-        return view('modules.kitchen.prep', $data + ['stations' => $this->stationsFor($request)]);
+        return view('modules.kitchen.prep', $data + ['stations' => Screens::stationsFor($request->user())]);
     }
 
     /** Đóng gói xong (Sẵn sàng), đã giao khách, hoặc huỷ đơn. */
     public function takeawayStatus(Request $request, TakeawayOrder $order): RedirectResponse
     {
-        abort_unless($this->canPrep($request), 403);
+        abort_unless(Screens::canPrep($request->user()), 403);
 
         $status = OrderStatus::from($request->validate([
             'status' => ['required', Rule::in([OrderStatus::Ready->value, OrderStatus::Delivered->value, OrderStatus::Cancelled->value])],
@@ -158,21 +157,21 @@ class ScreenController extends Controller
         return $tables->values()->concat($orders->values())->sortBy(fn (array $ticket) => $ticket['at']->getTimestamp())->values();
     }
 
-    /** Món vừa xong 30 phút qua, cả tại bàn và mang đi. */
-    private function recent(Station $station): Collection
+    /** Món khu này đã xong trong ca đang diễn ra (không có ca thì trong ngày), mới nhất trước. */
+    private function finished(Station $station): Collection
     {
-        $since = now()->subMinutes(30);
+        $since = Screens::shiftStart() ?? today();
 
-        $tables = $this->lines($station)->where('status', '!=', LineStatus::New)->whereNotNull('done_at')
-            ->where('done_at', '>=', $since)->latest('done_at')->limit(8)->get()
-            ->map(fn (OrderLine $line) => ['where' => $line->diningTable->label, 'text' => $line->quantity.' × '.$line->name, 'badge' => $line->status->badge(), 'status' => $line->status->label(), 'at' => $line->done_at]);
+        $tables = $this->lines($station)->where('status', '!=', LineStatus::New)->where('status', '!=', LineStatus::Cancelled)
+            ->where('done_at', '>=', $since)->latest('done_at')->limit(200)->get()
+            ->map(fn (OrderLine $line) => ['where' => $line->diningTable->label, 'line' => $line, 'at' => $line->done_at]);
 
         $orders = has_module('takeaway')
-            ? $this->stationScope(TakeawayOrderItem::with('order'), $station)->where('done_at', '>=', $since)->latest('done_at')->limit(8)->get()
-                ->map(fn (TakeawayOrderItem $item) => ['where' => __('kitchen.takeaway_tag').' '.$item->order->code(), 'text' => $item->quantity.' × '.$item->name, 'badge' => 'badge-ok', 'status' => __('kitchen.item_done'), 'at' => $item->done_at])
+            ? $this->stationScope(TakeawayOrderItem::with('order'), $station)->where('done_at', '>=', $since)->latest('done_at')->limit(200)->get()
+                ->map(fn (TakeawayOrderItem $item) => ['where' => __('kitchen.takeaway_tag').' '.$item->order->code(), 'line' => $item, 'at' => $item->done_at])
             : collect();
 
-        return $tables->concat($orders)->sortByDesc(fn (array $row) => $row['at']->getTimestamp())->take(8)->values();
+        return $tables->concat($orders)->sortByDesc(fn (array $row) => $row['at']->getTimestamp())->values();
     }
 
     /** Món tại bàn của khu. */
@@ -194,64 +193,5 @@ class ScreenController extends Controller
     private function stationScope(Builder $query, Station $station): Builder
     {
         return $query->where('dinein_station_id', $station->id);
-    }
-
-    /** Đơn mang đi chưa giao, nhận hôm nay, theo giờ giao. */
-    private function prepOrders(): Builder
-    {
-        return TakeawayOrder::whereIn('status', [OrderStatus::New, OrderStatus::Preparing, OrderStatus::Ready])
-            ->whereDate('pickup_date', today())
-            ->orderBy('pickup_at');
-    }
-
-    /** Giờ bắt đầu ca đang diễn ra hôm nay (kể cả ca từ hôm qua kéo qua nửa đêm), không có ca thì null. */
-    private function shiftStart(): ?CarbonImmutable
-    {
-        foreach (Duty::slots() as $slot) {
-            $shift = $slot['shift'] ? Shift::find($slot['shift']) : null;
-
-            if ($shift) {
-                return CarbonImmutable::parse($slot['date'])->setTimeFromTimeString($shift->start_time);
-            }
-        }
-
-        return null;
-    }
-
-    private function canPrep(Request $request): bool
-    {
-        return has_module('takeaway') && $request->user()->can('takeaway.status');
-    }
-
-    /** @return Collection<int, Station> */
-    private function stationsFor(Request $request): Collection
-    {
-        $user = $request->user();
-        $ids = $user->can('kitchen.stations') ? null : Duty::stationIds($user);
-
-        return Station::when($ids !== null, fn (Builder $query) => $query->whereKey($ids))->orderBy('sort_order')->orderBy('id')->get();
-    }
-
-    /** @return array<int, int> số món đang chờ của từng khu (tại bàn và mang đi) */
-    private function pendingCounts(): array
-    {
-        $rows = OrderLine::where('status', LineStatus::New)
-            ->selectRaw('dinein_station_id, sum(quantity) as total')
-            ->groupBy('dinein_station_id')
-            ->get();
-
-        if (has_module('takeaway')) {
-            $rows = $rows->concat(TakeawayOrderItem::whereNull('done_at')
-                ->whereHas('order', fn (Builder $query) => $query->whereIn('status', [OrderStatus::New, OrderStatus::Preparing])->whereDate('pickup_date', today()))
-                ->selectRaw('dinein_station_id, sum(quantity) as total')
-                ->groupBy('dinein_station_id')
-                ->get());
-        }
-
-        return $rows->whereNotNull('dinein_station_id')->reduce(function (array $counts, $row) {
-            $counts[$row->dinein_station_id] = ($counts[$row->dinein_station_id] ?? 0) + (int) $row->total;
-
-            return $counts;
-        }, []);
     }
 }

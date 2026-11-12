@@ -1,4 +1,4 @@
-{{-- Chi tiết đơn mang đi trong popup của Chuẩn bị đơn mang đi (chép từ template của từng đơn). --}}
+{{-- Chi tiết đơn mang đi trong popup của Đơn mang đi (chép từ template của từng đơn). --}}
 <dl class="details">
     <dt>{{ __('reservation.customer_name') }}</dt>
     <dd>{{ $order->customer->name }}</dd>

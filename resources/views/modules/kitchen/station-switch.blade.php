@@ -1,4 +1,4 @@
-{{-- Đổi màn hình: Chuẩn bị đơn mang đi (luôn đầu) và các khu. --}}
+{{-- Đổi màn hình: Đơn mang đi (luôn đầu) và các khu. --}}
 @if ($stations->count() + ($prep ? 1 : 0) > 1)
     @component('partials.kebab', ['label' => __('kitchen.switch_station'), 'trigger' => __('kitchen.switch_station')])
         @if ($prep)

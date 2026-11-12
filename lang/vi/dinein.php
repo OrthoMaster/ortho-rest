@@ -77,11 +77,8 @@ return [
         'cancelled' => 'Đã huỷ',
     ],
 
-    // Màn hình khu
     'minutes_ago' => ':count phút',
     'just_now' => 'Vừa gọi',
-
-    // Chuẩn bị đơn mang đi: nhận món đã xong, đóng gói, giao khách.
 
     // Báo trên mọi trang
     'alerts' => 'Thông báo món',
@@ -91,7 +88,7 @@ return [
     'alert_close' => 'Đóng',
 
     // Khu phục vụ
-    'stations_lead' => 'Nơi làm món, ví dụ Bếp, Quầy nước. Dùng để phân công ở Lịch làm việc; bật Màn hình khu thì mỗi khu có màn hình riêng, chỉ thấy món của khu mình.',
+    'stations_lead' => 'Nơi làm món, ví dụ Bếp, Quầy nước. Dùng để phân công ở Lịch làm việc; bật Màn hình khu vực thì mỗi khu có màn hình riêng, chỉ thấy món của khu mình.',
     'station_name' => 'Tên khu',
     'station_example' => 'Ví dụ: Bếp, Bar',
     'station_add' => 'Thêm khu phục vụ',
@@ -99,14 +96,14 @@ return [
     'station_items_hint' => 'Bật các món khu này làm. Mỗi món thuộc một khu; bật ở đây thì món chuyển khỏi khu cũ.',
     'station_item_count' => ':count món',
     'station_in' => 'đang ở :name',
-    'station_no_items' => 'Món chưa chọn khu không hiện ở màn hình khu nào: gọi xong là coi như đã làm.',
+    'station_no_items' => 'Món chưa chọn khu không hiện ở màn hình khu vực nào: gọi xong là coi như đã làm.',
     'station_busy' => ':name còn món đang chờ làm. Báo xong hoặc huỷ các món đó rồi mới xoá khu.',
-    'unassigned' => ':count món chưa chọn khu: gọi xong là coi như đã làm, không qua màn hình khu nào.',
+    'unassigned' => ':count món chưa chọn khu: gọi xong là coi như đã làm, không qua màn hình khu vực nào.',
     'station_created' => 'Đã thêm khu. Chọn món cho khu này.',
     'station_saved' => 'Đã lưu khu phục vụ.',
     'station_deleted' => 'Đã xoá khu phục vụ.',
     'station_delete' => 'Xoá khu',
-    'station_delete_confirm' => 'Xoá khu :name? Món đang chọn khu này sẽ về chưa chọn khu (không qua màn hình khu nào).',
+    'station_delete_confirm' => 'Xoá khu :name? Món đang chọn khu này sẽ về chưa chọn khu (không qua màn hình khu vực nào).',
     'station_last' => 'Cần ít nhất một khu phục vụ.',
     'station_taken' => 'Đã có khu tên này.',
     'station_items_log' => 'Đổi món của khu :name',

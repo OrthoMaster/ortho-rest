@@ -1,8 +1,8 @@
 <?php
 
-// Màn hình khu (bếp, bar) và Chuẩn bị đơn mang đi.
+// Màn hình khu vực (bếp, bar) và Đơn mang đi.
 return [
-    'screens' => 'Màn hình khu',
+    'screens' => 'Màn hình khu vực',
     'screens_lead' => 'Chọn khu để mở màn hình món cần làm.',
     'screens_none' => 'Bạn chưa được phân công ở khu nào trong ca này.',
     'pending_count' => ':count món chờ',
@@ -15,7 +15,10 @@ return [
     'done_takeaway_confirm' => 'Báo :name (đơn :code) đã xong? Người chuẩn bị đơn mang đi sẽ nhận thông báo.',
     'done_order_confirm' => 'Báo tất cả món của đơn :code đã xong?',
     'done_count' => '{0} Món đã được báo xong trước đó.|{1} Đã báo xong 1 món.|[2,*] Đã báo xong :count món.',
-    'recent' => 'Vừa xong',
+    'finished' => 'Đơn đã xong',
+    'finished_shift' => 'Đơn đã xong trong ca',
+    'finished_today' => 'Đơn đã xong hôm nay',
+    'finished_none' => 'Chưa có món nào xong.',
     'ordered_by' => 'Gọi bởi :name',
     'ordered_ago' => 'Đã đặt được :time',
     'ordered_now' => 'Vừa đặt',
@@ -30,7 +33,7 @@ return [
     'sound_off' => 'Bật âm thanh',
     'sound_hint' => 'Trình duyệt chỉ phát âm thanh sau khi bạn bấm vào trang một lần.',
     'switch_station' => 'Đổi khu',
-    'prep' => 'Chuẩn bị đơn mang đi',
+    'prep' => 'Đơn mang đi',
     'prep_lead' => 'Đơn mang đi hôm nay: món nào bếp, bar làm xong sẽ báo ở đây. Đủ món thì đóng gói, khách đến thì bấm Đã giao.',
     'prep_empty' => 'Không có đơn mang đi nào cần chuẩn bị.',
     'prep_count' => ':count đơn',

@@ -115,11 +115,12 @@ class DineInTest extends TestCase
             ->assertDontSee('data-line-id="t'.$items[2]->id.'"', false);
         $this->get("$this->kitchenBase/{$this->bar->id}")->assertSee('data-line-id="t'.$items[2]->id.'"', false);
 
-        // Bếp báo xong món mang đi: đơn sang Đang làm, món rời màn hình khu.
+        // Bếp báo xong món mang đi: đơn sang Đang làm, món rời màn hình khu, vào danh sách Đơn đã xong (không còn khung Vừa xong).
         $this->post("$this->kitchenBase/{$this->kitchen->id}/done", ['takeaway' => [$items[0]->id]])->assertSessionHas('status');
         $this->assertNotNull($items[0]->fresh()->done_at);
         $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
-        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertDontSee('data-line-id="t'.$items[0]->id.'"', false);
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertDontSee('data-line-id="t'.$items[0]->id.'"', false)
+            ->assertSee(__('kitchen.finished').' (1)')->assertSee(__('kitchen.finished_today'))->assertSee(__('kitchen.takeaway_tag').' '.$order->code().' · 1 × Cơm tấm');
         // Không báo được món của khu khác.
         $this->post("$this->kitchenBase/{$this->kitchen->id}/done", ['takeaway' => [$items[2]->id]]);
         $this->assertNull($items[2]->fresh()->done_at);
@@ -130,8 +131,12 @@ class DineInTest extends TestCase
         $order = $this->takeawayOrder();
         $item = $order->items()->withoutGlobalScopes()->first();
 
-        // Chuẩn bị đơn mang đi luôn đứng đầu danh sách màn hình.
+        // Đơn mang đi luôn đứng đầu danh sách màn hình, ở cả Tổng quan để vào nhanh.
         $this->get("$this->kitchenBase")->assertOk()->assertSeeInOrder([__('kitchen.prep'), $this->kitchen->name]);
+        $this->get("/{$this->restaurant->slug}/admin")->assertOk()->assertSeeInOrder([__('kitchen.screens'), __('kitchen.prep'), $this->kitchen->name, $this->bar->name])
+            ->assertSee("$this->kitchenBase/{$this->bar->id}", false)
+            // Menu trái: Màn hình khu vực ngay dưới Nhật ký thay đổi.
+            ->assertSeeInOrder([__('activity.title').'</a>', __('modules.kitchen').'</a>', __('ui.restaurant.title').'</a>'], false);
         $this->get("$this->kitchenBase/takeaway")->assertOk()->assertSee($order->code())->assertSee('Chị Mai')
             ->assertSee(__('kitchen.items_done', ['done' => 0, 'total' => 3]))->assertDontSee('data-line-id="d', false);
 
