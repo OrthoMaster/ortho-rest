@@ -182,6 +182,38 @@ class LeaveTest extends TestCase
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => 30, 'reason' => 'x'])->assertForbidden();
     }
 
+    public function test_overdue_pending_leave_is_rejected_automatically(): void
+    {
+        $minh = $this->member($this->restaurant, 'staff', ['name' => 'Minh']);
+        $make = fn (User $user, array $attributes) => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $user->id, 'days' => 1, 'status' => LeaveStatus::Pending, 'starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', ...$attributes]);
+        $wholeDay = $make($this->lan, []);
+        $lunch = $make($minh, ['shift_ids' => [$this->lunch->id], 'days' => 0.5]);
+        $dinner = $make($this->owner, ['shift_ids' => [$this->dinner->id], 'days' => 0.5]);
+
+        // Thứ năm 12/11 lúc 11:00: nghỉ cả ngày và ca trưa (10:00) đã đến giờ; ca tối (17:00) chưa.
+        $this->travelTo(CarbonImmutable::parse('2026-11-12 11:00'));
+        $this->actingAs($this->owner)->get("$this->base?status=all")->assertOk()->assertSee(__('leave.auto_rejected', ['time' => '12/11 11:00']));
+
+        $this->assertSame(LeaveStatus::Rejected, $wholeDay->fresh()->status);
+        $this->assertSame(LeaveStatus::Rejected, $lunch->fresh()->status);
+        $this->assertSame(__('leave.expired_note'), $lunch->fresh()->decision_note);
+        $this->assertNull($lunch->fresh()->decided_by);
+        $this->assertSame(LeaveStatus::Pending, $dinner->fresh()->status);
+        $this->assertSame(2, ActivityLog::withoutGlobalScopes()->where('summary', 'like', '%'.mb_substr(__('leave.log_expired'), -20).'%')->count());
+    }
+
+    public function test_owner_is_not_in_leave_book(): void
+    {
+        // Chủ quán mở Nghỉ phép: xem phép của nhân viên đầu danh sách, chủ quán không có trong ô chọn.
+        $this->actingAs($this->owner)->get("$this->base/mine")->assertOk()
+            ->assertSee('value="'.$this->lan->id.'" data-label="Lan" checked', false)
+            ->assertDontSee('data-label="'.$this->owner->name.'"', false);
+        $this->get("$this->base/mine?user={$this->owner->id}")->assertNotFound();
+        $this->post("$this->base/balance/{$this->owner->id}", ['left' => 5, 'reason' => 'x'])->assertStatus(422);
+        $this->get("$this->base/create")->assertDontSee('data-label="'.$this->owner->name.'"', false);
+        $this->post($this->base, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'whole_day' => 1])->assertSessionHasErrors('user_id');
+    }
+
     public function test_unpaid_and_rejected_do_not_use_balance(): void
     {
         $make = fn () => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);
@@ -201,7 +233,8 @@ class LeaveTest extends TestCase
 
     public function test_balance_needs_contract_info(): void
     {
-        $this->assertNull(LeaveBook::balance($this->owner));
-        $this->actingAs($this->owner)->get("$this->base/mine")->assertSee(__('leave.balance_none'));
+        $minh = $this->member($this->restaurant, 'staff', ['name' => 'Minh']);
+        $this->assertNull(LeaveBook::balance($minh));
+        $this->actingAs($minh)->get("$this->base/mine")->assertSee(__('leave.balance_none'));
     }
 }

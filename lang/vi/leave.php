@@ -7,6 +7,8 @@ return [
     'mine_pending_none' => 'Không có đơn nào đang chờ duyệt.',
     'mine_history' => 'Các đơn đã xin',
     'book_of' => 'Xem phép của',
+    'book_none' => 'Chưa có nhân viên nào.',
+    'pick_person' => 'Chọn nhân viên',
     'adjust' => 'Điều chỉnh phép',
     'adjust_title' => 'Điều chỉnh phép còn lại của :name',
     'adjust_lead' => 'Dùng khi phép không cộng đúng như cài đặt, ví dụ vào làm giữa tháng hay tạm nghỉ một tháng. Nhập số phép còn lại mới; lần chỉnh được lưu vào lịch sử phép mà nhân viên xem được.',
@@ -61,6 +63,9 @@ return [
     'empty_pending' => 'Không có đơn nào chờ duyệt.',
     'sent_by' => 'Gửi :time bởi :name',
     'decided_by' => ':status bởi :name lúc :time',
+    'auto_rejected' => 'Tự chuyển sang không duyệt lúc :time',
+    'expired_note' => 'Đã đến giờ nghỉ mà chưa được duyệt.',
+    'log_expired' => 'Đơn xin nghỉ của :name (:period) quá hạn chưa duyệt, tự chuyển sang không duyệt',
     'paid' => 'Có lương',
     'unpaid' => 'Không lương',
 

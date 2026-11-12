@@ -2,6 +2,8 @@
 
 namespace App\Modules\Schedule;
 
+use App\Models\ActivityLog;
+use App\Models\Shift;
 use App\Models\User;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\LeaveAdjustment;
@@ -78,6 +80,37 @@ class LeaveBook
         }
 
         return array_reverse($entries);
+    }
+
+    /**
+     * Đơn đã đến giờ nghỉ (đầu ngày, hoặc giờ bắt đầu ca đầu tiên nếu nghỉ theo ca) mà vẫn chờ duyệt
+     * thì tự chuyển sang không duyệt, để không treo mãi khi chủ quán quên duyệt.
+     */
+    public static function expireOverdue(): int
+    {
+        $now = CarbonImmutable::now();
+        $count = 0;
+
+        $overdue = LeaveRequest::with('user')->where('status', LeaveStatus::Pending)->whereDate('starts_on', '<=', $now->toDateString())->get();
+
+        foreach ($overdue as $leave) {
+            $start = $leave->starts_on->startOfDay();
+
+            if (! $leave->isWholeDay()) {
+                $first = Shift::whereKey($leave->shift_ids)->orderBy('start_time')->value('start_time');
+                $start = $first ? $leave->starts_on->setTimeFromTimeString((string) $first) : $start;
+            }
+
+            if ($start->gt($now)) {
+                continue;
+            }
+
+            $leave->forceFill(['status' => LeaveStatus::Rejected, 'is_paid' => null, 'decided_by' => null, 'decided_at' => $now, 'decision_note' => __('leave.expired_note')])->save();
+            ActivityLog::record($leave->restaurant_id, 'schedule', __('leave.log_expired', ['name' => $leave->user->name, 'period' => $leave->periodText()]));
+            $count++;
+        }
+
+        return $count;
     }
 
     /** Chỉnh phép còn lại thành $target ngày; trả về lần chỉnh (null nếu không đổi). */

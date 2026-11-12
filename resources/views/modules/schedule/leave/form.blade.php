@@ -13,7 +13,7 @@
         <section class="panel stack">
             {{-- Người duyệt chọn người nghỉ (có ô tìm); nhân viên chỉ xin nghỉ cho mình. --}}
             @if ($approver)
-                @include('partials.select-search', ['name' => 'user_id', 'label' => __('leave.person'), 'value' => old('user_id', auth()->id()), 'options' => $users->pluck('name', 'id')->all()])
+                @include('partials.select-search', ['name' => 'user_id', 'label' => __('leave.person'), 'value' => old('user_id', $users->has(auth()->id()) ? auth()->id() : null), 'placeholder' => __('leave.pick_person'), 'options' => $users->pluck('name', 'id')->all()])
             @else
                 <div class="field">
                     <span class="field-label">{{ __('leave.person') }}</span>

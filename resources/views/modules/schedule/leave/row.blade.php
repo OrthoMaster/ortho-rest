@@ -13,7 +13,11 @@
         </small>
         <small>
             @if ($leave->decided_at)
-                {{ __('leave.decided_by', ['status' => $leave->status->label(), 'name' => $leave->decider?->name ?? '—', 'time' => $leave->decided_at->format('d/m H:i')]) }}
+                @if ($leave->decided_by === null && $leave->status === \App\Modules\Schedule\LeaveStatus::Rejected)
+                    {{ __('leave.auto_rejected', ['time' => $leave->decided_at->format('d/m H:i')]) }}
+                @else
+                    {{ __('leave.decided_by', ['status' => $leave->status->label(), 'name' => $leave->decider?->name ?? '—', 'time' => $leave->decided_at->format('d/m H:i')]) }}
+                @endif
                 @if ($leave->status === \App\Modules\Schedule\LeaveStatus::Approved) · {{ __($leave->is_paid ? 'leave.paid' : 'leave.unpaid') }}@endif
                 @if ($leave->decision_note) · {{ $leave->decision_note }}@endif
             @else

@@ -12,12 +12,15 @@
 
     {{-- Phép còn lại, lịch sử phép và các đơn của một người (mặc định là mình; người duyệt chọn người khác). --}}
     <div class="stack w-md">
-        @if ($approver)
+        @if ($approver && $users->isNotEmpty())
             <form method="get" class="leave-person-pick">
-                @include('partials.select-search', ['name' => 'user', 'label' => __('leave.book_of'), 'value' => $person->id, 'options' => $users->pluck('name', 'id')->all(), 'submit' => true, 'required' => false])
+                @include('partials.select-search', ['name' => 'user', 'label' => __('leave.book_of'), 'value' => $person?->id, 'options' => $users->pluck('name', 'id')->all(), 'submit' => true, 'required' => false])
             </form>
         @endif
 
+        @if ($person === null)
+            <p class="empty">{{ __('leave.book_none') }}</p>
+        @else
         <section class="panel leave-balance-panel">
             @include('modules.schedule.leave.balance', ['balance' => $balance])
             @if ($approver && $balance)
@@ -87,6 +90,7 @@
                     </ul>
                 </section>
             </section>
+        @endif
         @endif
     </div>
 

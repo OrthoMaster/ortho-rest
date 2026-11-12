@@ -2,9 +2,11 @@
 
 namespace App\Modules\Schedule\Http;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Department;
+use App\Models\User;
 use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\LeaveRequest;
@@ -12,6 +14,7 @@ use App\Modules\Schedule\Roster;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -62,18 +65,30 @@ class LeaveController extends Controller
      */
     public function mine(Request $request): View
     {
-        $approver = $request->user()->can('schedule.leave');
-        $users = $approver ? Roster::users() : collect();
-        $user = $approver && $request->filled('user') ? tenant()->users()->findOrFail((int) $request->query('user')) : $request->user();
+        $viewer = $request->user();
+        $approver = $viewer->can('schedule.leave');
+        $isOwner = $viewer->role === UserRole::Owner;
+
+        $users = $approver ? $this->takers($request) : collect();
+
+        if ($approver && $request->filled('user')) {
+            $user = $users->get((int) $request->query('user')) ?? abort(404);
+        } else {
+            // Chủ quán mở Nghỉ phép thì xem người đầu danh sách.
+            $user = $isOwner && $approver ? $users->first() : $viewer;
+        }
+
+        if ($user === null) {
+            return view('modules.schedule.leave.mine', ['person' => null, 'approver' => $approver, 'users' => $users, 'history' => [], 'balance' => null, 'leaves' => collect()]);
+        }
 
         return view('modules.schedule.leave.mine', [
             'person' => $user,
-            'self' => $user->is($request->user()),
             'approver' => $approver,
-            'users' => $users->put($request->user()->id, $request->user())->sortBy('name'),
+            'users' => $users,
             'history' => LeaveBook::history($user),
             'balance' => LeaveBook::balance($user),
-            'leaves' => LeaveRequest::with(['decider'])->where('user_id', $user->id)
+            'leaves' => LeaveRequest::with(['decider', 'user'])->where('user_id', $user->id)
                 ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
                 ->orderByDesc('starts_on')
                 ->limit(100)
@@ -81,11 +96,28 @@ class LeaveController extends Controller
         ]);
     }
 
+    /**
+     * Người có phép và xin nghỉ được: nhân viên đang làm (kể cả người đang xem nếu không phải chủ quán).
+     * Chủ quán không có phép nên không nằm trong danh sách.
+     *
+     * @return Collection<int, User>
+     */
+    private function takers(Request $request): Collection
+    {
+        $users = Roster::users()->reject(fn ($user) => $user->role === UserRole::Owner);
+
+        if ($request->user()->role !== UserRole::Owner) {
+            $users->put($request->user()->id, $request->user());
+        }
+
+        return $users->sortBy('name');
+    }
+
     /** Chỉnh phép còn lại của một người thành số mới, kèm lý do; ghi lịch sử và nhật ký. */
     public function adjust(Request $request, int $user): RedirectResponse
     {
         $person = tenant()->users()->findOrFail($user);
-        abort_if(LeaveBook::balance($person) === null, 422);
+        abort_if($person->role === UserRole::Owner || LeaveBook::balance($person) === null, 422);
 
         $data = $request->validateWithBag('adjust', [
             'left' => ['required', 'numeric', 'between:-365,365'],
@@ -157,7 +189,7 @@ class LeaveController extends Controller
 
         return view('modules.schedule.leave.form', [
             'approver' => $approver,
-            'users' => $approver ? Roster::users() : collect(),
+            'users' => $approver ? $this->takers($request) : collect(),
             'shifts' => Roster::shiftsByWeekday(),
             'balance' => LeaveBook::balance($request->user()),
         ]);
@@ -169,7 +201,7 @@ class LeaveController extends Controller
         $approver = $viewer->can('schedule.leave');
 
         $data = $request->validate([
-            'user_id' => ['nullable', 'integer', Rule::in($approver ? Roster::users()->keys()->all() : [$viewer->id])],
+            'user_id' => [$viewer->role === UserRole::Owner ? 'required' : 'nullable', 'integer', Rule::in($approver ? $this->takers($request)->keys()->all() : [$viewer->id])],
             // Nhân viên chỉ xin nghỉ từ hôm nay; người duyệt nhập thay được cả ngày đã qua.
             'starts_on' => ['required', 'date', ...($approver ? [] : ['after_or_equal:today'])],
             'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
