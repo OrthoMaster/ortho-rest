@@ -1174,6 +1174,29 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .page-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .week-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
 .week-bar .week-filter { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.week-status { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+.week-status-text { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+.week-status-text small { color: var(--ink-soft); }
+.week-status-actions { display: flex; align-items: center; gap: .5rem; }
+.week-status-actions form { display: contents; }
+.week-status-actions .btn svg { width: 1.1rem; height: 1.1rem; margin-right: .35rem; vertical-align: -.2rem; }
+.week-bar:has(.week-status .kebab[open]) { position: relative; z-index: 45; }
+/* Khung ẩn để chụp hình bảng phân công: rộng như máy tính, nằm ngoài màn hình. */
+.schedule-image-frame { position: fixed; top: 0; left: -10000px; width: 1500px; height: 900px; border: 0; visibility: hidden; }
+/* Trang hình bảng phân công: bề ngang cố định để hình giống nhau trên mọi máy. */
+.schedule-print { background: var(--ground); }
+.schedule-print-bar { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem; }
+.schedule-sheet { width: 1400px; padding: 2rem; background: var(--surface); }
+.schedule-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--line); }
+.schedule-sheet-brand { display: flex; align-items: center; gap: 1rem; font-size: 1.5rem; }
+.schedule-sheet-brand .logo { width: 4.5rem; height: 4.5rem; }
+.schedule-sheet-title { display: grid; justify-items: end; gap: .25rem; text-align: right; }
+.schedule-sheet-title strong { font-size: 1.25rem; }
+.schedule-sheet-title small { color: var(--ink-soft); }
+.schedule-print-scroll { overflow-x: auto; }
+.schedule-sheet .schedule-wrap { display: block; overflow: visible; }
+.schedule-sheet .schedule .schedule-target,
+.schedule-sheet .schedule-group th > span { position: static; }
 .week-mine { min-height: 2.75rem; padding: .35rem .75rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .week-totals { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: 0 0 1rem; font-size: .875rem; color: var(--ink-soft); }
 .week-totals .person-pill { margin-right: .35rem; }

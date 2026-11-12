@@ -9,6 +9,7 @@ use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\DefaultSlot;
 use App\Modules\Schedule\Models\LeaveRequest;
+use App\Modules\Schedule\Models\Week;
 use App\Modules\Schedule\Placement;
 use App\Modules\Schedule\Roster;
 use Carbon\CarbonImmutable;
@@ -47,13 +48,18 @@ class ScheduleController extends Controller
             default => [],
         };
 
-        $assignments = Roster::assignments($days[0], $days[6]);
+        $week = Week::of($days[0]);
+        // Tuần chưa công bố là bản nháp: chỉ người phân công thấy.
+        $hidden = ! $week->isPublished() && ! $canFilter;
+        $assignments = $hidden ? collect() : Roster::assignments($days[0], $days[6]);
         $shown = $people === [] ? $assignments : $assignments->whereIn('user_id', $people);
         $grid = Roster::grid($shown);
 
         return view('modules.schedule.week', [
             'date' => $days[0],
             'days' => $days,
+            'week' => $week,
+            'hidden' => $hidden,
             'slots' => $this->slotsOf($days, $shifts),
             'grid' => $grid,
             'targets' => Roster::targets(),
@@ -75,12 +81,15 @@ class ScheduleController extends Controller
         $shifts = Roster::shiftsByWeekday();
         $users = Roster::users();
         $leaves = Placement::leavesInWeek($days);
+        $assignments = Roster::assignments($days[0], $days[6]);
 
         return view('modules.schedule.assign', [
             'date' => $days[0],
             'days' => $days,
+            'week' => Week::of($days[0])->loadMissing('publisher'),
+            'hasAssignments' => $assignments->isNotEmpty(),
             'slots' => $this->slotsOf($days, $shifts),
-            'grid' => Roster::grid(Roster::assignments($days[0], $days[6])),
+            'grid' => Roster::grid($assignments),
             'targets' => Roster::targets(),
             'users' => $users,
             'stats' => $this->stats($users, $days),
@@ -236,6 +245,79 @@ class ScheduleController extends Controller
         }
 
         return redirect()->route('tenant.admin.schedule.assign', ['date' => $days[0]->toDateString()])->with('status', $message);
+    }
+
+    /** Công bố lịch tuần: từ lúc này nhân viên mới thấy lịch và được tính là đang làm theo ca. */
+    public function publish(Request $request): RedirectResponse
+    {
+        $week = Week::of($this->date($request->input('date')));
+        $week->fill(['published_at' => now(), 'published_by' => $request->user()->id])->save();
+
+        ActivityLog::record(tenant()->getKey(), 'schedule', __('schedule.publish_log', $this->range($week)));
+
+        return $this->backToWeek($week, __('schedule.published'));
+    }
+
+    /** Huỷ công bố: tuần quay về bản nháp, nhân viên không thấy nữa. */
+    public function unpublish(Request $request): RedirectResponse
+    {
+        $week = Week::of($this->date($request->input('date')));
+
+        if ($week->exists) {
+            $week->update(['published_at' => null, 'published_by' => null]);
+            ActivityLog::record(tenant()->getKey(), 'schedule', __('schedule.unpublish_log', $this->range($week)));
+        }
+
+        return $this->backToWeek($week, __('schedule.unpublished'));
+    }
+
+    /** Xoá hết phân công của tuần (tuần nháp, hoặc đã công bố nhưng chưa bắt đầu); tuần quay về bản nháp. */
+    public function reset(Request $request): RedirectResponse
+    {
+        $week = Week::of($this->date($request->input('date')));
+        abort_unless($week->canReset(), 403);
+
+        $from = $week->week_start;
+        $count = DB::transaction(function () use ($week, $from): int {
+            if ($week->exists) {
+                $week->update(['published_at' => null, 'published_by' => null]);
+            }
+
+            return Assignment::whereBetween('work_date', [$from->toDateString(), $from->addDays(6)->toDateString()])->delete();
+        });
+
+        ActivityLog::record(tenant()->getKey(), 'schedule', __('schedule.reset_log', [...$this->range($week), 'count' => $count]));
+
+        return $this->backToWeek($week, trans_choice('schedule.reset_done', $count, ['count' => $count]));
+    }
+
+    /** Bảng phân công để tải về thành hình: logo quán, tuần, ngày in. Chỉ tuần đã công bố. */
+    public function image(Request $request): View
+    {
+        $days = Roster::week($this->date($request->query('date')));
+        $week = Week::of($days[0]);
+        abort_unless($week->isPublished(), 404);
+
+        return view('modules.schedule.image', [
+            'date' => $days[0],
+            'days' => $days,
+            'slots' => $this->slotsOf($days, Roster::shiftsByWeekday()),
+            'grid' => Roster::grid(Roster::assignments($days[0], $days[6])),
+            'targets' => Roster::targets(),
+            'users' => Roster::users(),
+            'printedAt' => now(),
+        ]);
+    }
+
+    /** @return array{from: string, to: string} */
+    private function range(Week $week): array
+    {
+        return ['from' => $week->week_start->format('d/m'), 'to' => $week->week_start->addDays(6)->format('d/m')];
+    }
+
+    private function backToWeek(Week $week, string $message): RedirectResponse
+    {
+        return redirect()->route('tenant.admin.schedule.assign', ['date' => $week->week_start->toDateString()])->with('status', $message);
     }
 
     /** @param list<string> $warnings */

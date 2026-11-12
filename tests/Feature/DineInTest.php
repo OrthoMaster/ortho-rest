@@ -18,6 +18,7 @@ use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Schedule\Duty;
 use App\Modules\Schedule\Models\Assignment;
+use App\Modules\Schedule\Models\Week;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -183,6 +184,9 @@ class DineInTest extends TestCase
         $other = $this->member($this->restaurant, 'staff');
         $this->actingAs($other)->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
         Assignment::create(['restaurant_id' => $this->restaurant->id, 'work_date' => '2026-11-09', 'area_id' => $this->area->id, 'user_id' => $other->id]);
+        // Lịch tuần còn là bản nháp thì chưa tính là đang làm.
+        $this->actingAs($other)->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
+        Week::create(['restaurant_id' => $this->restaurant->id, 'week_start' => '2026-11-09', 'published_at' => now()]);
         $this->actingAs($other)->getJson("$this->base/poll")->assertJsonCount(1, 'ready');
 
         $this->actingAs($waiter)->post("$this->base/lines/{$rice->id}/serve")->assertSessionHas('status');
@@ -227,6 +231,9 @@ class DineInTest extends TestCase
         $this->actingAs($this->owner)->postJson($schedule, ['user' => $cook->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 's'.$this->kitchen->id])->assertOk();
         $this->postJson($schedule, ['user' => $this->owner->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 'a'.$this->area->id])->assertOk();
         $this->assertSame(2, Assignment::withoutGlobalScopes()->count());
+        // Còn là bản nháp thì chưa mở được màn hình khu; công bố rồi mới mở.
+        $this->actingAs($cook)->get("$this->base/screens")->assertForbidden();
+        $this->actingAs($this->owner)->post("/{$this->restaurant->slug}/admin/schedule/week/publish", ['date' => '2026-11-09']);
 
         $this->actingAs($cook)->get("$this->base/screens")->assertRedirect("$this->base/screens/{$this->kitchen->id}");
         $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk();
@@ -252,6 +259,7 @@ class DineInTest extends TestCase
     {
         $shift = Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Work, 'weekday' => 1, 'name' => 'Ca khuya', 'start_time' => '18:00', 'end_time' => '02:00']);
         Assignment::create(['restaurant_id' => $this->restaurant->id, 'work_date' => '2026-11-09', 'shift_id' => $shift->id, 'dinein_station_id' => $this->bar->id, 'user_id' => $this->owner->id]);
+        Week::create(['restaurant_id' => $this->restaurant->id, 'week_start' => '2026-11-09', 'published_at' => now()]);
 
         app(TenantContext::class)->set($this->restaurant);
         $this->assertSame([], Duty::stationIds($this->owner), 'Chưa đến ca.');

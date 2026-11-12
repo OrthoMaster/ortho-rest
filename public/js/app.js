@@ -3093,4 +3093,109 @@
         show(withError || (buttons.some(function (button) { return button.dataset.tab === hash; }) ? hash : buttons[0].dataset.tab));
     });
 
+    // Hình bảng phân công. Trang hình (data-schedule-sheet) tự chụp bảng thành PNG:
+    // nằm trong khung ẩn của trang Phân công thì gửi hình về trang đó, mở thẳng thì bấm Tải hình.
+    var saveBlob = function (blob, filename) {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    };
+
+    var sheet = document.querySelector('[data-schedule-sheet]');
+    if (sheet) {
+        var renderSheet = function () {
+            var ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+
+            return ready.then(function () {
+                return window.htmlToImage.toBlob(sheet, {
+                    pixelRatio: 2,
+                    imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
+                    backgroundColor: getComputedStyle(sheet).backgroundColor,
+                    width: sheet.scrollWidth,
+                    height: sheet.scrollHeight,
+                });
+            });
+        };
+
+        window.addEventListener('load', function () {
+            if (window.parent !== window) {
+                renderSheet().then(function (blob) {
+                    window.parent.postMessage({ scheduleImage: blob }, window.location.origin);
+                }, function () {
+                    window.parent.postMessage({ scheduleImage: null }, window.location.origin);
+                });
+            }
+        });
+
+        var saveButton = document.querySelector('[data-schedule-image-save]');
+        if (saveButton) {
+            saveButton.addEventListener('click', function () {
+                saveButton.disabled = true;
+                renderSheet().then(function (blob) {
+                    saveBlob(blob, saveButton.dataset.filename);
+                }).finally(function () {
+                    saveButton.disabled = false;
+                });
+            });
+        }
+    }
+
+    document.querySelectorAll('[data-schedule-image]').forEach(function (button) {
+        var label = button.querySelector('span');
+        var text = label.textContent;
+
+        button.addEventListener('click', function () {
+            if (button.disabled) {
+                return;
+            }
+
+            var frame = document.createElement('iframe');
+            var done = function (blob) {
+                window.removeEventListener('message', onMessage);
+                clearTimeout(timer);
+                frame.remove();
+                button.disabled = false;
+                label.textContent = text;
+
+                if (blob) {
+                    saveBlob(blob, button.dataset.filename);
+
+                    return;
+                }
+
+                var bar = button.closest('.week-bar');
+                var old = document.querySelector('[data-schedule-image-error]');
+                if (old) {
+                    old.remove();
+                }
+                var error = document.createElement('p');
+                error.className = 'flash flash-error';
+                error.setAttribute('role', 'alert');
+                error.dataset.scheduleImageError = '';
+                error.textContent = button.dataset.errorLabel;
+                bar.after(error);
+            };
+            var onMessage = function (event) {
+                if (event.origin === window.location.origin && event.source === frame.contentWindow && event.data && 'scheduleImage' in event.data) {
+                    done(event.data.scheduleImage);
+                }
+            };
+            var timer = setTimeout(function () { done(null); }, 30000);
+
+            button.disabled = true;
+            label.textContent = button.dataset.busyLabel;
+            window.addEventListener('message', onMessage);
+            frame.className = 'schedule-image-frame';
+            frame.setAttribute('aria-hidden', 'true');
+            frame.tabIndex = -1;
+            frame.src = button.dataset.scheduleImage;
+            document.body.appendChild(frame);
+        });
+    });
+
 })();

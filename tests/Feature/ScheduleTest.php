@@ -11,11 +11,13 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Schedule\Duty;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\DefaultSlot;
 use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Models\Task;
+use App\Modules\Schedule\Models\Week;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -176,6 +178,7 @@ class ScheduleTest extends TestCase
         $lan = $this->staff('Lan');
         app(TenantContext::class)->set($this->restaurant);
         Assignment::create(['work_date' => '2026-11-10', 'shift_id' => $this->lunch->id, 'dinein_station_id' => $this->kitchen->id, 'user_id' => $lan->id]);
+        Week::create(['week_start' => '2026-11-09', 'published_at' => now()]);
         app(TenantContext::class)->forget();
 
         // Nhân viên xem được lịch tuần nhưng không phân công; có toggle chỉ xem lịch của mình.
@@ -196,6 +199,57 @@ class ScheduleTest extends TestCase
         // Lọc người khác cũng bị bỏ qua: chỉ lịch của mình (tuần này chưa có gì).
         $this->get("$this->base/week?people[]={$lan->id}&date=2026-11-10")->assertOk()
             ->assertSee(__('schedule.nothing_this_week'))->assertDontSee(__('schedule.only_me'));
+    }
+
+    public function test_week_is_draft_until_published(): void
+    {
+        $lan = $this->staff('Lan');
+        $this->place($lan, '2026-11-10', (string) $this->lunch->id, 's'.$this->kitchen->id)->assertOk();
+
+        // Nháp: người phân công thấy (kèm nhắc), nhân viên chưa thấy và chưa được tính là đang làm.
+        $this->get("$this->base/assign?date=2026-11-10")->assertOk()->assertSee(__('schedule.draft'))->assertSee(__('schedule.publish'))
+            ->assertDontSee(__('schedule.download_image'));
+        $this->get("$this->base/week?date=2026-11-10")->assertSee(__('schedule.draft_hint'))->assertSee('Lan');
+        $this->get("$this->base/week/image?date=2026-11-10")->assertNotFound();
+        $this->actingAs($lan)->get("$this->base/week?date=2026-11-10")->assertOk()->assertSee(__('schedule.not_published'))->assertDontSee('person-pill');
+        app(TenantContext::class)->set($this->restaurant);
+        $this->assertSame([], Duty::stationIds($lan));
+        app(TenantContext::class)->forget();
+
+        // Công bố: nhân viên thấy, có nút tải hình; trang hình có tên quán và ngày in.
+        $this->actingAs($lan)->post("$this->base/week/publish", ['date' => '2026-11-12'])->assertForbidden();
+        $this->actingAs($this->owner)->post("$this->base/week/publish", ['date' => '2026-11-12'])
+            ->assertRedirect("$this->base/assign?date=2026-11-09")->assertSessionHas('status', __('schedule.published'));
+        $this->get("$this->base/assign?date=2026-11-10")->assertSee(__('schedule.published_badge'))->assertSee(__('schedule.download_image'))
+            ->assertSee(__('schedule.unpublish'))->assertDontSee(__('schedule.reset'));
+        $this->get("$this->base/week/image?date=2026-11-10")->assertOk()->assertSee($this->restaurant->name)->assertSee('Lan')
+            ->assertSee(__('schedule.printed_at', ['date' => '10/11/2026', 'time' => '12:00']));
+        $this->actingAs($lan)->get("$this->base/week?date=2026-11-10")->assertDontSee(__('schedule.not_published'))->assertSee('person-pill');
+        $this->get("$this->base/week/image?date=2026-11-10")->assertForbidden();
+        app(TenantContext::class)->set($this->restaurant);
+        $this->assertSame([$this->kitchen->id], Duty::stationIds($lan));
+        app(TenantContext::class)->forget();
+
+        // Tuần đang chạy đã công bố thì không xoá hết được; huỷ công bố thì lại là nháp.
+        $this->actingAs($this->owner)->post("$this->base/week/reset", ['date' => '2026-11-10'])->assertForbidden();
+        $this->post("$this->base/week/unpublish", ['date' => '2026-11-10'])->assertSessionHas('status', __('schedule.unpublished'));
+        $this->actingAs($lan)->get("$this->base/week?date=2026-11-10")->assertSee(__('schedule.not_published'));
+        $this->actingAs($this->owner)->post("$this->base/week/reset", ['date' => '2026-11-10'])
+            ->assertSessionHas('status', trans_choice('schedule.reset_done', 1, ['count' => 1]));
+        $this->assertSame(0, Assignment::withoutGlobalScopes()->count());
+        $this->assertTrue(ActivityLog::where('area', 'schedule')->where('summary', 'like', '%Xoá hết lịch tuần%')->exists());
+    }
+
+    public function test_future_published_week_can_be_reset(): void
+    {
+        $lan = $this->staff('Lan');
+        $this->place($lan, '2026-11-17', (string) $this->lunch->id, 's'.$this->kitchen->id)->assertOk();
+        $this->post("$this->base/week/publish", ['date' => '2026-11-17']);
+
+        $this->get("$this->base/assign?date=2026-11-17")->assertSee(__('schedule.reset'));
+        $this->post("$this->base/week/reset", ['date' => '2026-11-17'])->assertRedirect("$this->base/assign?date=2026-11-16");
+        $this->assertSame(0, Assignment::withoutGlobalScopes()->count());
+        $this->assertNull(Week::withoutGlobalScopes()->first()->published_at, 'Xoá hết thì tuần quay về nháp.');
     }
 
     public function test_copy_previous_week_keeps_tasks(): void

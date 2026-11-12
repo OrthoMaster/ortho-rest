@@ -25,7 +25,10 @@
 
     @include('modules.schedule.subnav')
 
-    @include('modules.schedule.week-nav')
+    <div class="week-bar">
+        @include('modules.schedule.week-nav')
+        @include('modules.schedule.week-status')
+    </div>
 
     @if ($targets->isEmpty())
         <p class="empty">{{ __('schedule.no_targets') }}</p>

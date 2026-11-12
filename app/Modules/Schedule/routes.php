@@ -23,6 +23,11 @@ Route::middleware(['module:schedule', 'can:schedule.open'])
             Route::delete('assignments/{assignment}', [ScheduleController::class, 'destroy'])->whereNumber('assignment')->name('assignments.destroy');
             Route::post('week/copy', [ScheduleController::class, 'copyWeek'])->name('week.copy');
             Route::post('week/defaults', [ScheduleController::class, 'applyDefaults'])->name('week.defaults');
+            // Lịch tuần là bản nháp cho tới khi công bố; tải hình bảng phân công khi đã công bố.
+            Route::post('week/publish', [ScheduleController::class, 'publish'])->name('week.publish');
+            Route::post('week/unpublish', [ScheduleController::class, 'unpublish'])->name('week.unpublish');
+            Route::post('week/reset', [ScheduleController::class, 'reset'])->name('week.reset');
+            Route::get('week/image', [ScheduleController::class, 'image'])->name('week.image');
 
             Route::get('defaults', [DefaultsController::class, 'index'])->name('defaults');
             Route::put('defaults', [DefaultsController::class, 'update'])->name('defaults.update');

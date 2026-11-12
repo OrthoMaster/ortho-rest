@@ -6,6 +6,7 @@ use App\Enums\ShiftType;
 use App\Models\Shift;
 use App\Models\User;
 use App\Modules\Schedule\Models\Assignment;
+use App\Modules\Schedule\Models\Week;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -39,10 +40,17 @@ class Duty
         return $slots;
     }
 
-    /** Phân công đang có hiệu lực lúc này. */
+    /** Phân công đang có hiệu lực lúc này. Tuần chưa công bố (bản nháp) thì chưa tính. */
     public static function current(?CarbonImmutable $now = null): Builder
     {
-        $slots = self::slots($now);
+        $published = [];
+        $slots = array_values(array_filter(self::slots($now), function (array $slot) use (&$published): bool {
+            return $published[$slot['date']] ??= Week::isPublishedOn(CarbonImmutable::parse($slot['date']));
+        }));
+
+        if ($slots === []) {
+            return Assignment::query()->whereRaw('0 = 1');
+        }
 
         return Assignment::query()->where(function (Builder $query) use ($slots) {
             foreach ($slots as $slot) {

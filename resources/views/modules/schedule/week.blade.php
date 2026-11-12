@@ -27,7 +27,13 @@
         </form>
     </div>
 
-    @if ($people !== [])
+    @if ($hidden)
+        <p class="empty">{{ __('schedule.not_published') }}</p>
+    @elseif ($canFilter && ! $week->isPublished())
+        <p class="flash flash-warn">{{ __('schedule.draft') }}: {{ __('schedule.draft_hint') }}</p>
+    @endif
+
+    @if ($people !== [] && ! $hidden)
         <p class="week-totals">
             @foreach ($people as $personId)
                 @continue(! $users->has($personId))
@@ -37,7 +43,8 @@
         </p>
     @endif
 
-    @if ($targets->isEmpty())
+    @if ($hidden)
+    @elseif ($targets->isEmpty())
         <p class="empty">{{ __('schedule.no_targets') }}</p>
     @elseif ($usedLanes === [])
         <p class="empty">{{ __('schedule.nothing_this_week') }}</p>
