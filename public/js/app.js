@@ -828,7 +828,7 @@
             document.querySelectorAll('[data-cart-empty]').forEach(function (node) {
                 node.hidden = cart.length > 0 || fixedCount > 0;
             });
-            dineForm.querySelectorAll('[data-dine-pick]').forEach(function (button) {
+            document.querySelectorAll('[data-dine-pick]').forEach(function (button) {
                 var badge = button.querySelector('[data-picked-count]');
                 var picked = perItem[button.dataset.dinePick] || 0;
 
@@ -859,9 +859,22 @@
         cartLists.forEach(function (list) {
             list.addEventListener('click', onCartClick);
         });
-        document.querySelector('[data-cart-send]').addEventListener('click', function () {
-            dineForm.requestSubmit();
-        });
+        // Hộp chọn món (đơn mang đi): mỗi lần mở là tìm lại từ đầu.
+        var pickDialog = document.getElementById('pick-dialog');
+        var pickSearch = pickDialog ? pickDialog.querySelector('[data-search-input]') : null;
+        if (pickSearch) {
+            pickDialog.addEventListener('close', function () {
+                pickSearch.value = '';
+                pickSearch.dispatchEvent(new Event('input'));
+            });
+        }
+
+        var cartSend = document.querySelector('[data-cart-send]');
+        if (cartSend) {
+            cartSend.addEventListener('click', function () {
+                dineForm.requestSubmit();
+            });
+        }
         dineForm.addEventListener('submit', function () {
             dineForm.querySelectorAll('[data-dine-submit]').forEach(function (button) {
                 button.disabled = true;
@@ -951,7 +964,7 @@
             itemDialog.showModal();
         };
 
-        dineForm.addEventListener('click', function (event) {
+        document.addEventListener('click', function (event) {
             var pick = event.target.closest('[data-dine-pick]');
 
             if (pick) {

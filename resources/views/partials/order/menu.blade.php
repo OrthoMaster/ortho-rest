@@ -1,8 +1,10 @@
 {{--
     Danh sách món để gọi (Lấy đơn tại bàn, Đặt mang đi): ô tìm, mỗi danh mục một khung,
-    bấm món mở hộp chọn tuỳ chọn. $price: tên cột giá (price_dine_in, price_takeaway).
+    bấm món mở hộp chọn tuỳ chọn ($search => false khi ô tìm đặt chỗ khác). $price: tên cột giá (price_dine_in, price_takeaway).
 --}}
-<input type="search" data-search-input placeholder="{{ __('order.search') }}" aria-label="{{ __('order.search') }}" autocomplete="off">
+@if ($search ?? true)
+    <input type="search" data-search-input placeholder="{{ __('order.search') }}" aria-label="{{ __('order.search') }}" autocomplete="off">
+@endif
 <p class="row-note" data-search-empty hidden>{{ __('order.search_empty') }}</p>
 
 @foreach ($categories as $category)

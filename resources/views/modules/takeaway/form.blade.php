@@ -14,8 +14,8 @@
         <p class="empty">{{ __('takeaway.no_menu') }}</p>
     @else
         {{--
-            Chọn món giống Lấy đơn tại bàn. Máy tính: cột trái là món, cột phải là món đã chọn, khách,
-            giờ nhận, giảm giá. Điện thoại một cột, nút Món đã chọn ở thanh dưới mở hộp danh sách.
+            Máy tính: cột trái là Món đã chọn, cột phải là khách, giờ nhận, giảm giá. Điện thoại một cột.
+            Bấm Chọn món mở hộp danh sách món; chọn món giống Lấy đơn tại bàn (tuỳ chọn, số lượng, ghi chú).
         --}}
         <form method="post" action="{{ $editing ? route('tenant.admin.takeaway.update', $order) : route('tenant.admin.takeaway.store') }}" class="stack order-form" data-guard data-order-form data-dine-order
               @include('partials.order.labels') data-check-url="{{ route('tenant.admin.takeaway.discounts.check') }}"
@@ -29,13 +29,11 @@
             <div data-dine-inputs></div>
 
             <div class="cols cols-2 takeaway-form">
-            <div class="stack">
-                @include('partials.order.menu', ['price' => 'price_takeaway'])
-            </div>
-
-            <div class="stack">
             <section class="panel">
-                <h2>{{ __('takeaway.picked_title') }}</h2>
+                <div class="panel-head">
+                    <h2>{{ __('takeaway.picked_title') }}</h2>
+                    <button class="btn btn-sm" type="button" data-open-dialog="pick-dialog">{{ __('takeaway.pick_items') }}</button>
+                </div>
                 @if ($errors->has('lines') || $errors->has('lines.*'))
                     <small class="error" role="alert">{{ $errors->first('lines') ?: $errors->first('lines.*') }}</small>
                 @endif
@@ -43,6 +41,8 @@
                 @include('partials.order.fixed-lines', ['lines' => $detached])
                 <ul class="rows dine-lines" data-cart-lines></ul>
             </section>
+
+            <div class="stack">
 
             <section class="panel stack">
                 <h2>{{ __('takeaway.customer') }}</h2>
@@ -125,15 +125,32 @@
                     <small data-order-saving hidden></small>
                     <strong data-order-total></strong>
                 </span>
-                <span class="order-bar-actions">
-                    <button class="btn btn-quiet takeaway-review" type="button" data-open-dialog="dine-cart" data-dine-review>{{ __('takeaway.picked_title') }}</button>
-                    <button class="btn" type="submit">{{ $editing ? __('takeaway.update') : __('takeaway.save') }}</button>
-                </span>
+                <button class="btn" type="submit">{{ $editing ? __('takeaway.update') : __('takeaway.save') }}</button>
             </div>
 
         </form>
 
+        {{-- Hộp chọn món: danh sách món như Lấy đơn tại bàn, bấm món mở hộp tuỳ chọn. --}}
+        <dialog id="pick-dialog" class="picker" aria-labelledby="pick-dialog-title">
+            <div class="picker-head">
+                <div class="panel-head">
+                    <h2 id="pick-dialog-title">{{ __('takeaway.pick_items') }}</h2>
+                    <button class="row-btn" type="button" data-close-dialog aria-label="{{ __('ui.common.close') }}">✕</button>
+                </div>
+                <input type="search" data-search-input placeholder="{{ __('order.search') }}" aria-label="{{ __('order.search') }}" autocomplete="off">
+            </div>
+            <div class="picker-body stack">
+                @include('partials.order.menu', ['price' => 'price_takeaway', 'search' => false])
+            </div>
+            <div class="picker-foot">
+                <span>
+                    <small data-order-count></small>
+                    <strong data-order-total></strong>
+                </span>
+                <button class="btn" type="button" data-close-dialog>{{ __('takeaway.done') }}</button>
+            </div>
+        </dialog>
+
         @include('partials.order.item-dialog')
-        @include('partials.order.cart-dialog', ['send' => $editing ? __('takeaway.update') : __('takeaway.save'), 'countAttr' => 'data-order-count', 'totalAttr' => 'data-order-total', 'fixed' => $detached])
     @endif
 @endsection

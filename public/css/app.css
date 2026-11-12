@@ -1042,10 +1042,8 @@ dialog.dine-dialog { width: min(32rem, calc(100vw - 2rem)); max-height: calc(100
 /* Đầu hộp thoại có đường kẻ ngang hết bề rộng, đứng yên khi cuộn danh sách. */
 .dialog-head { position: sticky; top: -1.25rem; z-index: 1; margin: -1.25rem -1.25rem 0; padding: 1rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--line); }
 [data-cart-lines] .line-tools { flex: none; }
-/* Đặt mang đi: máy tính đã có khung Món đã chọn ở cột phải nên ẩn nút mở hộp. */
-@media (min-width: 1024px) {
-    .takeaway-review { display: none; }
-}
+/* Hộp chọn món mang đi: danh sách món như Lấy đơn tại bàn, không viền khung từng danh mục. */
+.picker .dine-menu { padding: 0; border: 0; }
 /* Điện thoại: giá xuống dưới tên để tên món không bị bóp hẹp bởi hai nút. */
 @media (max-width: 760px) {
     [data-cart-lines] li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name tools" "total tools"; align-items: center; gap: .25rem .75rem; }
