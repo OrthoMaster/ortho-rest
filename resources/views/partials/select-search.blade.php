@@ -1,11 +1,12 @@
 {{--
     Ô chọn một giá trị có ô tìm (gõ không dấu cũng tìm được). Dùng thay <select> khi danh sách
     có thể dài (nhân viên, khách...), để không phải cuộn cả danh sách.
-    $options: [value => label], $value: giá trị đang chọn, $required (mặc định true), $hint.
+    $options: [value => label], $value: giá trị đang chọn, $required (mặc định true), $hint,
+    $submit: chọn xong thì gửi form luôn (bộ chọn xem theo người...).
 --}}
 @php($id = 'f-'.str_replace(['[', ']'], ['-', ''], $name))
 @php($current = (string) old($name, $value ?? ''))
-<div class="field pick" data-pick>
+<div class="field pick" data-pick @if ($submit ?? false) data-pick-submit @endif>
     <span class="field-label" id="{{ $id }}-label">{{ $label }}@if ($required ?? true)@include('partials.required')@endif</span>
     <button class="pick-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="{{ $id }}-label {{ $id }}-value" data-pick-trigger>
         <span id="{{ $id }}-value" data-pick-value>{{ $options[$current] ?? ($placeholder ?? '') }}</span>

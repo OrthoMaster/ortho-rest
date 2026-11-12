@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ShiftType;
+use App\Models\ActivityLog;
 use App\Models\Department;
 use App\Models\Restaurant;
 use App\Models\Shift;
@@ -158,6 +159,27 @@ class LeaveTest extends TestCase
             ->assertSee('Ca trưa: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 1, 'people' => 2]), false)
             ->assertSee('Ca tối: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 0, 'people' => 2]), false)
             ->assertSee(__('leave.mine'));
+    }
+
+    public function test_approver_adjusts_balance_with_history(): void
+    {
+        // Lan: 1,25 ngày/tháng từ 15/02/2026, đến 10/11 tích được 10 ngày.
+        $this->actingAs($this->owner)->get("$this->base/mine?user={$this->lan->id}")->assertOk()
+            ->assertSee(__('leave.adjust'))->assertSee(__('leave.history_monthly', ['month' => '02/2026']));
+
+        $this->post("$this->base/balance/{$this->lan->id}", ['left' => '', 'reason' => ''])->assertSessionHasErrorsIn('adjust', ['left', 'reason']);
+        $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'Vào làm giữa tháng 1'])
+            ->assertRedirect("$this->base/mine?user={$this->lan->id}")
+            ->assertSessionHas('status', __('leave.adjusted', ['name' => 'Lan', 'days' => '8,5']));
+        $this->assertSame(8.5, LeaveBook::balance($this->lan->fresh())['left']);
+        $this->assertSame(__('leave.log_adjusted', ['name' => 'Lan', 'from' => '10', 'to' => '8,5', 'reason' => 'Vào làm giữa tháng 1']), ActivityLog::withoutGlobalScopes()->latest('id')->value('summary'));
+        $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'x'])->assertSessionHas('status', __('leave.adjust_same'));
+
+        // Nhân viên thấy lịch sử: ai chỉnh, từ bao nhiêu thành bao nhiêu, lý do; không có nút chỉnh, không xem người khác.
+        $this->actingAs($this->lan)->get("$this->base/mine?user={$this->owner->id}")->assertOk()
+            ->assertSee(__('leave.history_adjust', ['name' => $this->owner->name, 'from' => '10', 'to' => '8,5']))
+            ->assertSee('Vào làm giữa tháng 1')->assertSee('-1,5')->assertDontSee(__('leave.adjust_save'))->assertDontSee('data-pick', false);
+        $this->post("$this->base/balance/{$this->lan->id}", ['left' => 30, 'reason' => 'x'])->assertForbidden();
     }
 
     public function test_unpaid_and_rejected_do_not_use_balance(): void

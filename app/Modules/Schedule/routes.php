@@ -39,6 +39,7 @@ Route::middleware(['module:schedule', 'can:schedule.open'])
         Route::prefix('leave')->name('leave.')->group(function () {
             Route::get('/', [LeaveController::class, 'index'])->name('index');
             Route::get('mine', [LeaveController::class, 'mine'])->name('mine');
+            Route::post('balance/{user}', [LeaveController::class, 'adjust'])->whereNumber('user')->middleware('can:schedule.leave')->name('adjust');
             Route::get('create', [LeaveController::class, 'create'])->name('create');
             Route::post('/', [LeaveController::class, 'store'])->name('store');
             Route::post('{leave}/cancel', [LeaveController::class, 'cancel'])->whereNumber('leave')->name('cancel');

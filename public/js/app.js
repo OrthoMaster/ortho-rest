@@ -2040,6 +2040,10 @@
                 valueText.textContent = event.target.dataset.label;
                 setOpen(false);
                 trigger.focus();
+
+                if (pick.hasAttribute('data-pick-submit') && pick.closest('form')) {
+                    pick.closest('form').submit();
+                }
             }
         });
         search.addEventListener('input', function () {

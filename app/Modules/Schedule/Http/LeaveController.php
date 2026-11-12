@@ -56,12 +56,22 @@ class LeaveController extends Controller
         ]);
     }
 
-    /** Nghỉ phép: phép còn lại và các đơn của chính mình. */
+    /**
+     * Nghỉ phép: phép còn lại, lịch sử phép và các đơn của chính mình.
+     * Người duyệt chọn được người khác (?user=) để xem và chỉnh phép còn lại.
+     */
     public function mine(Request $request): View
     {
-        $user = $request->user();
+        $approver = $request->user()->can('schedule.leave');
+        $users = $approver ? Roster::users() : collect();
+        $user = $approver && $request->filled('user') ? tenant()->users()->findOrFail((int) $request->query('user')) : $request->user();
 
         return view('modules.schedule.leave.mine', [
+            'person' => $user,
+            'self' => $user->is($request->user()),
+            'approver' => $approver,
+            'users' => $users->put($request->user()->id, $request->user())->sortBy('name'),
+            'history' => LeaveBook::history($user),
             'balance' => LeaveBook::balance($user),
             'leaves' => LeaveRequest::with(['decider'])->where('user_id', $user->id)
                 ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
@@ -69,6 +79,31 @@ class LeaveController extends Controller
                 ->limit(100)
                 ->get(),
         ]);
+    }
+
+    /** Chỉnh phép còn lại của một người thành số mới, kèm lý do; ghi lịch sử và nhật ký. */
+    public function adjust(Request $request, int $user): RedirectResponse
+    {
+        $person = tenant()->users()->findOrFail($user);
+        abort_if(LeaveBook::balance($person) === null, 422);
+
+        $data = $request->validateWithBag('adjust', [
+            'left' => ['required', 'numeric', 'between:-365,365'],
+            'reason' => ['required', 'string', 'max:300'],
+        ]);
+
+        $adjustment = LeaveBook::adjust($person, (float) $data['left'], $data['reason'], $request->user());
+        $back = redirect()->route('tenant.admin.schedule.leave.mine', $person->is($request->user()) ? [] : ['user' => $person->id]);
+
+        if ($adjustment === null) {
+            return $back->with('status', __('leave.adjust_same'));
+        }
+
+        ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_adjusted', [
+            'name' => $person->name, 'from' => LeaveBook::format($adjustment->before), 'to' => LeaveBook::format($adjustment->after), 'reason' => $adjustment->reason,
+        ]));
+
+        return $back->with('status', __('leave.adjusted', ['name' => $person->name, 'days' => LeaveBook::format($adjustment->after)]));
     }
 
     /**
