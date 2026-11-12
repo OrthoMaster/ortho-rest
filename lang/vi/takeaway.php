@@ -91,6 +91,7 @@ return [
     'status_changed' => 'Đơn :code đã chuyển sang :status.',
     'bad_transition' => 'Không chuyển được sang trạng thái này. Có thể người khác vừa đổi, hãy tải lại trang.',
 
+    'status_label' => 'Trạng thái',
     'status' => [
         'new' => 'Mới',
         'preparing' => 'Đang làm',

@@ -143,7 +143,11 @@ class DineInTest extends TestCase
 
         $this->post("$this->base/screens/takeaway/{$order->id}", ['status' => 'delivered']);
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
-        $this->get("$this->base/screens/takeaway")->assertSee(__('dinein.prep_empty'));
+        // Đơn đã giao sang cột phải (không có ca thì tính trong ngày), bấm xem chi tiết trong popup.
+        $this->get("$this->base/screens/takeaway")->assertSee(__('dinein.prep_empty'))
+            ->assertSee(__('dinein.delivered_today'))->assertSee('data-show-order="'.$order->id.'"', false)
+            ->assertSee('data-order-detail="'.$order->id.'"', false)->assertSee('0987654321')
+            ->assertDontSee('/admin/takeaway/'.$order->id.'"', false);
 
         // Nhân viên có quyền đổi trạng thái đơn mang đi mở được dù không ở khu nào.
         $waiter = $this->member($this->restaurant, 'staff');

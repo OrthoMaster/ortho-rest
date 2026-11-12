@@ -148,8 +148,9 @@
 
     // Menu 3 chấm: chỉ mở một cái, bấm ra ngoài hoặc Esc thì đóng.
     var kebabs = Array.prototype.slice.call(document.querySelectorAll('.kebab'));
+    // Tìm lại mỗi lần vì có phần tự tải lại (màn hình khu) thay menu mới.
     var closeKebabs = function (except) {
-        kebabs.forEach(function (kebab) {
+        document.querySelectorAll('.kebab').forEach(function (kebab) {
             if (kebab !== except) {
                 kebab.open = false;
             }
@@ -452,8 +453,13 @@
         };
         var known = lineIds(board);
 
+        // Đang mở hộp thoại hoặc menu 3 chấm trên bảng thì chờ, để không mất chỗ đang thao tác.
+        var busy = function () {
+            return confirmOpen() || !!document.querySelector('dialog[open]') || !!board.querySelector('details.kebab[open]');
+        };
+
         window.setInterval(function () {
-            if (document.hidden || confirmOpen()) {
+            if (document.hidden || busy()) {
                 return;
             }
 
@@ -468,7 +474,7 @@
 
                 return response.text();
             }).then(function (html) {
-                if (html === null || confirmOpen()) {
+                if (html === null || busy()) {
                     return;
                 }
 
@@ -1056,6 +1062,24 @@
         });
 
         renderCart();
+    }
+
+    // Chuẩn bị đơn mang đi: Xem đơn mở popup chi tiết (bảng tự tải lại nên bắt sự kiện ở document).
+    var orderDialog = document.getElementById('prep-order');
+    if (orderDialog) {
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-show-order]');
+            var template = button ? document.querySelector('template[data-order-detail="' + button.dataset.showOrder + '"]') : null;
+
+            if (!template) {
+                return;
+            }
+
+            closeKebabs(null);
+            orderDialog.querySelector('[data-order-title]').textContent = template.dataset.title;
+            orderDialog.querySelector('[data-order-body]').replaceChildren(template.content.cloneNode(true));
+            orderDialog.showModal();
+        });
     }
 
     // Hộp thoại có data-backdrop-close: bấm ra ngoài khung thì đóng.

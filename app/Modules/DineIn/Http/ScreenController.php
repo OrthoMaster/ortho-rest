@@ -3,6 +3,7 @@
 namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
+use App\Models\Shift;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
@@ -10,6 +11,7 @@ use App\Modules\Schedule\Duty;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,7 +93,14 @@ class ScreenController extends Controller
     {
         abort_unless($this->canPrep($request), 403);
 
-        $data = ['orders' => $this->prepOrders()->with(['items', 'customer'])->get()];
+        $shiftStart = $this->shiftStart();
+        $data = [
+            'orders' => $this->prepOrders()->with(['items', 'customer'])->get(),
+            'shiftStart' => $shiftStart,
+            // Cột phải: đơn đã giao từ đầu ca (không có ca thì từ đầu ngày).
+            'delivered' => TakeawayOrder::with(['items', 'customer'])->where('status', OrderStatus::Delivered)
+                ->where('updated_at', '>=', $shiftStart ?? today())->latest('updated_at')->limit(50)->get(),
+        ];
 
         if ($request->hasHeader('X-Board')) {
             return view('modules.dinein.prep-board', $data);
@@ -195,6 +204,20 @@ class ScreenController extends Controller
         return TakeawayOrder::whereIn('status', [OrderStatus::New, OrderStatus::Preparing, OrderStatus::Ready])
             ->whereDate('pickup_date', today())
             ->orderBy('pickup_at');
+    }
+
+    /** Giờ bắt đầu ca đang diễn ra hôm nay (kể cả ca từ hôm qua kéo qua nửa đêm), không có ca thì null. */
+    private function shiftStart(): ?CarbonImmutable
+    {
+        foreach (Duty::slots() as $slot) {
+            $shift = $slot['shift'] ? Shift::find($slot['shift']) : null;
+
+            if ($shift) {
+                return CarbonImmutable::parse($slot['date'])->setTimeFromTimeString($shift->start_time);
+            }
+        }
+
+        return null;
     }
 
     private function canPrep(Request $request): bool

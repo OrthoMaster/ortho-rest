@@ -20,4 +20,15 @@
     <div data-board>
         @include('modules.dinein.prep-board')
     </div>
+
+    {{-- Xem đơn: nội dung chép từ template của đơn được bấm. --}}
+    <dialog id="prep-order" class="dine-dialog" aria-labelledby="prep-order-title" data-backdrop-close>
+        <div class="stack">
+            <div class="panel-head dialog-head">
+                <h2 id="prep-order-title" data-order-title></h2>
+                <button class="row-btn" type="button" data-close-dialog aria-label="{{ __('ui.common.close') }}">✕</button>
+            </div>
+            <div class="stack" data-order-body></div>
+        </div>
+    </dialog>
 @endsection

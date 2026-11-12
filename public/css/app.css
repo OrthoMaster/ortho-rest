@@ -1101,6 +1101,18 @@ dialog.item-dialog { padding: 0; overflow: hidden; }
 .ticket-lines .badge { flex: none; }
 .ticket-actions { display: flex; align-items: center; gap: .4rem; }
 .ticket-actions form { display: contents; }
+.ticket-head .kebab { margin: -.35rem -.5rem 0 0; }
+.ticket-sub { margin-top: -.25rem; }
+.ticket-sub .ticket-time { text-align: left; }
+.ticket-sub .ticket-time.is-late { color: var(--bad-ink); font-weight: 600; }
+/* Chuẩn bị đơn mang đi: đơn đang làm bên trái, đơn đã giao trong ca bên phải (điện thoại xếp dưới). */
+.prep-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (min-width: 1024px) {
+    .prep-layout { grid-template-columns: minmax(0, 2.4fr) minmax(16rem, 1fr); }
+}
+.prep-delivered .row-main { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; padding: .1rem 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
+.prep-delivered .row-main::after { content: ""; position: absolute; inset: 0; }
+.prep-delivered .row-main .row-note { flex: none; }
 .table-tile.is-takeaway { background: var(--takeaway-bg); border-color: color-mix(in srgb, var(--takeaway-ink) 35%, var(--surface)); }
 .ticket-lines { display: grid; margin: 0; padding: 0; list-style: none; }
 .ticket-lines li { display: flex; align-items: center; gap: .6rem; padding: .45rem 0; border-top: 1px solid var(--line); }
