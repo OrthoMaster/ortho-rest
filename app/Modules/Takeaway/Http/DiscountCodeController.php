@@ -3,6 +3,7 @@
 namespace App\Modules\Takeaway\Http;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerOffer;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\DiscountCode;
 use Illuminate\Http\JsonResponse;
@@ -54,10 +55,10 @@ class DiscountCodeController extends Controller
     /** Form tạo đơn hỏi để tính thử. Khi tạo đơn, PlaceOrder vẫn kiểm tra lại. */
     public function check(Request $request): JsonResponse
     {
-        $code = DiscountCode::usable($request->query('code'));
+        $code = CustomerOffer::usableCode($request->query('code')) ?? DiscountCode::usable($request->query('code'));
 
         return response()->json($code
-            ? ['valid' => true, 'type' => $code->type->value, 'value' => $code->value, 'label' => $code->label()]
+            ? ['valid' => true, 'type' => $code->type->value, 'value' => $code->value, 'label' => $code->type->label($code->value)]
             : ['valid' => false, 'message' => __('takeaway.code_invalid')]);
     }
 

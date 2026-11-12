@@ -455,7 +455,7 @@ class DineInTest extends TestCase
         // Tặng ưu đãi lần sau (cần quyền), rồi đóng bàn.
         $staff = $this->member($this->restaurant, 'staff');
         $this->actingAs($staff)->post("$tables/gift", ['type' => 'percent', 'percent' => 10, 'reason' => 'Món ra chậm'])->assertForbidden();
-        $this->actingAs($this->owner)->post("$tables/gift", ['type' => 'percent', 'percent' => 10, 'reason' => 'Món ra chậm', 'expires_on' => '2027-02-01'])->assertSessionHas('status');
+        $this->actingAs($this->owner)->post("$tables/gift", ['type' => 'percent', 'percent' => 10, 'reason' => 'Món ra chậm', 'expires_on' => '2027-02-01', 'for_customer' => '1'])->assertSessionHas('status');
         $this->post("$tables/close");
 
         // Lần sau khách quay lại: gắn theo số điện thoại là thấy ưu đãi, áp vào phiếu, dùng một lần.
@@ -527,6 +527,50 @@ class DineInTest extends TestCase
         $this->post("/{$this->restaurant->slug}/admin/reservations/{$other->id}/status", ['status' => 'seated', 'table' => ''])
             ->assertSessionHas('status', __('reservation.status_changed', ['status' => ReservationStatus::Seated->label()]));
         $this->assertSame(0, DiningTable::withoutGlobalScopes()->where('reservation_id', $other->id)->count());
+    }
+
+    public function test_anonymous_voucher_with_qr_page_applied_by_code_at_another_table(): void
+    {
+        $this->tra->newQuery()->withoutGlobalScopes()->whereKey($this->tra->id)->update(['dinein_station_id' => null]);
+        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 2]]);
+        $table = DiningTable::withoutGlobalScopes()->sole();
+
+        // Bàn không gắn khách: tặng voucher không tên, mở luôn mã QR.
+        $this->post("$this->base/tables/{$table->id}/gift", ['type' => 'amount', 'thousands' => 20, 'reason' => 'Sai món'])
+            ->assertSessionHas('status', __('dinein.voucher_saved'));
+        $voucher = CustomerOffer::withoutGlobalScopes()->sole();
+        $this->assertNull($voucher->customer_id);
+        $this->assertMatchesRegularExpression('/^[A-HJKMNP-Z2-9]{6}$/', $voucher->code);
+        $this->get("$this->base/tables/A1")->assertSee($voucher->code)->assertSee('id="voucher-'.$voucher->id.'"', false)
+            ->assertSee($voucher->publicUrl(), false);
+
+        // Khách mở trang ưu đãi (không cần đăng nhập): thấy mức giảm và mã, không thấy lý do nội bộ.
+        auth()->logout();
+        $this->get($voucher->publicUrl())->assertOk()->assertSee($voucher->code)->assertSee(vnd(20000))->assertDontSee('Sai món');
+        $this->get("/{$this->restaurant->slug}/uu-dai/".str_repeat('a', 32))->assertNotFound();
+        $this->actingAs($this->owner);
+
+        // Lần sau, bàn khác: nhập mã khách đưa (không phân biệt hoa thường) là áp vào phiếu.
+        $this->post("$this->base/tables/{$table->id}/close");
+        $this->order('A3', [['item' => $this->tra->id, 'quantity' => 5]]);
+        $next = DiningTable::withoutGlobalScopes()->whereNull('closed_at')->sole();
+        $this->post("$this->base/tables/{$next->id}/voucher", ['code' => 'XXXXXX'])->assertSessionHasErrorsIn('voucher', 'code');
+        $this->post("$this->base/tables/{$next->id}/voucher", ['code' => strtolower($voucher->code)])->assertSessionHas('status', __('dinein.offer_applied'));
+        $this->assertSame($next->id, $voucher->fresh()->used_table_id);
+        $this->get("$this->base/tables/A3")->assertSee('−'.vnd(20000))->assertSee(vnd(30000));
+
+        // Gắn khách sau đó không làm mất voucher không tên đang áp.
+        $this->post("$this->base/tables/{$next->id}/guest", ['name' => 'Lan', 'phone' => '0911000111']);
+        $this->assertSame($voucher->id, $next->fresh()->customer_offer_id);
+
+        // Trang Ưu đãi (quản lý): thấy mã đã dùng ở bàn nào; mã đã dùng không huỷ được, mã chưa dùng thì huỷ được.
+        $this->get("$this->base/offers")->assertOk()->assertSee($voucher->code)->assertSee(__('dinein.voucher_used_table', ['table' => 'A3']));
+        $this->delete("$this->base/offers/{$voucher->id}")->assertStatus(422);
+        $this->post("$this->base/tables/{$next->id}/gift", ['type' => 'percent', 'percent' => 5, 'reason' => 'Khách quen'])->assertSessionHas('voucher');
+        $spare = CustomerOffer::withoutGlobalScopes()->latest('id')->first();
+        $this->delete("$this->base/offers/{$spare->id}")->assertSessionHas('status');
+        $this->assertNull(CustomerOffer::withoutGlobalScopes()->find($spare->id));
+        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/offers")->assertForbidden();
     }
 
     public function test_items_without_station_skip_the_screens(): void

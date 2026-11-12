@@ -2,6 +2,7 @@
 
 use App\Modules\DineIn\Http\GuestController;
 use App\Modules\DineIn\Http\IncidentController;
+use App\Modules\DineIn\Http\OfferController;
 use App\Modules\DineIn\Http\PollController;
 use App\Modules\DineIn\Http\StationController;
 use App\Modules\DineIn\Http\TableController;
@@ -32,7 +33,13 @@ Route::middleware('module:dinein')
         });
         Route::middleware('can:dinein.close')->group(function () {
             Route::post('tables/{table}/offers/{offer}', [GuestController::class, 'apply'])->whereNumber(['table', 'offer'])->name('tables.offer');
+            Route::post('tables/{table}/voucher', [GuestController::class, 'applyCode'])->whereNumber('table')->name('tables.voucher');
             Route::delete('tables/{table}/discount', [GuestController::class, 'removeDiscount'])->whereNumber('table')->name('tables.discount.remove');
+        });
+        // Ưu đãi lần sau đã tặng (có tên và không tên).
+        Route::middleware('can:dinein.offers')->group(function () {
+            Route::get('offers', [OfferController::class, 'index'])->name('offers');
+            Route::delete('offers/{offer}', [OfferController::class, 'destroy'])->whereNumber('offer')->name('offers.destroy');
         });
         Route::middleware('can:dinein.incidents')->group(function () {
             Route::get('incidents', [IncidentController::class, 'index'])->name('incidents');

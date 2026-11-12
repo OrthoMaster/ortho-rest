@@ -5,6 +5,8 @@
 @php($guestErrors = $errors->getBag('guest-dialog'))
 @php($incidentErrors = $errors->getBag('incident-dialog'))
 @php($giftErrors = $errors->getBag('gift-dialog'))
+@php($voucherErrors = $errors->getBag('voucher'))
+@php($given = \App\Models\CustomerOffer::where('dinein_table_id', $table->id)->latest('id')->get())
 @php($customer = $table->customer)
 @php($offers = $customer ? \App\Models\CustomerOffer::where('customer_id', $customer->id)->usable()->orderBy('id')->get() : collect())
 
@@ -14,9 +16,6 @@
         @if ($customer)
             @component('partials.kebab', ['label' => __('dinein.guest_actions')])
                 <button type="button" data-open-dialog="guest-dialog">{{ __('dinein.guest_change') }}</button>
-                @can('dinein.offers')
-                    <button type="button" data-open-dialog="gift-dialog">{{ __('dinein.gift') }}</button>
-                @endcan
                 <form method="post" action="{{ route('tenant.admin.dinein.tables.guest.remove', $table) }}" data-confirm-danger
                       data-confirm-title="{{ __('dinein.guest_remove') }}?" data-confirm-ok="{{ __('dinein.guest_remove') }}" data-confirm="{{ __('dinein.guest_remove_confirm') }}">
                     @csrf
@@ -68,6 +67,55 @@
         <p class="row-note">{{ __('dinein.guest_none') }}</p>
     @endif
 </section>
+
+{{-- Ưu đãi: nhập mã khách đưa để áp vào phiếu; tặng ưu đãi lần sau (có mã QR để khách lưu). --}}
+@if (auth()->user()->can('dinein.close') || auth()->user()->can('dinein.offers'))
+    <section class="panel stack voucher-panel">
+        <div class="panel-head">
+            <h2>{{ __('dinein.offers_panel') }}</h2>
+            @can('dinein.offers')
+                <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="gift-dialog">{{ __('dinein.gift') }}</button>
+            @endcan
+        </div>
+        @if ($table->discount_type === null)
+            @can('dinein.close')
+                <form method="post" action="{{ route('tenant.admin.dinein.tables.voucher', $table) }}" class="field">
+                    @csrf
+                    <label for="voucher-code">{{ __('dinein.voucher_code') }}</label>
+                    <div class="inline-form">
+                        <input id="voucher-code" name="code" value="{{ old('code') }}" maxlength="20" autocomplete="off" autocapitalize="characters"
+                               placeholder="{{ __('dinein.voucher_code_placeholder') }}" required>
+                        <button class="btn btn-quiet" type="submit">{{ __('dinein.voucher_apply') }}</button>
+                    </div>
+                    @if ($voucherErrors->has('code'))
+                        <small class="error">{{ $voucherErrors->first('code') }}</small>
+                    @else
+                        <small class="hint">{{ __('dinein.voucher_apply_hint') }}</small>
+                    @endif
+                </form>
+            @endcan
+        @endif
+        @if ($given->isNotEmpty())
+            <div class="stack">
+                <small class="row-note">{{ __('dinein.voucher_given_here') }}</small>
+                <ul class="rows">
+                    @foreach ($given as $offer)
+                        <li>
+                            <span class="row-name">
+                                {{ $offer->valueLabel() }} · <strong class="voucher-inline-code">{{ $offer->code }}</strong>
+                                <small>{{ $offer->customer?->name ?? __('dinein.voucher_anonymous') }}</small>
+                            </span>
+                            <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="voucher-{{ $offer->id }}">{{ __('dinein.voucher_show') }}</button>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </section>
+    @foreach ($given as $offer)
+        @include('modules.dinein.voucher-dialog', ['offer' => $offer])
+    @endforeach
+@endif
 
 <section class="panel stack incident-panel">
     <div class="panel-head">
@@ -135,8 +183,7 @@
     </form>
 </dialog>
 
-@if ($customer)
-    @can('dinein.offers')
+@can('dinein.offers')
         <dialog id="gift-dialog" @if ($giftErrors->any()) data-auto-open @endif aria-labelledby="gift-title">
             <form method="post" action="{{ route('tenant.admin.dinein.tables.gift', $table) }}" class="stack gift-form">
                 @csrf
@@ -144,6 +191,12 @@
                     <h2 id="gift-title">{{ __('dinein.gift') }}</h2>
                     <small class="row-note">{{ __('dinein.gift_lead') }}</small>
                 </div>
+                @if ($customer)
+                    <div class="field">
+                        <label class="check"><input type="checkbox" name="for_customer" value="1" @checked(old('for_customer', $giftErrors->any() ? null : '1'))> {{ __('dinein.gift_for_customer', ['name' => $customer->name]) }}</label>
+                        <small class="hint">{{ __('dinein.gift_for_customer_hint') }}</small>
+                    </div>
+                @endif
                 @php($giftType = old('type', 'percent'))
                 <div class="segmented" role="radiogroup" aria-label="{{ __('dinein.gift_type') }}">
                     <label><input type="radio" name="type" value="percent" @checked($giftType === 'percent')> <span>{{ __('dinein.gift_percent') }}</span></label>
@@ -167,5 +220,4 @@
                 </div>
             </form>
         </dialog>
-    @endcan
-@endif
+@endcan

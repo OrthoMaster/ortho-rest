@@ -1123,6 +1123,7 @@
         if (opener) {
             closeKebabs(null);
             document.getElementById(opener.dataset.openDialog).showModal();
+            renderQr(document.getElementById(opener.dataset.openDialog));
         } else if (closer && closer.closest('dialog')) {
             closer.closest('dialog').close();
         }
@@ -3193,6 +3194,60 @@
         link.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
     };
+
+    // Ưu đãi lần sau: vẽ mã QR (mở trang ưu đãi của khách), tải thẻ thành hình, gửi cho chính mình.
+    var renderQr = function (root) {
+        if (!window.qrcode || !root) {
+            return;
+        }
+
+        root.querySelectorAll('[data-qr]').forEach(function (box) {
+            if (box.firstChild) {
+                return;
+            }
+
+            var code = window.qrcode(0, 'M');
+            code.addData(box.dataset.qr);
+            code.make();
+            box.innerHTML = code.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+        });
+    };
+    document.addEventListener('DOMContentLoaded', function () { renderQr(document); });
+
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-voucher-save]');
+
+        if (!button || !window.htmlToImage) {
+            return;
+        }
+
+        var card = (button.closest('dialog') || document).querySelector('[data-voucher-card]');
+        var ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+
+        button.disabled = true;
+        ready.then(function () {
+            return window.htmlToImage.toBlob(card, {
+                pixelRatio: 3,
+                imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
+                backgroundColor: getComputedStyle(card).backgroundColor,
+            });
+        }).then(function (blob) {
+            saveBlob(blob, button.dataset.filename);
+        }).finally(function () {
+            button.disabled = false;
+        });
+    });
+
+    document.querySelectorAll('[data-voucher-share]').forEach(function (button) {
+        if (!navigator.share) {
+            return;
+        }
+
+        button.hidden = false;
+        button.addEventListener('click', function () {
+            navigator.share({ title: document.title, text: button.dataset.shareText, url: window.location.href }).catch(function () {});
+        });
+    });
 
     var sheet = document.querySelector('[data-schedule-sheet]');
     if (sheet) {

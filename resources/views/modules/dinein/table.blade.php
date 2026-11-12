@@ -18,5 +18,6 @@
         <div class="stack" data-board>
             @include('modules.dinein.table-board')
         </div>
+        @include('partials.voucher-scripts')
     @endif
 @endsection

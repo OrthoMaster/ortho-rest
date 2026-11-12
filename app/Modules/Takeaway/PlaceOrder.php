@@ -4,6 +4,7 @@ namespace App\Modules\Takeaway;
 
 use App\Models\ActivityLog;
 use App\Models\Customer;
+use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Kitchen\Kitchen;
@@ -61,6 +62,8 @@ class PlaceOrder
             foreach ($built as $line) {
                 $order->items()->create(['restaurant_id' => $order->restaurant_id, ...$line]);
             }
+
+            $this->syncVoucher($order, null);
 
             return $order;
         });
@@ -172,6 +175,7 @@ class PlaceOrder
             }
 
             $oldCode = $order->code();
+            $oldVoucher = $order->customer_offer_id;
             $movedDay = $pickup->toDateString() !== $order->pickup_date->toDateString();
 
             $order->update([
@@ -184,6 +188,8 @@ class PlaceOrder
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            $this->syncVoucher($order, $oldVoucher);
 
             if ($movedDay) {
                 $changes[] = __('takeaway.change_code', ['from' => $oldCode, 'to' => $order->code()]);
@@ -289,40 +295,78 @@ class PlaceOrder
 
             $order->update(['status' => $status]);
 
+            // Huỷ đơn thì ưu đãi khách đã dùng được trả lại.
+            if ($status === OrderStatus::Cancelled && $order->customer_offer_id) {
+                CustomerOffer::find($order->customer_offer_id)?->release();
+            }
+
             return $order;
         });
+    }
+
+    /** Ưu đãi lần sau (voucher) chỉ dùng một lần: đơn dùng mã thì đánh dấu đã dùng, đổi hay bỏ mã thì trả lại. */
+    private function syncVoucher(TakeawayOrder $order, ?int $old): void
+    {
+        $new = $order->customer_offer_id;
+
+        if ($old === $new) {
+            return;
+        }
+
+        if ($old !== null) {
+            CustomerOffer::find($old)?->release();
+        }
+
+        if ($new !== null) {
+            $offer = CustomerOffer::whereKey($new)->lockForUpdate()->first();
+
+            if (! $offer?->isUsable()) {
+                throw ValidationException::withMessages(['discount_code' => __('takeaway.code_invalid')]);
+            }
+
+            $offer->markUsed(order: $order);
+        }
     }
 
     /** @return array{discount_type: ?DiscountType, discount_value: ?int, discount_code: ?string, discount_amount: int} */
     private function discount(array $data, int $subtotal, ?TakeawayOrder $order = null): array
     {
-        [$type, $value, $code] = match ($data['discount_mode'] ?? 'none') {
-            'percent' => [DiscountType::Percent, (int) $data['discount_percent'], null],
-            'amount' => [DiscountType::Amount, (int) $data['discount_amount'], null],
+        [$type, $value, $code, $offer] = match ($data['discount_mode'] ?? 'none') {
+            'percent' => [DiscountType::Percent, (int) $data['discount_percent'], null, null],
+            'amount' => [DiscountType::Amount, (int) $data['discount_amount'], null, null],
             'code' => $this->fromCode($data['discount_code'] ?? null, $order),
-            default => [null, null, null],
+            default => [null, null, null, null],
         };
 
         return [
             'discount_type' => $type,
             'discount_value' => $value,
             'discount_code' => $code,
+            'customer_offer_id' => $offer,
             'discount_amount' => $type?->amountOff($value, $subtotal) ?? 0,
         ];
     }
 
-    /** @return array{DiscountType, int, string} */
+    /**
+     * Mã khách đưa: ưu đãi lần sau (voucher, dùng một lần) hoặc mã giảm giá dùng chung.
+     *
+     * @return array{DiscountType, int, string, ?int}
+     */
     private function fromCode(?string $code, ?TakeawayOrder $order = null): array
     {
         // Mã đã áp dụng cho đơn vẫn giữ, kể cả khi sau đó mã bị tắt hoặc đổi mức giảm.
         if ($order?->discount_code && strtoupper(trim((string) $code)) === $order->discount_code) {
-            return [$order->discount_type, $order->discount_value, $order->discount_code];
+            return [$order->discount_type, $order->discount_value, $order->discount_code, $order->customer_offer_id];
+        }
+
+        if ($voucher = CustomerOffer::usableCode($code)) {
+            return [$voucher->type, $voucher->value, $voucher->code, $voucher->id];
         }
 
         $discount = DiscountCode::usable($code)
             ?? throw ValidationException::withMessages(['discount_code' => __('takeaway.code_invalid')]);
 
-        return [$discount->type, $discount->value, $discount->code];
+        return [$discount->type, $discount->value, $discount->code, null];
     }
 
     private function assertPickupTime(CarbonImmutable $pickup): void

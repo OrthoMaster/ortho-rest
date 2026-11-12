@@ -1490,3 +1490,27 @@ h2 .count { display: inline-grid; place-items: center; min-width: 1.5rem; height
 @media (min-width: 761px) {
     .schedule-desktop-only { display: none; }
 }
+
+/* Ưu đãi lần sau (voucher): thẻ có mã và mã QR, dùng ở hộp thoại, trang Ưu đãi và trang của khách. */
+dialog.voucher-dialog { width: min(23rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
+.voucher-card { display: grid; justify-items: center; gap: .45rem; padding: 1.25rem 1.1rem; text-align: center; color: var(--ink); background: var(--surface); border: 2px dashed var(--primary); border-radius: 14px; }
+.voucher-brand { display: flex; align-items: center; justify-content: center; gap: .55rem; max-width: 100%; }
+.voucher-brand strong { overflow-wrap: anywhere; }
+.voucher-kind { margin: .35rem 0 0; color: var(--ink-soft); font-size: .875rem; text-transform: uppercase; letter-spacing: .06em; }
+.voucher-value { font-size: 2rem; line-height: 1.15; color: var(--primary-ink); }
+.voucher-code { display: grid; gap: .15rem; margin: 0; padding: .45rem 1rem; background: var(--ground); border-radius: var(--radius); }
+.voucher-code small { color: var(--ink-soft); font-size: .75rem; }
+.voucher-code strong { font-size: 1.5rem; letter-spacing: .18em; font-variant-numeric: tabular-nums; }
+.voucher-qr { width: min(13rem, 70vw); aspect-ratio: 1; }
+.voucher-qr svg { display: block; width: 100%; height: 100%; }
+.voucher-qr svg rect { fill: var(--surface); }
+.voucher-qr svg path { fill: var(--ink); }
+.voucher-scan, .voucher-note { color: var(--ink-soft); font-size: .8125rem; }
+.voucher-state { margin: 0; text-align: center; }
+.voucher-inline-code { letter-spacing: .08em; }
+.voucher-panel .inline-form input:not(:placeholder-shown) { text-transform: uppercase; }
+.voucher-page { min-height: 100dvh; background: var(--ground); }
+.voucher-main { width: min(24rem, 100%); margin: 0 auto; padding: 2rem 1rem; }
+.voucher-hint { margin: 0; color: var(--ink-soft); font-size: .9375rem; text-align: center; }
+.voucher-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.voucher-actions .btn { flex: 1 1 8rem; }

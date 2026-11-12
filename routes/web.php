@@ -8,6 +8,7 @@ use App\Http\Controllers\Super\RestaurantDomainController;
 use App\Http\Controllers\Super\RestaurantLogoController;
 use App\Http\Controllers\Super\RestaurantModuleController;
 use App\Http\Controllers\Super\RestaurantThemeController;
+use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -91,6 +92,10 @@ Route::middleware('main.domain')->group(function () {
                     ->middleware('throttle:5,1')
                     ->name('password.update');
             });
+
+            // Trang ưu đãi khách mở bằng mã QR: không cần đăng nhập, không cần bật Website.
+            Route::get('uu-dai/{token}', VoucherController::class)->where('token', '[A-Za-z0-9]{32}')
+                ->middleware('tenant.active')->name('tenant.voucher');
 
             Route::prefix('admin')
                 ->name('tenant.admin.')

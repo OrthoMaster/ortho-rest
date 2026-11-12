@@ -67,9 +67,9 @@
                 @error('pickup_at')<small class="error">{{ $message }}</small>@enderror
             </section>
 
-            {{-- Đơn đang có mã giảm giá vẫn giữ và sửa được dù đã ẩn lựa chọn Mã. --}}
-            @php($codesOn = config('liresto.discount_codes') || $order->discount_code)
-            <section class="panel" data-discount @unless ($codesOn || $order->discount_type || auth()->user()->can('takeaway.direct-discount')) hidden @endunless>
+            {{-- Mã luôn có: mã ưu đãi lần sau khách được tặng ở bàn (và mã giảm giá dùng chung nếu bật). --}}
+            @php($codesOn = true)
+            <section class="panel" data-discount>
                 <div class="panel-head">
                     <h2 id="discount-title">{{ __('takeaway.discount') }}</h2>
                     @php($discountOn = old('discount_enabled', $order->discount_type !== null))

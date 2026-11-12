@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\Menu\Models\MenuCategory;
@@ -305,6 +306,33 @@ class TakeawayTest extends TestCase
         $this->get("$this->base/create")
             ->assertSee('name="discount_percent" value="5"', false)
             ->assertSee('name="discount_thousands" value="10"', false);
+    }
+
+    public function test_next_visit_voucher_is_used_once_and_returned_when_removed_or_cancelled(): void
+    {
+        $voucher = CustomerOffer::create(['restaurant_id' => $this->restaurant->id, 'type' => DiscountType::Percent, 'value' => 10, 'reason' => 'Món ra chậm']);
+        $this->getJson("$this->base/discounts/check?code=".strtolower($voucher->code))->assertJson(['valid' => true, 'type' => 'percent', 'value' => 10]);
+
+        // Dùng cho đơn mang đi: giảm và đánh dấu đã dùng, đơn khác không dùng lại được.
+        $order = $this->discounted(['discount_mode' => 'code', 'discount_code' => strtolower($voucher->code)]);
+        $this->assertSame([126000, $voucher->id], [$order->total, $order->customer_offer_id]);
+        $this->assertSame($order->id, $voucher->fresh()->used_takeaway_order_id);
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['discount_enabled' => 1, 'discount_mode' => 'code', 'discount_code' => $voucher->code]))
+            ->assertSessionHasErrors('discount_code');
+        $this->getJson("$this->base/discounts/check?code={$voucher->code}")->assertJson(['valid' => false]);
+
+        // Sửa đơn giữ mã thì vẫn giữ; bỏ giảm giá thì mã được trả lại.
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3], ['discount_enabled' => 1, 'discount_mode' => 'code', 'discount_code' => $voucher->code]))->assertSessionHasNoErrors();
+        $this->assertSame(189000, $order->fresh()->total);
+        $this->assertNotNull($voucher->fresh()->used_at);
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->assertNull($voucher->fresh()->used_at);
+
+        // Dùng lại cho đơn mới, rồi huỷ đơn: mã trả lại cho khách.
+        $again = $this->discounted(['discount_mode' => 'code', 'discount_code' => $voucher->code]);
+        $this->assertNotNull($voucher->fresh()->used_at);
+        $this->post("$this->base/{$again->id}/status", ['status' => 'cancelled'])->assertSessionHasNoErrors();
+        $this->assertNull($voucher->fresh()->used_at);
     }
 
     public function test_check_endpoint_describes_a_valid_code(): void
