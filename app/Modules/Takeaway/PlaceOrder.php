@@ -233,6 +233,7 @@ class PlaceOrder
 
             $built[] = [
                 'menu_item_id' => $item->getKey(),
+                'dinein_station_id' => $item->dinein_station_id,
                 'name' => $item->name,
                 'unit_price' => $item->price_takeaway + array_sum(array_column($chosen, 'price')),
                 'quantity' => (int) $row['quantity'],

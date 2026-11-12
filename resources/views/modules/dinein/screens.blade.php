@@ -9,11 +9,23 @@
 
     @include('modules.dinein.subnav')
 
-    @if ($stations->isEmpty())
+    @if ($stations->isEmpty() && ! $prep)
         <p class="empty">{{ __('dinein.screens_none') }}</p>
     @else
         <p class="lead">{{ __('dinein.screens_lead') }}</p>
         <ul class="table-grid station-grid">
+            @if ($prep)
+                <li>
+                    <a href="{{ route('tenant.admin.dinein.screens.takeaway') }}" @class(['table-tile', 'is-takeaway', 'is-open' => $prepCount > 0])>
+                        <strong>{{ __('dinein.prep') }}</strong>
+                        @if ($prepCount > 0)
+                            <small class="badge badge-warn">{{ __('dinein.prep_count', ['count' => $prepCount]) }}</small>
+                        @else
+                            <small>{{ __('dinein.prep_none') }}</small>
+                        @endif
+                    </a>
+                </li>
+            @endif
             @foreach ($stations as $station)
                 @php($count = $pending[$station->id] ?? 0)
                 <li>

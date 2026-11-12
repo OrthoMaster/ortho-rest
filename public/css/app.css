@@ -32,6 +32,9 @@
     --tone-7-ink: #0f5560;
     --tone-8-bg: #e6e8ec;
     --tone-8-ink: #374151;
+    /* Đơn mang đi ở màn hình khu: màu riêng để nhìn là phân biệt với món tại bàn. */
+    --takeaway-bg: color-mix(in srgb, var(--tone-4-bg) 45%, var(--surface));
+    --takeaway-ink: var(--tone-4-ink);
     /* Ô ngày quán nghỉ trên lịch */
     --closed-bg: color-mix(in srgb, var(--ink) 7%, var(--surface));
     --line: color-mix(in srgb, var(--primary) 35%, #dfe5ea);
@@ -1078,7 +1081,7 @@ dialog.item-dialog { padding: 0; overflow: hidden; }
 
 .screen-tools { display: flex; align-items: center; gap: .5rem; }
 .sound-toggle[aria-pressed="true"] { color: var(--ok-ink); background: var(--ok-bg); border-color: var(--ok-ink); }
-.tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .75rem; align-items: start; }
+.tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); gap: .75rem; align-items: start; }
 .ticket { display: grid; gap: .5rem; padding: .9rem 1rem; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--primary-ink); border-radius: var(--radius); }
 .ticket.is-late { border-top-color: var(--bad-ink); }
 .ticket.is-new { animation: ticket-new 1.6s ease 2; }
@@ -1086,6 +1089,19 @@ dialog.item-dialog { padding: 0; overflow: hidden; }
 .ticket-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
 .ticket-table { font-size: 1.5rem; letter-spacing: .03em; }
 .ticket.is-late .ticket-head .row-note { color: var(--bad-ink); font-weight: 600; }
+.ticket.is-takeaway { background: var(--takeaway-bg); border-color: color-mix(in srgb, var(--takeaway-ink) 25%, var(--surface)); border-top-color: var(--takeaway-ink); }
+.ticket.is-takeaway.is-late { border-top-color: var(--bad-ink); }
+.ticket.is-packed { border-top-color: var(--ok-ink); }
+.ticket-title { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; min-width: 0; }
+.ticket .ticket-tag { color: var(--surface); background: var(--takeaway-ink); }
+.ticket-head .ticket-time { text-align: right; }
+.ticket-head .ticket-time.is-late { color: var(--bad-ink); font-weight: 600; }
+.ticket-customer { margin: 0; font-weight: 600; }
+.ticket-note { margin: 0; font-size: .875rem; color: var(--warn-ink); font-style: italic; }
+.ticket-lines .badge { flex: none; }
+.ticket-actions { display: flex; align-items: center; gap: .4rem; }
+.ticket-actions form { display: contents; }
+.table-tile.is-takeaway { background: var(--takeaway-bg); border-color: color-mix(in srgb, var(--takeaway-ink) 35%, var(--surface)); }
 .ticket-lines { display: grid; margin: 0; padding: 0; list-style: none; }
 .ticket-lines li { display: flex; align-items: center; gap: .6rem; padding: .45rem 0; border-top: 1px solid var(--line); }
 .ticket-qty { flex: none; min-width: 2rem; font-size: 1.25rem; font-weight: 700; text-align: center; }

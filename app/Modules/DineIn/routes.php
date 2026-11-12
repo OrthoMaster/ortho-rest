@@ -30,6 +30,9 @@ Route::middleware('module:dinein')
             Route::get('screens', [ScreenController::class, 'index'])->name('screens.index');
             Route::get('screens/{station}', [ScreenController::class, 'show'])->whereNumber('station')->name('screens.show');
             Route::post('screens/{station}/done', [ScreenController::class, 'done'])->whereNumber('station')->name('screens.done');
+            // Chuẩn bị đơn mang đi (khi bật Đặt mang đi): người đổi được trạng thái đơn mang đi.
+            Route::get('screens/takeaway', [ScreenController::class, 'takeaway'])->name('screens.takeaway');
+            Route::post('screens/takeaway/{order}', [ScreenController::class, 'takeawayStatus'])->whereNumber('order')->name('screens.takeaway.status');
         });
 
         Route::middleware('can:dinein.settings')->prefix('stations')->name('stations.')->group(function () {

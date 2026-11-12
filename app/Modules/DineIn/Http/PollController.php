@@ -7,6 +7,8 @@ use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Schedule\Duty;
+use App\Modules\Takeaway\Models\TakeawayOrderItem;
+use App\Modules\Takeaway\OrderStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,6 +48,7 @@ class PollController extends Controller
         }
 
         $stationIds = Duty::stationIds($user);
+        $takeaway = has_module('takeaway');
         $fallback = Station::fallback()?->id;
         $stations = Station::whereKey($stationIds)->orderBy('sort_order')->orderBy('id')->get()->map(fn (Station $station) => [
             'id' => $station->id,
@@ -55,6 +58,12 @@ class PollController extends Controller
                 ->where(fn (Builder $query) => $query->where('dinein_station_id', $station->id)
                     ->when($station->id === $fallback, fn (Builder $query) => $query->orWhereNull('dinein_station_id')))
                 ->pluck('id')
+                // Món mang đi còn chờ cũng báo, khoá có chữ t để không trùng với món tại bàn.
+                ->concat($takeaway ? TakeawayOrderItem::whereNull('done_at')
+                    ->whereHas('order', fn (Builder $query) => $query->whereIn('status', [OrderStatus::New, OrderStatus::Preparing])->whereDate('pickup_date', today()))
+                    ->where(fn (Builder $query) => $query->where('dinein_station_id', $station->id)
+                        ->when($station->id === $fallback, fn (Builder $query) => $query->orWhereNull('dinein_station_id')))
+                    ->pluck('id')->map(fn (int $id) => 't'.$id) : [])
                 ->all(),
         ])->all();
 

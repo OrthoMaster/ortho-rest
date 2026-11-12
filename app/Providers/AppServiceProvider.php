@@ -33,8 +33,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('schedule.open', fn (User $user) => (bool) $user->restaurant?->hasModule('schedule'));
 
         // Màn hình khu (bếp, bar): người có quyền, hoặc người đang được phân công ở một khu.
+        // Bật Đặt mang đi thì người đổi được trạng thái đơn mang đi mở được Chuẩn bị đơn mang đi.
         Gate::define('dinein.screen', fn (User $user) => $user->restaurant?->hasModule('dinein')
-            && ($user->can('dinein.stations') || Duty::stationIds($user) !== []));
+            && ($user->can('dinein.stations') || Duty::stationIds($user) !== []
+                || ($user->restaurant->hasModule('takeaway') && $user->can('takeaway.status'))));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
             Str::lower((string) $request->input('login', $request->input('email'))).'|'.$request->ip(),

@@ -6,13 +6,7 @@
     <div class="page-head screen-head">
         <h1>{{ $station->name }}</h1>
         <div class="screen-tools">
-            @if ($stations->count() > 1)
-                @component('partials.kebab', ['label' => __('dinein.switch_station'), 'trigger' => __('dinein.switch_station')])
-                    @foreach ($stations as $other)
-                        <a href="{{ route('tenant.admin.dinein.screens.show', $other) }}">{{ $other->name }}</a>
-                    @endforeach
-                @endcomponent
-            @endif
+            @include('modules.dinein.station-switch')
             <button class="btn btn-quiet btn-sm sound-toggle" type="button" data-sound-toggle aria-pressed="false"
                     data-on="{{ __('dinein.sound_on') }}" data-off="{{ __('dinein.sound_off') }}" title="{{ __('dinein.sound_hint') }}">{{ __('dinein.sound_off') }}</button>
         </div>

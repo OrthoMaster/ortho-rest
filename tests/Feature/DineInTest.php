@@ -19,6 +19,8 @@ use App\Modules\Reservation\Models\Area;
 use App\Modules\Schedule\Duty;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\Week;
+use App\Modules\Takeaway\Models\TakeawayOrder;
+use App\Modules\Takeaway\OrderStatus;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +73,82 @@ class DineInTest extends TestCase
             $this->options[$name] = $group->options()->create(['restaurant_id' => $this->restaurant->id, 'name' => $name, 'price' => $price]);
         }
         app(TenantContext::class)->forget();
+    }
+
+    /** Bật Đặt mang đi, tạo một đơn mang đi nhận hôm nay 12:30 có cơm tấm (bếp) và trà đá (bar). */
+    private function takeawayOrder(): TakeawayOrder
+    {
+        $this->enableModules($this->restaurant, 'takeaway');
+        $this->comTam->newQuery()->withoutGlobalScopes()->whereKey([$this->comTam->id, $this->tra->id])->update(['price_takeaway' => 50000]);
+
+        $this->post("/{$this->restaurant->slug}/admin/takeaway", [
+            'customer_name' => 'Chị Mai', 'customer_phone' => '0987654321', 'pickup_date' => '2026-11-09', 'pickup_time' => '12:30',
+            'lines' => [
+                ['item' => $this->comTam->id, 'quantity' => 1, 'options' => [$this->options['Sườn']->id, $this->options['Không ớt']->id], 'note' => 'Ít cơm'],
+                ['item' => $this->comTam->id, 'quantity' => 2, 'options' => [$this->options['Sườn cọng']->id]],
+                ['item' => $this->tra->id, 'quantity' => 1],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        return TakeawayOrder::withoutGlobalScopes()->latest('id')->first();
+    }
+
+    public function test_station_screen_has_one_ticket_per_table_and_takeaway_orders(): void
+    {
+        // Hai lần gọi của bàn A1 gộp một phiếu, mỗi món một dòng có nút Xong; không ghi Lượt.
+        $this->order('A1', [$this->comTamLine(['Sườn'], 1, null)]);
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 12:10'));
+        $this->order('A1', [$this->comTamLine(['Sườn cọng'], 1, null)]);
+        $order = $this->takeawayOrder();
+        $items = $order->items()->withoutGlobalScopes()->orderBy('id')->get();
+
+        $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk()
+            ->assertSeeInOrder(['A1', __('dinein.ordered_ago', ['time' => '10 phút']), 'Sườn', 'Sườn cọng'])
+            ->assertDontSee(__('dinein.round', ['round' => 2]))
+            // Đơn mang đi: phiếu riêng, giờ giao và còn bao lâu; món khác tuỳ chọn là dòng riêng.
+            ->assertSee('is-takeaway', false)->assertSee($order->code())
+            ->assertSee(__('dinein.pickup_left', ['time' => '12:30', 'left' => '20 phút']))
+            ->assertSee('data-line-id="t'.$items[0]->id.'"', false)->assertSee('data-line-id="t'.$items[1]->id.'"', false)
+            ->assertDontSee('data-line-id="t'.$items[2]->id.'"', false);
+        $this->get("$this->base/screens/{$this->bar->id}")->assertSee('data-line-id="t'.$items[2]->id.'"', false);
+
+        // Bếp báo xong món mang đi: đơn sang Đang làm, món rời màn hình khu.
+        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$items[0]->id]])->assertSessionHas('status');
+        $this->assertNotNull($items[0]->fresh()->done_at);
+        $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
+        $this->get("$this->base/screens/{$this->kitchen->id}")->assertDontSee('data-line-id="t'.$items[0]->id.'"', false);
+        // Không báo được món của khu khác.
+        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$items[2]->id]]);
+        $this->assertNull($items[2]->fresh()->done_at);
+    }
+
+    public function test_takeaway_prep_screen_packs_and_delivers(): void
+    {
+        $order = $this->takeawayOrder();
+        $item = $order->items()->withoutGlobalScopes()->first();
+
+        // Chuẩn bị đơn mang đi luôn đứng đầu danh sách màn hình.
+        $this->get("$this->base/screens")->assertOk()->assertSeeInOrder([__('dinein.prep'), $this->kitchen->name]);
+        $this->get("$this->base/screens/takeaway")->assertOk()->assertSee($order->code())->assertSee('Chị Mai')
+            ->assertSee(__('dinein.items_done', ['done' => 0, 'total' => 3]))->assertDontSee('data-line-id="d', false);
+
+        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$item->id]]);
+        $this->get("$this->base/screens/takeaway")->assertSee('data-line-id="d'.$item->id.'"', false)
+            ->assertSee(__('dinein.pack_confirm_missing', ['count' => 2]));
+
+        $this->post("$this->base/screens/takeaway/{$order->id}", ['status' => 'ready'])->assertSessionHas('status', __('dinein.packed', ['code' => $order->code()]));
+        $this->assertSame(OrderStatus::Ready, $order->fresh()->status);
+        // Đơn đã đóng gói không còn ở màn hình khu.
+        $this->get("$this->base/screens/{$this->bar->id}", ['X-Board' => '1'])->assertDontSee($order->code());
+
+        $this->post("$this->base/screens/takeaway/{$order->id}", ['status' => 'delivered']);
+        $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
+        $this->get("$this->base/screens/takeaway")->assertSee(__('dinein.prep_empty'));
+
+        // Nhân viên có quyền đổi trạng thái đơn mang đi mở được dù không ở khu nào.
+        $waiter = $this->member($this->restaurant, 'staff');
+        $this->actingAs($waiter)->get("$this->base/screens")->assertRedirect("$this->base/screens/takeaway");
+        $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
     }
 
     private function order(string $table, array $lines)

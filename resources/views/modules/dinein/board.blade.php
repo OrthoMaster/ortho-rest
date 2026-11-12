@@ -1,39 +1,65 @@
+{{--
+    Phiếu của khu: mỗi bàn một phiếu (gộp các lần gọi), mỗi đơn mang đi một phiếu (màu khác).
+    Mỗi món một dòng, có nút Xong riêng; món khác tuỳ chọn là dòng riêng.
+--}}
 @if ($tickets->isEmpty())
     <p class="empty">{{ __('dinein.board_empty') }}</p>
 @else
     <div class="tickets">
-        @foreach ($tickets as $lines)
+        @foreach ($tickets as $ticket)
+            @php($lines = $ticket['lines'])
             @php($first = $lines->first())
-            @php($minutes = (int) $first->created_at->diffInMinutes(now()))
-            <section @class(['ticket', 'is-late' => $minutes >= 15]) data-ticket>
+            @php($takeaway = $ticket['type'] === 'takeaway')
+            @php($field = $takeaway ? 'takeaway[]' : 'lines[]')
+            @if ($takeaway)
+                @php($order = $first->order)
+                @php($left = (int) now()->startOfMinute()->diffInMinutes($order->pickup_at->toImmutable()->startOfMinute(), false))
+                @php($late = $left < 0)
+                @php($label = __('dinein.takeaway_tag').' '.$order->code())
+            @else
+                @php($minutes = (int) $ticket['at']->diffInMinutes(now()))
+                @php($late = $minutes >= 15)
+                @php($label = $first->diningTable->label)
+            @endif
+            <section @class(['ticket', 'is-takeaway' => $takeaway, 'is-late' => $late]) data-ticket>
                 <div class="ticket-head">
-                    <strong class="ticket-table">{{ $first->diningTable->label }}</strong>
-                    <span class="row-note">{{ __('dinein.round', ['round' => $first->round]) }} · {{ $minutes < 1 ? __('dinein.just_now') : __('dinein.minutes_ago', ['count' => $minutes]) }}</span>
+                    @if ($takeaway)
+                        <span class="ticket-title">
+                            <small class="badge ticket-tag">{{ __('dinein.takeaway_tag') }}</small>
+                            <strong class="ticket-table">{{ $order->code() }}</strong>
+                        </span>
+                        @include('modules.dinein.pickup-time')
+                    @else
+                        <strong class="ticket-table">{{ $label }}</strong>
+                        <span class="row-note ticket-time">{{ $minutes < 1 ? __('dinein.ordered_now') : __('dinein.ordered_ago', ['time' => \App\Modules\DineIn\Waiting::text($minutes)]) }}</span>
+                    @endif
                 </div>
                 <ul class="ticket-lines">
                     @foreach ($lines as $line)
-                        <li data-line-id="{{ $line->id }}">
+                        <li data-line-id="{{ $takeaway ? 't' : '' }}{{ $line->id }}">
                             <span class="ticket-qty">{{ $line->quantity }}</span>
                             <span class="ticket-name">
                                 {{ $line->name }}
                                 @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
                                 @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
                             </span>
-                            <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}" data-confirm="{{ __('dinein.done_confirm', ['name' => $line->quantity.' × '.$line->name]) }}" data-confirm-ok="{{ __('dinein.done') }}">
+                            <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}"
+                                  data-confirm="{{ $takeaway ? __('dinein.done_takeaway_confirm', ['name' => $line->quantity.' × '.$line->name, 'code' => $order->code()]) : __('dinein.done_confirm', ['name' => $line->quantity.' × '.$line->name]) }}" data-confirm-ok="{{ __('dinein.done') }}">
                                 @csrf
-                                <input type="hidden" name="lines[]" value="{{ $line->id }}">
+                                <input type="hidden" name="{{ $field }}" value="{{ $line->id }}">
                                 <button class="btn btn-sm" type="submit">{{ __('dinein.done') }}</button>
                             </form>
                         </li>
                     @endforeach
                 </ul>
                 <div class="ticket-foot">
-                    <small class="row-note">{{ __('dinein.ordered_by', ['name' => $first->orderedBy?->name ?? '—']) }}</small>
+                    <small class="row-note">{{ $takeaway ? $order->customer->name : __('dinein.ordered_by', ['name' => $lines->pluck('orderedBy.name')->filter()->unique()->implode(', ') ?: '—']) }}</small>
                     @if ($lines->count() > 1)
-                        <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}" data-confirm="{{ __('dinein.done_all_confirm', ['table' => $first->diningTable->label]) }}" data-confirm-ok="{{ __('dinein.done_all') }}">
+                        <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}"
+                              data-confirm="{{ $takeaway ? __('dinein.done_order_confirm', ['code' => $order->code()]) : __('dinein.done_all_confirm', ['table' => $label]) }}" data-confirm-ok="{{ __('dinein.done_all') }}">
                             @csrf
                             @foreach ($lines as $line)
-                                <input type="hidden" name="lines[]" value="{{ $line->id }}">
+                                <input type="hidden" name="{{ $field }}" value="{{ $line->id }}">
                             @endforeach
                             <button class="btn btn-quiet btn-sm" type="submit">{{ __('dinein.done_all') }}</button>
                         </form>
@@ -48,11 +74,11 @@
     <section class="panel recent-done">
         <h2>{{ __('dinein.recent') }}</h2>
         <ul class="rows">
-            @foreach ($recent as $line)
+            @foreach ($recent as $row)
                 <li>
-                    <span class="row-name">{{ $line->diningTable->label }} · {{ $line->quantity }} × {{ $line->name }}</span>
-                    <span @class(['badge', $line->status->badge()])>{{ $line->status->label() }}</span>
-                    <small class="row-note">{{ $line->done_at->format('H:i') }}</small>
+                    <span class="row-name">{{ $row['where'] }} · {{ $row['text'] }}</span>
+                    <span @class(['badge', $row['badge']])>{{ $row['status'] }}</span>
+                    <small class="row-note">{{ $row['at']->format('H:i') }}</small>
                 </li>
             @endforeach
         </ul>
