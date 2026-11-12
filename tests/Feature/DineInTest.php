@@ -115,6 +115,7 @@ class DineInTest extends TestCase
         $lines = OrderLine::withoutGlobalScopes()->orderBy('id')->get();
         $this->assertSame(85000 + 15000 + 2000, $lines[0]->unit_price);
         $this->assertSame('Sườn cọng, Không ớt, Nhiều tỏi', $lines[0]->optionText());
+        $this->assertSame(['Thịt: Sườn cọng', 'Nước chấm: Không ớt, Nhiều tỏi'], $lines[0]->optionLines());
         $this->assertSame('Ít cơm', $lines[0]->note);
         $this->assertSame($this->kitchen->id, $lines[0]->dinein_station_id, 'Món chưa chọn khu vào khu đầu tiên.');
         $this->assertSame($this->bar->id, $lines[1]->dinein_station_id);

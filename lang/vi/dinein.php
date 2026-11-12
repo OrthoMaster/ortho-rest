@@ -47,6 +47,8 @@ return [
     'required' => 'Bắt buộc',
     'need_option' => 'Hãy chọn :group.',
     'remove_line' => 'Bỏ món này',
+    'edit_line' => 'Sửa món này',
+    'update_line' => 'Cập nhật',
     'item_unavailable' => 'Có món không còn trong menu tại quán. Hãy tải lại trang và chọn lại.',
     'item_sold_out' => ':name vừa hết món.',
     'option_required' => ':name: hãy chọn :group.',

@@ -3,7 +3,7 @@
 <li @class(['dine-line', 'is-cancelled' => $status === \App\Modules\DineIn\LineStatus::Cancelled])>
     <span class="row-name">
         {{ $line->quantity }} × {{ $line->name }}
-        @if ($line->optionText() !== '')<small>{{ $line->optionText() }}</small>@endif
+        @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
         @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
         <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
     </span>

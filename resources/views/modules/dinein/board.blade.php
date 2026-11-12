@@ -16,7 +16,7 @@
                             <span class="ticket-qty">{{ $line->quantity }}</span>
                             <span class="ticket-name">
                                 {{ $line->name }}
-                                @if ($line->optionText() !== '')<small>{{ $line->optionText() }}</small>@endif
+                                @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
                                 @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
                             </span>
                             <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}" data-confirm="{{ __('dinein.done_confirm', ['name' => $line->quantity.' × '.$line->name]) }}" data-confirm-ok="{{ __('dinein.done') }}">

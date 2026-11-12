@@ -15,7 +15,8 @@
         <form method="post" action="{{ route('tenant.admin.dinein.tables.store', $label) }}" class="stack dine-order" data-guard data-dine-order
               data-count-label="{{ __('dinein.order_count') }}" data-add-label="{{ __('dinein.add_to_order') }}"
               data-pick-one="{{ __('dinein.pick_one') }}" data-pick-many="{{ __('dinein.pick_many') }}" data-required-label="{{ __('dinein.required') }}"
-              data-need-option="{{ __('dinein.need_option') }}" data-remove-label="{{ __('dinein.remove_line') }}">
+              data-need-option="{{ __('dinein.need_option') }}" data-remove-label="{{ __('dinein.remove_line') }}"
+              data-edit-label="{{ __('dinein.edit_line') }}" data-update-label="{{ __('dinein.update_line') }}">
             @csrf
             <script type="application/json" data-dine-menu>@json($menu)</script>
             <script type="application/json" data-dine-old>@json(array_values(old('lines', [])))</script>
@@ -78,9 +79,9 @@
             </form>
         </dialog>
 
-        <dialog id="dine-cart" class="dine-dialog" aria-labelledby="dine-cart-title">
+        <dialog id="dine-cart" class="dine-dialog" aria-labelledby="dine-cart-title" data-backdrop-close>
             <div class="stack">
-                <div class="panel-head">
+                <div class="panel-head dialog-head">
                     <h2 id="dine-cart-title">{{ __('dinein.order_list') }}</h2>
                     <button class="row-btn" type="button" data-close-dialog aria-label="{{ __('ui.common.close') }}">✕</button>
                 </div>

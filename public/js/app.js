@@ -689,10 +689,15 @@
                 return sum + (line.options.indexOf(option.id) !== -1 ? option.price : 0);
             }, item.price);
         };
-        var optionText = function (line) {
-            return allOptions(dineMenu[line.item]).filter(function (option) {
-                return line.options.indexOf(option.id) !== -1;
-            }).map(function (option) { return option.name; }).join(', ');
+        // Tuỳ chọn theo nhóm, mỗi nhóm một dòng: "Thịt: Sườn cọng".
+        var optionLines = function (line) {
+            return dineMenu[line.item].groups.map(function (group) {
+                var names = group.options.filter(function (option) {
+                    return line.options.indexOf(option.id) !== -1;
+                }).map(function (option) { return option.name; });
+
+                return names.length ? group.name + ': ' + names.join(', ') : '';
+            }).filter(Boolean);
         };
         var hidden = function (name, value) {
             var input = document.createElement('input');
@@ -734,13 +739,11 @@
                 name.className = 'row-name';
                 name.textContent = line.quantity + ' × ' + dineMenu[line.item].name;
 
-                [optionText(line), line.note].forEach(function (text, position) {
-                    if (text) {
-                        var small = document.createElement('small');
-                        small.textContent = text;
-                        small.className = position === 1 ? 'dine-note' : '';
-                        name.appendChild(small);
-                    }
+                optionLines(line).concat(line.note ? [line.note] : []).forEach(function (text, position, list) {
+                    var small = document.createElement('small');
+                    small.textContent = text;
+                    small.className = line.note && position === list.length - 1 ? 'dine-note' : '';
+                    name.appendChild(small);
                 });
 
                 var amount = document.createElement('strong');
@@ -754,9 +757,23 @@
                 remove.setAttribute('aria-label', dineForm.dataset.removeLabel);
                 remove.textContent = '✕';
 
+                var edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'row-btn';
+                edit.dataset.editLine = index;
+                edit.setAttribute('aria-label', dineForm.dataset.editLabel);
+                edit.title = dineForm.dataset.editLabel;
+                edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+                remove.title = dineForm.dataset.removeLabel;
+
+                var tools = document.createElement('span');
+                tools.className = 'line-tools';
+                tools.appendChild(edit);
+                tools.appendChild(remove);
+
                 row.appendChild(name);
                 row.appendChild(amount);
-                row.appendChild(remove);
+                row.appendChild(tools);
                 cartList.appendChild(row);
             });
 
@@ -786,6 +803,12 @@
                 cart.splice(Number(remove.dataset.removeLine), 1);
                 renderCart();
             }
+
+            var edit = event.target.closest('[data-edit-line]');
+
+            if (edit) {
+                openItem(cart[Number(edit.dataset.editLine)].item, Number(edit.dataset.editLine));
+            }
         });
         document.querySelector('[data-cart-send]').addEventListener('click', function () {
             dineForm.requestSubmit();
@@ -804,6 +827,7 @@
         var itemError = itemForm.querySelector('[data-item-error]');
         var addButton = itemForm.querySelector('[data-item-add]');
         var currentItem = null;
+        var editing = null; // vị trí món đang sửa trong đơn, null khi thêm mới
 
         var picked = function () {
             return Array.prototype.map.call(groupsBox.querySelectorAll('input:checked'), function (input) {
@@ -815,10 +839,13 @@
         };
         var syncAdd = function () {
             itemError.hidden = true;
-            addButton.textContent = dineForm.dataset.addLabel + ' · ' + dineMoney(unitPrice({ item: currentItem.id, options: picked() }) * quantity());
+            addButton.textContent = (editing === null ? dineForm.dataset.addLabel : dineForm.dataset.updateLabel) + ' · ' + dineMoney(unitPrice({ item: currentItem.id, options: picked() }) * quantity());
         };
 
-        var openItem = function (id) {
+        var openItem = function (id, lineIndex) {
+            var line = lineIndex === undefined ? null : cart[lineIndex];
+
+            editing = line ? lineIndex : null;
             currentItem = dineMenu[id];
             itemForm.querySelector('[data-item-name]').textContent = currentItem.name;
             itemForm.querySelector('[data-item-price]').textContent = dineMoney(currentItem.price);
@@ -847,6 +874,7 @@
                     input.type = group.multiple ? 'checkbox' : 'radio';
                     input.name = 'group-' + group.id;
                     input.value = option.id;
+                    input.checked = line !== null && line.options.indexOf(option.id) !== -1;
                     text.textContent = option.name + (option.price > 0 ? ' +' + dineMoney(option.price) : '');
                     label.appendChild(input);
                     label.appendChild(text);
@@ -858,8 +886,8 @@
                 groupsBox.appendChild(fieldset);
             });
 
-            quantityInput.value = 1;
-            noteInput.value = '';
+            quantityInput.value = line ? line.quantity : 1;
+            noteInput.value = line ? line.note : '';
             itemError.hidden = true;
             syncAdd();
             itemDialog.showModal();
@@ -891,6 +919,9 @@
                 syncAdd();
             }
         });
+        itemDialog.addEventListener('close', function () {
+            editing = null;
+        });
         itemForm.addEventListener('change', syncAdd);
         itemForm.addEventListener('input', syncAdd);
 
@@ -908,16 +939,26 @@
                 return;
             }
 
-            var line = { item: currentItem.id, quantity: quantity(), options: picked().sort(), note: noteInput.value.trim() };
+            var line = { item: currentItem.id, quantity: quantity(), options: picked().sort(function (a, b) { return a - b; }), note: noteInput.value.trim() };
+            var edited = editing === null ? null : cart[editing];
             var same = cart.find(function (other) {
-                return other.item === line.item && other.note === line.note && other.options.join() === line.options.join();
+                return other !== edited && other.item === line.item && other.note === line.note && other.options.join() === line.options.join();
             });
+
+            // Sửa thành giống hệt một món khác trong đơn thì gộp số lượng.
+            if (edited) {
+                cart.splice(editing, 1);
+            }
 
             if (same) {
                 same.quantity = Math.min(99, same.quantity + line.quantity);
+            } else if (edited) {
+                cart.splice(editing, 0, line);
             } else {
                 cart.push(line);
             }
+
+            editing = null;
 
             renderCart();
             itemDialog.close();
@@ -925,6 +966,22 @@
 
         renderCart();
     }
+
+    // Hộp thoại có data-backdrop-close: bấm ra ngoài khung thì đóng.
+    document.querySelectorAll('dialog[data-backdrop-close]').forEach(function (dialog) {
+        dialog.addEventListener('click', function (event) {
+            if (event.target !== dialog) {
+                return;
+            }
+
+            var box = dialog.getBoundingClientRect();
+            var inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+
+            if (!inside) {
+                dialog.close();
+            }
+        });
+    });
 
     // Ẩn hiện mật khẩu.
     document.addEventListener('click', function (event) {
