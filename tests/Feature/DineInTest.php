@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ShiftType;
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\Shift;
@@ -17,6 +18,9 @@ use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOption;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Reservation\Models\Reservation;
+use App\Modules\Reservation\ReservationSource;
+use App\Modules\Reservation\ReservationStatus;
 use App\Modules\Schedule\Duty;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\Week;
@@ -483,6 +487,46 @@ class DineInTest extends TestCase
         $this->get("$this->base/incidents?from=2026-11-09&to=2026-11-20")->assertOk()->assertSee('Chờ trà 30 phút')->assertSee('Mai');
         $this->get("$this->base/incidents/export?from=2026-11-09&to=2026-11-20")->assertOk();
         $this->actingAs($staff)->get("$this->base/incidents")->assertForbidden();
+    }
+
+    public function test_reserved_guest_is_seated_at_a_table_and_completed_on_close(): void
+    {
+        $this->enableModules($this->restaurant, 'reservation');
+        $tenant = ['restaurant_id' => $this->restaurant->id];
+        $customer = Customer::create([...$tenant, 'name' => 'Anh Tuấn', 'phone' => '0911222333']);
+        $reservation = Reservation::create([...$tenant, 'customer_id' => $customer->id, 'area_id' => $this->area->id,
+            'reserved_at' => '2026-11-09 12:30', 'ends_at' => '2026-11-09 14:00', 'party_size' => 4,
+            'status' => ReservationStatus::Confirmed, 'source' => ReservationSource::Phone]);
+        $status = "/{$this->restaurant->slug}/admin/reservations/{$reservation->id}/status";
+
+        // Hôm nay: nút Khách đã đến mở hộp chọn bàn.
+        $this->get("/{$this->restaurant->slug}/admin/reservations")->assertSee('data-seat=', false)->assertSee('id="seat-dialog"', false);
+
+        // Bàn A2 đã có khách khác thì báo lỗi, đặt bàn vẫn chưa đổi.
+        $this->order('A2', [['item' => $this->tra->id, 'quantity' => 1]]);
+        DiningTable::withoutGlobalScopes()->sole()->update(['customer_id' => Customer::create([...$tenant, 'name' => 'Khác', 'phone' => '0900111222'])->id]);
+        $this->post($status, ['status' => 'seated', 'table' => 'Z1'])->assertSessionHasErrors('status');
+        $this->post($status, ['status' => 'seated', 'table' => 'A2'])->assertSessionHasErrors(['status' => __('dinein.seat_taken', ['table' => 'A2'])]);
+        $this->assertSame(ReservationStatus::Confirmed, $reservation->fresh()->status);
+
+        // Xếp vào bàn trống A3: mở lượt bàn có sẵn thông tin khách.
+        $this->post($status, ['status' => 'seated', 'table' => 'a3'])->assertSessionHas('status', __('reservation.seated_at', ['table' => 'A3']));
+        $table = DiningTable::withoutGlobalScopes()->where('label', 'A3')->sole();
+        $this->assertSame([$customer->id, $reservation->id], [$table->customer_id, $table->reservation_id]);
+        $this->assertSame(ReservationStatus::Seated, $reservation->fresh()->status);
+        $this->get("$this->base/tables/A3")->assertSee('Anh Tuấn')->assertSee(__('dinein.from_reservation', ['time' => '12:30', 'party' => 4]));
+        $this->get("/{$this->restaurant->slug}/admin/reservations/{$reservation->id}")->assertSee(__('reservation.table'))->assertSee('A3');
+
+        // Khách về, đóng bàn: đặt bàn chuyển sang Hoàn tất.
+        $this->post("$this->base/tables/{$table->id}/close");
+        $this->assertSame(ReservationStatus::Completed, $reservation->fresh()->status);
+
+        // Không chọn bàn thì chỉ đổi trạng thái như trước.
+        $other = $reservation->replicate()->fill(['status' => ReservationStatus::Confirmed]);
+        $other->save();
+        $this->post("/{$this->restaurant->slug}/admin/reservations/{$other->id}/status", ['status' => 'seated', 'table' => ''])
+            ->assertSessionHas('status', __('reservation.status_changed', ['status' => ReservationStatus::Seated->label()]));
+        $this->assertSame(0, DiningTable::withoutGlobalScopes()->where('reservation_id', $other->id)->count());
     }
 
     public function test_items_without_station_skip_the_screens(): void

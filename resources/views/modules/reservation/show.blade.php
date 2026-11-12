@@ -30,6 +30,16 @@
             <dd>{{ $reservation->party_size }}</dd>
             <dt>{{ __('reservation.area') }}</dt>
             <dd>{{ $reservation->area?->name ?? __('reservation.no_area') }}</dd>
+            @if ($reservation->diningTable)
+                <dt>{{ __('reservation.table') }}</dt>
+                <dd>
+                    @if ($reservation->diningTable->isOpen() && auth()->user()->can('dinein.order'))
+                        <a href="{{ route('tenant.admin.dinein.tables.show', $reservation->diningTable->label) }}">{{ $reservation->diningTable->label }}</a>
+                    @else
+                        {{ $reservation->diningTable->label }}
+                    @endif
+                </dd>
+            @endif
             <dt>{{ __('customers.code') }}</dt>
             <dd>{{ $reservation->customer->code() }}</dd>
             @if ($reservation->customer->phone)
@@ -67,4 +77,5 @@
     </section>
 
     @include('modules.reservation.overbook-prompt')
+    @include('modules.reservation.seat-dialog')
 @endsection

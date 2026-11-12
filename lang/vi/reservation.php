@@ -193,4 +193,13 @@ return [
     'turn_minutes' => 'Thời lượng mỗi lượt bàn (phút)',
     'max_advance_days' => 'Khách đặt trước tối đa (ngày)',
     'settings_saved' => 'Đã lưu cài đặt.',
+
+    // Khách đến: chọn bàn luôn (khi bật Lấy đơn tại bàn).
+    'seat_title' => 'Khách đã đến',
+    'seat_table' => 'Bàn',
+    'seat_none' => 'Chưa xếp bàn',
+    'seat_hint' => 'Chọn bàn thì thông tin khách gắn luôn vào bàn: gọi món, tạm tính, ghi sự cố không cần nhập lại.',
+    'seated_at' => 'Khách đã đến, đã xếp vào bàn :table.',
+    'seated_no_table' => 'Đã ghi khách đến nhưng chưa xếp được bàn: :error',
+    'table' => 'Bàn',
 ];

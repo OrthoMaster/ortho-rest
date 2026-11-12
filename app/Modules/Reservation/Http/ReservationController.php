@@ -3,6 +3,8 @@
 namespace App\Modules\Reservation\Http;
 
 use App\Http\Controllers\Controller;
+use App\Modules\DineIn\Models\DiningTable;
+use App\Modules\DineIn\Tables;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\Models\Reservation;
 use App\Modules\Reservation\ReservationBooking;
@@ -43,7 +45,7 @@ class ReservationController extends Controller
 
         $chosen = array_values(array_intersect((array) $request->session()->get(self::TODAY_SHIFTS_KEY, []), $names));
 
-        $reservations = Reservation::with(['customer', 'area'])
+        $reservations = Reservation::with(['customer', 'area', 'diningTable'])
             ->whereIn('status', ReservationStatus::accepted())
             ->whereBetween('reserved_at', [today(), today()->endOfDay()])
             ->orderBy('reserved_at')
@@ -98,7 +100,7 @@ class ReservationController extends Controller
         $upcoming = ! $request->filled('from');
         [$from, $to] = $upcoming ? [today()->toImmutable(), null] : $this->range($request);
 
-        $reservations = Reservation::with(['customer', 'area'])
+        $reservations = Reservation::with(['customer', 'area', 'diningTable'])
             ->when($upcoming, fn ($query) => $query->where('reserved_at', '>=', $from))
             ->unless($upcoming, fn ($query) => $query->whereBetween('reserved_at', [$from, $to->endOfDay()]))
             ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
@@ -212,7 +214,7 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation): View
     {
-        $reservation->load(['customer', 'area', 'creator', 'statusLogs.user', 'edits.user']);
+        $reservation->load(['customer', 'area', 'diningTable', 'creator', 'statusLogs.user', 'edits.user']);
 
         // Dòng thời gian: tạo, đổi trạng thái, sửa, theo thứ tự xảy ra.
         $history = $reservation->statusLogs->map(fn ($log) => [
@@ -257,6 +259,15 @@ class ReservationController extends Controller
         // Đặt bàn đang chờ: chỉ người quản lý đặt bàn được nhận, từ chối hay huỷ; còn lại cần quyền đổi trạng thái.
         abort_unless($request->user()->can($reservation->status === ReservationStatus::Pending ? 'reservation.manage' : 'reservation.status'), 403);
 
+        // Khách đến: chọn bàn luôn thì thông tin khách nối vào bàn (Lấy đơn tại bàn).
+        $seat = null;
+        $label = strtoupper(trim((string) $request->input('table')));
+
+        if ($status === ReservationStatus::Seated->value && $label !== '' && Tables::canSeat($request->user())) {
+            $seat = Tables::resolve($label, 'status');
+            Tables::assertFree(DiningTable::open()->where('area_id', $seat[0]->id)->where('table_number', $seat[1])->first(), $reservation->customer, 'status');
+        }
+
         try {
             $this->booking->changeStatus($reservation, ReservationStatus::from($status), $request->user(), $request->boolean('overbook'));
         } catch (ValidationException $exception) {
@@ -270,6 +281,16 @@ class ReservationController extends Controller
                 'status' => $status,
                 'message' => $exception->errors()['reserved_at'][0],
             ]);
+        }
+
+        if ($seat) {
+            try {
+                $table = Tables::seat($seat[0], $seat[1], $reservation->customer, $reservation, $request->user());
+            } catch (ValidationException $exception) {
+                return back()->with('error', __('reservation.seated_no_table', ['error' => $exception->getMessage()]));
+            }
+
+            return back()->with('status', __('reservation.seated_at', ['table' => $table->label]));
         }
 
         return back()->with('status', __('reservation.status_changed', ['status' => ReservationStatus::from($status)->label()]));

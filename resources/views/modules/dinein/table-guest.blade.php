@@ -32,8 +32,16 @@
     @if ($customer)
         <p class="guest-name">
             <strong>{{ $customer->name }}</strong>
-            <a href="tel:{{ $customer->phone }}">{{ $customer->phone }}</a>
+            @if ($customer->phone)<a href="tel:{{ $customer->phone }}">{{ $customer->phone }}</a>@endif
             <small class="row-note">{{ __('dinein.guest_visits', ['count' => \App\Modules\DineIn\Models\DiningTable::where('customer_id', $customer->id)->count()]) }}</small>
+            @if ($table->reservation)
+                @php($booking = __('dinein.from_reservation', ['time' => $table->reservation->reserved_at->format('H:i'), 'party' => $table->reservation->party_size]))
+                @can('reservation.view')
+                    <a class="row-note" href="{{ route('tenant.admin.reservation.show', $table->reservation) }}">{{ $booking }}</a>
+                @else
+                    <small class="row-note">{{ $booking }}</small>
+                @endcan
+            @endif
         </p>
         @if ($offers->isNotEmpty())
             <div class="offer-box">

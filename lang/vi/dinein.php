@@ -199,4 +199,10 @@ return [
     'log_at_served' => 'mang ra :time',
     'log_at_cancelled' => 'huỷ :time',
     'save' => 'Lưu',
+
+    // Xếp khách đặt trước vào bàn lúc khách đến.
+    'seat_busy' => 'đang phục vụ, chưa gắn khách',
+    'seat_taken' => 'Bàn :table đã gắn khách khác.',
+    'log_seated' => 'Bàn :table: xếp khách đặt trước :name',
+    'from_reservation' => 'Đặt trước :time · :party khách',
 ];

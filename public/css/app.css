@@ -774,6 +774,9 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .pick-trigger svg { flex: none; width: 1.1rem; height: 1.1rem; color: var(--ink-soft); transition: transform .15s; }
 .pick-trigger[aria-expanded=true] svg { transform: rotate(180deg); }
 .pick .pick-panel { top: calc(100% + .3rem); left: 0; right: 0; width: auto; }
+/* Trong hộp thoại: danh sách mở ngay dưới ô, hộp thoại dài ra theo, không bị cắt. */
+dialog .pick .pick-panel { position: static; margin-top: .35rem; box-shadow: none; }
+dialog .pick .multi-options { max-height: min(16rem, 40dvh); }
 .multi-option input[type=radio] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .filter-panel, .filter-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; }
 .filter-field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

@@ -1128,6 +1128,37 @@
         }
     });
 
+    // Khách đặt trước đến: hộp thoại chung hỏi lại và cho chọn bàn; bàn của khu đã đặt lên đầu.
+    document.addEventListener('click', function (event) {
+        var opener = event.target.closest('[data-seat]');
+        var dialog = document.getElementById('seat-dialog');
+
+        if (!opener || !dialog) {
+            return;
+        }
+
+        var form = dialog.querySelector('[data-seat-form]');
+        var list = dialog.querySelector('.multi-options');
+        var none = list.querySelector('input[value=""]');
+        var area = opener.dataset.seatArea;
+
+        closeKebabs(null);
+        form.action = opener.dataset.seat;
+        dialog.querySelector('[data-seat-summary]').textContent = opener.dataset.seatText;
+        Array.prototype.slice.call(list.querySelectorAll('[data-pick-option]')).sort(function (a, b) {
+            var rank = function (item) {
+                var value = item.querySelector('input').value;
+
+                return value === '' ? 0 : (area && new RegExp('^' + area + '[0-9]+$').test(value) ? 1 : 2);
+            };
+
+            return rank(a) - rank(b) || Number(a.dataset.order) - Number(b.dataset.order);
+        }).forEach(function (item) { list.appendChild(item); });
+        none.checked = true;
+        dialog.querySelector('[data-pick-value]').textContent = none.dataset.label;
+        dialog.showModal();
+    });
+
     // Khung tải ảnh: xem trước, kéo thả, xoá.
     document.querySelectorAll('[data-image-upload]').forEach(function (box) {
         var field = box.parentElement;

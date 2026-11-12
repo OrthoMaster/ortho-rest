@@ -7,16 +7,18 @@ use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
+use App\Modules\DineIn\Tables;
 use App\Modules\Kitchen\Kitchen;
 use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Reservation\ReservationBooking;
+use App\Modules\Reservation\ReservationStatus;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -42,7 +44,7 @@ class TableController extends Controller
             ->get()
             ->keyBy(fn (DiningTable $table) => $table->area_id.'-'.$table->table_number);
 
-        $data = ['areas' => $this->areas(), 'open' => $open];
+        $data = ['areas' => Tables::areas(), 'open' => $open];
 
         // Trang tự tải lại phần lưới bàn mỗi vài giây.
         return view(request()->hasHeader('X-Board') ? 'modules.dinein.tables-board' : 'modules.dinein.tables', $data);
@@ -57,15 +59,15 @@ class TableController extends Controller
             throw ValidationException::withMessages(['label' => __('dinein.table_invalid')]);
         }
 
-        $this->resolve($label, 'label');
+        Tables::resolve($label, 'label');
 
         return redirect()->route('tenant.admin.dinein.tables.show', $label);
     }
 
     public function show(string $label): View
     {
-        [$area, $number] = $this->resolve($label);
-        $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener', 'customer', 'offer', 'incidents.creator']);
+        [$area, $number] = Tables::resolve($label);
+        $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener', 'customer', 'reservation', 'offer', 'incidents.creator']);
 
         return view(request()->hasHeader('X-Board') && $table ? 'modules.dinein.table-board' : 'modules.dinein.table', [
             'area' => $area,
@@ -78,7 +80,7 @@ class TableController extends Controller
 
     public function create(string $label): View
     {
-        [$area, $number] = $this->resolve($label);
+        [$area, $number] = Tables::resolve($label);
 
         $categories = MenuCategory::with(['items' => fn ($query) => $query
             ->whereNotNull('price_dine_in')
@@ -111,7 +113,7 @@ class TableController extends Controller
 
     public function store(Request $request, string $label): RedirectResponse
     {
-        [$area, $number] = $this->resolve($label);
+        [$area, $number] = Tables::resolve($label);
 
         $data = $request->validate([
             'lines' => ['required', 'array', 'min:1', 'max:100'],
@@ -196,37 +198,12 @@ class TableController extends Controller
         $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount]);
         LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
-        return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
-    }
-
-    /** @return Collection<int, Area> khu vực đang dùng và có mã */
-    private function areas()
-    {
-        return Area::where('is_active', true)->whereNotNull('code')->orderBy('sort_order')->orderBy('id')->get();
-    }
-
-    /**
-     * Tách A12 thành khu vực A và bàn số 12, bàn phải nằm trong số bàn của khu.
-     *
-     * @return array{Area, int}
-     */
-    private function resolve(string $label, ?string $errorKey = null): array
-    {
-        preg_match('/^([A-Za-z]{1,2})([0-9]{1,3})$/', $label, $match);
-        $area = $match ? Area::where('is_active', true)->where('code', strtoupper($match[1]))->first() : null;
-        $number = (int) ($match[2] ?? 0);
-
-        if ($area === null || $number < 1 || $number > $area->table_count) {
-            if ($errorKey === null) {
-                abort(404);
-            }
-
-            throw ValidationException::withMessages([$errorKey => $area === null
-                ? __('dinein.table_unknown_area', ['code' => strtoupper($match[1] ?? $label)])
-                : __('dinein.table_out_of_range', ['area' => $area->name, 'count' => $area->table_count, 'code' => $area->code])]);
+        // Khách đặt trước về rồi thì đặt bàn chuyển sang Hoàn tất luôn.
+        if ($table->reservation?->status === ReservationStatus::Seated) {
+            app(ReservationBooking::class)->changeStatus($table->reservation, ReservationStatus::Completed, $request->user());
         }
 
-        return [$area, $number];
+        return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
     }
 
     private function openTable(Area $area, int $number): ?DiningTable

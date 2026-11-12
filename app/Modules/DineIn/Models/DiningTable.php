@@ -7,6 +7,7 @@ use App\Models\CustomerOffer;
 use App\Models\User;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Reservation\Models\Reservation;
 use App\Modules\Takeaway\DiscountType;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,6 +49,12 @@ class DiningTable extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /** Đặt bàn trước của khách đang ngồi bàn này (xếp bàn lúc khách đến). */
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
     }
 
     public function offer(): BelongsTo

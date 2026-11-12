@@ -4,6 +4,7 @@ namespace App\Modules\Reservation\Models;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\Reservation\ReservationSource;
 use App\Modules\Reservation\ReservationStatus;
 use App\Support\Activity\RecordsActivity;
@@ -11,6 +12,7 @@ use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Reservation extends Model
 {
@@ -31,6 +33,12 @@ class Reservation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /** Bàn đã xếp lúc khách đến (Lấy đơn tại bàn). */
+    public function diningTable(): HasOne
+    {
+        return $this->hasOne(DiningTable::class)->latestOfMany();
     }
 
     public function area(): BelongsTo

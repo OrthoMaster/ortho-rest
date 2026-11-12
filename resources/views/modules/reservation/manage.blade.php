@@ -60,4 +60,5 @@
     @endif
 
     @include('modules.reservation.overbook-prompt')
+    @include('modules.reservation.seat-dialog')
 @endsection

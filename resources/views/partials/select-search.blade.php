@@ -16,7 +16,7 @@
         <input class="multi-search" type="search" placeholder="{{ __('ui.filter.search') }}" aria-label="{{ __('ui.filter.search_in', ['label' => $label]) }}" autocomplete="off" data-pick-search>
         <ul class="multi-options" aria-labelledby="{{ $id }}-label">
             @foreach ($options as $optionValue => $optionLabel)
-                <li data-pick-option="{{ $optionLabel }}">
+                <li data-pick-option="{{ $optionLabel }}" data-order="{{ $loop->index }}">
                     <label class="multi-option">
                         <input type="radio" name="{{ $name }}" value="{{ $optionValue }}" data-label="{{ $optionLabel }}" @checked($current === (string) $optionValue) @if (($required ?? true) && $loop->first) required @endif>
                         <span>{{ $optionLabel }}</span>
