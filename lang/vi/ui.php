@@ -150,10 +150,6 @@ return [
     'dashboard' => [
         'greeting' => 'Chào :name',
         'role_at' => ':role tại :restaurant',
-        'public_url' => 'Địa chỉ website',
-        'site_off' => 'Website chưa bật. Liên hệ Liresto để bật module Website.',
-        'modules_title' => 'Chức năng đang bật',
-        'modules_empty' => 'Chưa bật chức năng nào. Liên hệ Liresto để bật.',
     ],
 
     'placeholder' => [
