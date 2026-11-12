@@ -85,6 +85,16 @@ class Duty
         return self::current()->where('user_id', $user->id)->whereNotNull('area_id')->pluck('area_id')->unique()->values()->all();
     }
 
+    /** @return list<int> khu vực bàn đang có người được phân công phục vụ trong ca này (tuần đã công bố) */
+    public static function staffedAreaIds(): array
+    {
+        if (! has_module('schedule')) {
+            return [];
+        }
+
+        return self::current()->whereNotNull('area_id')->pluck('area_id')->unique()->values()->all();
+    }
+
     /** Có được mở màn hình của khu này không. */
     public static function canOpenStation(User $user, int $stationId): bool
     {

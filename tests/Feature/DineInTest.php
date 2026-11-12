@@ -391,6 +391,34 @@ class DineInTest extends TestCase
         $this->assertSame(['gọi 12:00 · xong 12:14 · mang ra 12:16'], $logs[2]->changes);
     }
 
+    public function test_ready_alert_goes_only_to_staff_serving_that_area_now(): void
+    {
+        $orderer = $this->member($this->restaurant, 'staff');
+        $server = $this->member($this->restaurant, 'staff');
+        $this->actingAs($orderer)->order('A1', [$this->comTamLine()]);
+        $rice = OrderLine::withoutGlobalScopes()->sole();
+        $this->actingAs($this->owner)->post("$this->kitchenBase/{$this->kitchen->id}/done", ['lines' => [$rice->id]]);
+
+        // Khu vực chưa có ai được phân công: báo cho người gọi món.
+        $this->actingAs($orderer)->getJson("$this->base/poll")->assertJsonCount(1, 'ready');
+        $this->actingAs($server)->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
+
+        // Có người được phân công phục vụ khu vực này trong ca: chỉ người đó nhận.
+        Assignment::create(['restaurant_id' => $this->restaurant->id, 'work_date' => '2026-11-09', 'area_id' => $this->area->id, 'user_id' => $server->id]);
+        Week::create(['restaurant_id' => $this->restaurant->id, 'week_start' => '2026-11-09', 'published_at' => now()]);
+        $this->actingAs($orderer)->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
+        $this->actingAs($server)->getJson("$this->base/poll")->assertJsonCount(1, 'ready');
+
+        // Màn hình bàn: dấu cảnh báo ở bàn có món chờ mang ra; chi tiết bàn có nút Đã mang ra, tự tải lại phần món.
+        $this->get("$this->base/tables")->assertSee('tile-alert', false)->assertSee(__('dinein.ready_count', ['count' => 2]));
+        $this->get("$this->base/tables", ['X-Board' => '1'])->assertDontSee('<html', false)->assertSee('tile-alert', false);
+        $this->get("$this->base/tables/A1", ['X-Board' => '1'])->assertDontSee('<html', false)
+            ->assertSee('line-head', false)->assertSee(__('dinein.serve'));
+        $this->post("$this->base/lines/{$rice->id}/serve");
+        $this->get("$this->base/tables")->assertDontSee('tile-alert', false);
+        $this->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
+    }
+
     public function test_items_without_station_skip_the_screens(): void
     {
         // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.

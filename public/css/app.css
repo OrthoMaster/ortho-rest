@@ -1012,7 +1012,10 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .table-tile span { font-size: .875rem; font-weight: 600; }
 .table-tile:hover { border-color: var(--primary-ink); }
 .table-tile.is-open { background: var(--primary-soft); border-color: var(--primary-ink); }
-.table-tile.has-ready { box-shadow: 0 0 0 2px var(--ok-ink); }
+.table-tile.has-ready { position: relative; box-shadow: 0 0 0 2px var(--warn-ink); }
+/* Bàn có món đã xong chưa mang ra: tam giác cảnh báo ở góc ô. */
+.tile-alert { position: absolute; top: .3rem; right: .3rem; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; color: var(--warn-ink); background: var(--warn-bg); border-radius: 50%; }
+.tile-alert svg { width: 1rem; height: 1rem; }
 .table-tile .badge { color: inherit; }
 .table-tile .badge-ok { color: var(--ok-ink); }
 .table-tile .badge-warn { color: var(--warn-ink); }
@@ -1024,7 +1027,15 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .dine-lines .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
 .dine-lines .row-name small.dine-note, .ticket-name .dine-note { color: var(--warn-ink); font-style: italic; }
 .dine-line.is-cancelled .row-name, .dine-line.is-cancelled .line-total { color: var(--ink-soft); text-decoration: line-through; }
-.dine-lines .row-name .badge { display: table; margin-top: .25rem; font-size: .75rem; }
+.dine-lines .line-tools .btn { white-space: nowrap; }
+/* Điện thoại: tên món một hàng riêng, giá và nút xuống hàng dưới để tên không bị bóp. */
+@media (max-width: 760px) {
+    .dine-lines li.dine-line { flex-wrap: wrap; row-gap: .4rem; }
+    .dine-lines li.dine-line .row-name { flex: 1 1 100%; }
+    .dine-lines li.dine-line .line-total { margin-left: auto; }
+}
+.dine-lines .line-head { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+.dine-lines .line-head .badge { font-size: .75rem; }
 .line-tools { display: flex; align-items: center; justify-content: flex-end; gap: .4rem; min-width: 2.75rem; }
 .dine-bill .panel-head { align-items: flex-start; }
 .dine-total { font-size: 1.5rem; }

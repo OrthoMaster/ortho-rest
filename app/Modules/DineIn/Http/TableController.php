@@ -42,10 +42,10 @@ class TableController extends Controller
             ->get()
             ->keyBy(fn (DiningTable $table) => $table->area_id.'-'.$table->table_number);
 
-        return view('modules.dinein.tables', [
-            'areas' => $this->areas(),
-            'open' => $open,
-        ]);
+        $data = ['areas' => $this->areas(), 'open' => $open];
+
+        // Trang tự tải lại phần lưới bàn mỗi vài giây.
+        return view(request()->hasHeader('X-Board') ? 'modules.dinein.tables-board' : 'modules.dinein.tables', $data);
     }
 
     /** Ô nhập nhanh số bàn: gõ A12 (không phân biệt hoa thường) rồi mở. */
@@ -67,7 +67,7 @@ class TableController extends Controller
         [$area, $number] = $this->resolve($label);
         $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener']);
 
-        return view('modules.dinein.table', [
+        return view(request()->hasHeader('X-Board') && $table ? 'modules.dinein.table-board' : 'modules.dinein.table', [
             'area' => $area,
             'number' => $number,
             'label' => $area->tableLabel($number),

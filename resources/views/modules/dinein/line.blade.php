@@ -2,13 +2,15 @@
 @php($status = $line->status)
 <li @class(['dine-line', 'is-cancelled' => $status === \App\Modules\DineIn\LineStatus::Cancelled])>
     <span class="row-name">
-        {{ $line->quantity }} × {{ $line->name }}
+        {{-- Tên món và nhãn trạng thái cùng một hàng; món không qua màn hình khu thì không có nhãn. --}}
+        <span class="line-head">
+            <span>{{ $line->quantity }} × {{ $line->name }}</span>
+            @if ($line->hasKitchenStatus())
+                <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
+            @endif
+        </span>
         @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
         @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
-        {{-- Món không qua màn hình khu thì không có trạng thái để theo dõi. --}}
-        @if ($line->hasKitchenStatus())
-            <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
-        @endif
     </span>
     <strong class="line-total">{{ vnd($line->total()) }}</strong>
     <span class="line-tools">

@@ -15,7 +15,8 @@ use Illuminate\Http\Request;
 
 /**
  * Trang quản lý gọi mỗi vài giây để báo:
- * - người phục vụ: món đã xong của bàn mình nhận đơn hoặc khu vực mình được phân công;
+ * - người phục vụ: món đã xong ở khu vực bàn mình được phân công phục vụ trong ca này; khu vực
+ *   không có ai được phân công (hoặc tắt Lịch làm việc) thì báo cho người đã gọi món;
  * - người ở bếp, bar: món mới gọi ở khu mình đang làm.
  */
 class PollController extends Controller
@@ -27,12 +28,15 @@ class PollController extends Controller
 
         if ($user->can('dinein.order')) {
             $areas = Duty::areaIds($user);
+            $staffed = Duty::staffedAreaIds();
 
             $ready = OrderLine::with('diningTable')
                 ->where('status', LineStatus::Done)
                 ->whereHas('diningTable', fn (Builder $query) => $query->whereNull('closed_at'))
-                ->where(fn (Builder $query) => $query->where('ordered_by', $user->id)
-                    ->when($areas, fn (Builder $query) => $query->orWhereHas('diningTable', fn (Builder $query) => $query->whereIn('area_id', $areas))))
+                ->where(fn (Builder $query) => $query
+                    ->whereHas('diningTable', fn (Builder $query) => $query->whereIn('area_id', $areas ?: [0]))
+                    ->orWhere(fn (Builder $query) => $query->where('ordered_by', $user->id)
+                        ->whereHas('diningTable', fn (Builder $query) => $query->whereNotIn('area_id', $staffed ?: [0]))))
                 ->orderBy('done_at')
                 ->limit(50)
                 ->get()

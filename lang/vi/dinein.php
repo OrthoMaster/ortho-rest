@@ -22,7 +22,7 @@ return [
     'manage_areas' => 'Mở Khu vực',
     'opened_by' => 'Mở lúc :time bởi :name',
     'in_progress' => ':count đang làm',
-    'ready_count' => ':count đã xong',
+    'ready_count' => ':count món chờ mang ra',
     'free' => 'Trống',
 
     // Gọi món
