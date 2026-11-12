@@ -48,7 +48,7 @@
                 <h2>{{ __('takeaway.customer') }}</h2>
                 <div class="form-row">
                     @include('partials.field', ['name' => 'customer_name', 'label' => __('reservation.customer_name'), 'value' => $order->customer?->name])
-                    @include('partials.field', ['name' => 'customer_phone', 'type' => 'tel', 'label' => __('reservation.customer_phone'), 'value' => $order->customer?->phone])
+                    @include('partials.field', ['name' => 'customer_phone', 'type' => 'tel', 'label' => __('reservation.customer_phone'), 'value' => $order->customer?->phone, 'required' => false])
                 </div>
                 @include('partials.textarea', ['name' => 'notes', 'label' => __('reservation.notes'), 'rows' => 2, 'value' => $order->notes])
             </section>

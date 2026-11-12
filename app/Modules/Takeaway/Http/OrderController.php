@@ -158,7 +158,7 @@ class OrderController extends Controller
 
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
-            'customer_phone' => ['required', 'string', Phone::RULE],
+            'customer_phone' => ['nullable', 'string', Phone::RULE],
             'pickup_date' => ['required', 'date_format:Y-m-d'],
             'pickup_time' => ['required', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -184,7 +184,8 @@ class OrderController extends Controller
             throw ValidationException::withMessages(['pickup_at' => __('takeaway.pickup_past')]);
         }
 
-        $data['customer_phone'] = Phone::normalize($data['customer_phone']);
+        // Số điện thoại không bắt buộc, nhưng nhập thì phải đúng.
+        $data['customer_phone'] = filled($data['customer_phone'] ?? null) ? Phone::normalize($data['customer_phone']) : null;
         $data['discount_amount'] = ($data['discount_thousands'] ?? 0) * 1000;
 
         return $data;

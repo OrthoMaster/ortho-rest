@@ -8,6 +8,8 @@ return [
     'empty' => 'Chưa chọn món nào.',
     'count' => ':count món',
     'quantity' => 'Số lượng',
+    'options' => 'Tuỳ chọn',
+    'options_none' => 'Chưa chọn',
     'note' => 'Ghi chú',
     'note_example' => 'Ví dụ: ít hành, mang ra sau',
     'pick_one' => 'Chọn một',

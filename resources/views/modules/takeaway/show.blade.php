@@ -24,8 +24,10 @@
         <dl class="details">
             <dt>{{ __('reservation.customer_name') }}</dt>
             <dd>{{ $order->customer->name }}</dd>
-            <dt>{{ __('reservation.customer_phone') }}</dt>
-            <dd><a href="tel:{{ $order->customer->phone }}">{{ $order->customer->phone }}</a></dd>
+            @if ($order->customer->phone)
+                <dt>{{ __('reservation.customer_phone') }}</dt>
+                <dd><a href="tel:{{ $order->customer->phone }}">{{ $order->customer->phone }}</a></dd>
+            @endif
             <dt>{{ __('takeaway.pickup_at') }}</dt>
             <dd>{{ $order->pickup_at->format('H:i d/m/Y') }}</dd>
             <dt>{{ __('takeaway.payment') }}</dt>

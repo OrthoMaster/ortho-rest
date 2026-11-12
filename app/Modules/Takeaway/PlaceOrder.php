@@ -21,7 +21,7 @@ class PlaceOrder
 
     /**
      * @param  list<array{item: int, quantity: int, options?: list<int>, note?: ?string, line?: ?int}>  $lines  các món đã chọn
-     * @param  array{customer_name: string, customer_phone: string, pickup_at: mixed, notes?: ?string, locale?: string, discount_mode?: ?string, discount_code?: ?string, discount_percent?: mixed, discount_amount?: mixed}  $data
+     * @param  array{customer_name: string, customer_phone: ?string, pickup_at: mixed, notes?: ?string, locale?: string, discount_mode?: ?string, discount_code?: ?string, discount_percent?: mixed, discount_amount?: mixed}  $data
      */
     public function handle(array $lines, array $data, ?User $user = null): TakeawayOrder
     {
@@ -145,13 +145,14 @@ class PlaceOrder
                 $changes[] = __('takeaway.change_added', ['quantity' => $created->quantity, 'name' => $created->label()]);
             }
 
-            $customer = Customer::remember($data['customer_name'], $data['customer_phone']);
+            $oldCustomer = $order->customer->name;
+            $customer = $this->customerFor($order, $data);
             $subtotal = $order->items()->get()->sum(fn ($line): int => $line->lineTotal());
             $discount = $this->discount($data, $subtotal, $order);
             $total = $subtotal - $discount['discount_amount'];
 
-            if ($customer->getKey() !== $order->customer_id) {
-                $changes[] = __('takeaway.change_customer', ['from' => $order->customer->name, 'to' => $customer->name]);
+            if ($customer->getKey() !== $order->customer_id || $customer->name !== $oldCustomer) {
+                $changes[] = __('takeaway.change_customer', ['from' => $oldCustomer, 'to' => $customer->name]);
             }
 
             if (! $pickup->equalTo($order->pickup_at)) {
@@ -248,6 +249,23 @@ class PlaceOrder
         $note = trim((string) ($row['note'] ?? ''));
 
         return $note === '' ? null : $note;
+    }
+
+    /**
+     * Khách của đơn khi sửa. Không có số điện thoại thì không tra được khách cũ:
+     * đơn đang là khách không số thì giữ khách đó (đổi tên nếu cần), không tạo khách mới mỗi lần lưu.
+     */
+    private function customerFor(TakeawayOrder $order, array $data): Customer
+    {
+        if (blank($data['customer_phone'] ?? null) && $order->customer->phone === null) {
+            if ($order->customer->name !== $data['customer_name']) {
+                $order->customer->update(['name' => $data['customer_name']]);
+            }
+
+            return $order->customer;
+        }
+
+        return Customer::remember($data['customer_name'], $data['customer_phone'] ?? null);
     }
 
     /** Gọi trong transaction đã khoá hàng của quán. */

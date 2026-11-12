@@ -888,6 +888,8 @@
         var noteInput = itemForm.querySelector('[data-item-note]');
         var itemError = itemForm.querySelector('[data-item-error]');
         var addButton = itemForm.querySelector('[data-item-add]');
+        var optionsBox = itemForm.querySelector('[data-item-options]');
+        var pickedText = itemForm.querySelector('[data-item-picked]');
         var currentItem = null;
         var editing = null; // vị trí món đang sửa trong đơn, null khi thêm mới
 
@@ -909,6 +911,10 @@
                 draft.unit = edited.unit;
                 draft.keptOptions = edited.keptOptions;
             }
+
+            // Tóm tắt tuỳ chọn đã chọn ở dòng Tuỳ chọn, để thấy cả khi đang đóng.
+            var chosen = optionLines({ item: currentItem.id, options: draft.options });
+            pickedText.textContent = chosen.length ? chosen.join('; ') : dineForm.dataset.optionsNone;
 
             addButton.textContent = (editing === null ? dineForm.dataset.addLabel : dineForm.dataset.updateLabel) + ' · ' + dineMoney(unitPrice(draft) * quantity());
         };
@@ -956,6 +962,11 @@
                 fieldset.appendChild(choices);
                 groupsBox.appendChild(fieldset);
             });
+
+            // Món có nhóm bắt buộc thì mở sẵn Tuỳ chọn khi thêm mới; còn lại đóng để không phải cuộn.
+            optionsBox.hidden = currentItem.groups.length === 0;
+            optionsBox.open = !line && currentItem.groups.some(function (group) { return group.required; });
+            itemForm.querySelector('.item-body').scrollTop = 0;
 
             quantityInput.value = line ? line.quantity : 1;
             noteInput.value = line ? line.note : '';
@@ -1006,6 +1017,8 @@
             if (missing) {
                 itemError.textContent = dineForm.dataset.needOption.replace(':group', missing.dataset.group);
                 itemError.hidden = false;
+                optionsBox.open = true;
+                missing.scrollIntoView({ block: 'nearest' });
 
                 return;
             }

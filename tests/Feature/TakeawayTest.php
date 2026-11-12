@@ -643,6 +643,22 @@ class TakeawayTest extends TestCase
         $this->assertContains('Thêm 1 × Cơm tấm (Thịt: Sườn cọng)', $changes);
     }
 
+    public function test_phone_is_optional_but_must_be_valid(): void
+    {
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['customer_phone' => '12ab']))->assertSessionHasErrors('customer_phone');
+        $this->post($this->base, $this->form([$this->pho->id => 1], ['customer_phone' => '']))->assertSessionHasNoErrors();
+
+        $order = TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
+        $this->assertNull($order->customer->phone);
+        $this->get("$this->base/{$order->id}")->assertOk()->assertDontSee('tel:', false);
+
+        // Sửa đơn khách không số: giữ khách đó, không tạo khách mới mỗi lần lưu.
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 1], ['customer_phone' => '']))->assertSessionHasNoErrors();
+        $this->assertSame($order->customer_id, $order->fresh()->customer_id);
+        $this->actingInTenant($this->restaurant);
+        $this->assertSame(0, $order->edits()->count());
+    }
+
     public function test_new_item_must_be_available(): void
     {
         $order = $this->order();
