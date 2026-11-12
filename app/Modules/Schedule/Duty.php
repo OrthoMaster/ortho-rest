@@ -88,7 +88,7 @@ class Duty
     /** Có được mở màn hình của khu này không. */
     public static function canOpenStation(User $user, int $stationId): bool
     {
-        return $user->can('dinein.stations') || in_array($stationId, self::stationIds($user), true);
+        return $user->can('kitchen.stations') || in_array($stationId, self::stationIds($user), true);
     }
 
     /** @return Collection<int, Shift> ca làm của một ngày, theo giờ bắt đầu */

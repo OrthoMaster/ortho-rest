@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\DineIn\Installer as DineInInstaller;
+use App\Modules\Kitchen\Installer as KitchenInstaller;
 use App\Modules\Menu\Installer as MenuInstaller;
 use App\Modules\Reservation\Installer as ReservationInstaller;
 use App\Modules\Schedule\Installer as ScheduleInstaller;
@@ -63,8 +64,17 @@ return [
         'phase' => 1,
         'installer' => DineInInstaller::class,
         'routes' => 'DineIn/routes.php',
-        // dinein.screen: có quyền mở màn hình khu, hoặc đang được phân công ở một khu (bếp, bar).
-        'menu' => ['route' => 'dinein.index', 'permission' => ['dinein.order', 'dinein.screen', 'dinein.settings']],
+        'menu' => ['route' => 'dinein.index', 'permission' => ['dinein.order', 'dinein.settings']],
+    ],
+    // Màn hình khu (bếp, bar) cho món tại bàn và đơn mang đi; món không chọn khu thì không qua màn hình.
+    'kitchen' => [
+        'name' => 'modules.kitchen',
+        'depends' => ['menu'],
+        'phase' => 1,
+        'installer' => KitchenInstaller::class,
+        'routes' => 'Kitchen/routes.php',
+        // kitchen.screen: có quyền mở mọi khu, đang được phân công ở một khu, hoặc lo đơn mang đi.
+        'menu' => ['route' => 'kitchen.index', 'permission' => ['kitchen.screen']],
     ],
     'staff' => [
         'name' => 'modules.staff',

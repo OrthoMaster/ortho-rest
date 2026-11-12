@@ -8,9 +8,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureModuleEnabled
 {
-    public function handle(Request $request, Closure $next, string $module): Response
+    /** Nhiều module (module:dinein,kitchen) thì chỉ cần bật một trong số đó. */
+    public function handle(Request $request, Closure $next, string ...$modules): Response
     {
-        abort_unless(has_module($module), 404);
+        abort_unless(collect($modules)->contains(fn (string $module) => has_module($module)), 404);
 
         return $next($request);
     }

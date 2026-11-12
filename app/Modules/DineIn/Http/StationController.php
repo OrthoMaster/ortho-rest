@@ -4,9 +4,13 @@ namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Modules\DineIn\LineStatus;
+use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Takeaway\Models\TakeawayOrderItem;
+use App\Modules\Takeaway\OrderStatus;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,8 +39,8 @@ class StationController extends Controller
     {
         return view('modules.dinein.station-form', [
             'station' => $station,
-            'isFallback' => Station::fallback()?->is($station),
-            'categories' => MenuCategory::with(['items' => fn ($query) => $query->whereNotNull('price_dine_in')->with('dineinStation')])
+            'kitchen' => has_module('kitchen'),
+            'categories' => MenuCategory::with(['items' => fn ($query) => $query->where(fn ($query) => $query->whereNotNull('price_dine_in')->orWhereNotNull('price_takeaway'))->with('dineinStation')])
                 ->orderBy('sort_order')->orderBy('id')->get()
                 ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty()),
         ]);
@@ -53,8 +57,13 @@ class StationController extends Controller
         DB::transaction(function () use ($station, $data, $items): void {
             $station->update($data);
 
+            // Chọn món cho khu chỉ có khi bật Màn hình khu; tắt thì giữ nguyên món của khu.
+            if (! has_module('kitchen')) {
+                return;
+            }
+
             $before = $station->items()->orderBy('id')->pluck('name', 'id');
-            // Bỏ chọn thì món về "chưa chọn khu" (khu đầu tiên làm); chọn thì chuyển về khu này.
+            // Bỏ chọn thì món về "chưa chọn khu" (không qua màn hình khu); chọn thì chuyển về khu này.
             MenuItem::where('dinein_station_id', $station->id)->whereKeyNot($items)->update(['dinein_station_id' => null]);
             MenuItem::whereKey($items)->update(['dinein_station_id' => $station->id]);
             $after = $station->items()->orderBy('id')->pluck('name', 'id');
@@ -82,11 +91,19 @@ class StationController extends Controller
         return response()->noContent();
     }
 
-    /** Món của khu bị xoá về "chưa chọn khu"; món đang chờ vẫn hiện ở khu đầu tiên. */
+    /** Món của khu bị xoá về "chưa chọn khu". Khu còn món đang chờ làm thì chưa xoá được. */
     public function destroy(Station $station): RedirectResponse
     {
         if (Station::count() === 1) {
             return back()->with('error', __('dinein.station_last'));
+        }
+
+        $pending = OrderLine::where('dinein_station_id', $station->id)->where('status', LineStatus::New)->exists()
+            || TakeawayOrderItem::where('dinein_station_id', $station->id)->whereNull('done_at')
+                ->whereHas('order', fn ($query) => $query->whereIn('status', [OrderStatus::New, OrderStatus::Preparing]))->exists();
+
+        if ($pending) {
+            return back()->with('error', __('dinein.station_busy', ['name' => $station->name]));
         }
 
         $station->delete();

@@ -33,12 +33,6 @@ class Station extends Model
         return $this->hasMany(OrderLine::class, 'dinein_station_id');
     }
 
-    /** Khu đầu tiên nhận các món chưa chọn khu. */
-    public static function fallback(): ?self
-    {
-        return self::orderBy('sort_order')->orderBy('id')->first();
-    }
-
     public function activityArea(): string
     {
         return 'dinein';

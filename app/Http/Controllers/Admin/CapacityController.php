@@ -28,11 +28,15 @@ class CapacityController extends Controller
     {
         return view('admin.restaurant.capacity', [
             'areas' => Area::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
-            // Khu phục vụ thuộc module Lấy đơn tại bàn, có quyền riêng.
-            'stations' => has_module('dinein') && request()->user()->can('dinein.settings')
+            // Khu phục vụ (Bếp, Bar): dùng cho Lấy đơn tại bàn, Màn hình khu và Lịch làm việc.
+            'stations' => (has_module('dinein') || has_module('kitchen')) && request()->user()->canAny(['dinein.settings', 'settings.manage'])
                 ? Station::withCount('items')->orderBy('sort_order')->orderBy('id')->get()
                 : null,
-            'unassigned' => has_module('dinein') ? MenuItem::whereNotNull('price_dine_in')->whereNull('dinein_station_id')->count() : 0,
+            // Chọn món cho khu chỉ có khi bật Màn hình khu.
+            'kitchen' => has_module('kitchen'),
+            'unassigned' => has_module('kitchen')
+                ? MenuItem::where(fn ($query) => $query->whereNotNull('price_dine_in')->orWhereNotNull('price_takeaway'))->whereNull('dinein_station_id')->count()
+                : 0,
         ]);
     }
 

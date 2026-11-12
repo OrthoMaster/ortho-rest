@@ -36,6 +36,8 @@ class DineInTest extends TestCase
 
     private string $base;
 
+    private string $kitchenBase;
+
     private Station $kitchen;
 
     private Station $bar;
@@ -55,16 +57,17 @@ class DineInTest extends TestCase
 
         $this->travelTo(CarbonImmutable::parse('2026-11-09 12:00'));
         $this->restaurant = Restaurant::factory()->create();
-        $this->enableModules($this->restaurant, 'menu', 'dinein', 'staff', 'schedule');
+        $this->enableModules($this->restaurant, 'menu', 'dinein', 'kitchen', 'staff', 'schedule');
         $this->owner = User::factory()->owner($this->restaurant)->create();
         $this->base = "/{$this->restaurant->slug}/admin/dinein";
+        $this->kitchenBase = "/{$this->restaurant->slug}/admin/kitchen";
         $this->actingAs($this->owner);
 
         app(TenantContext::class)->set($this->restaurant);
         [$this->kitchen, $this->bar] = Station::orderBy('sort_order')->get()->all();
         $this->area = Area::sole();
         $category = MenuCategory::create(['name' => 'Món chính']);
-        $this->comTam = MenuItem::create(['menu_category_id' => $category->id, 'name' => 'Cơm tấm', 'price_dine_in' => 85000]);
+        $this->comTam = MenuItem::create(['menu_category_id' => $category->id, 'name' => 'Cơm tấm', 'price_dine_in' => 85000, 'dinein_station_id' => $this->kitchen->id]);
         $this->tra = MenuItem::create(['menu_category_id' => $category->id, 'name' => 'Trà đá', 'price_dine_in' => 10000, 'dinein_station_id' => $this->bar->id]);
 
         $meat = $this->comTam->optionGroups()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Thịt', 'is_required' => true]);
@@ -102,23 +105,23 @@ class DineInTest extends TestCase
         $order = $this->takeawayOrder();
         $items = $order->items()->withoutGlobalScopes()->orderBy('id')->get();
 
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk()
-            ->assertSeeInOrder(['A1', __('dinein.ordered_ago', ['time' => '10 phút']), 'Sườn', 'Sườn cọng'])
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertOk()
+            ->assertSeeInOrder(['A1', __('kitchen.ordered_ago', ['time' => '10 phút']), 'Sườn', 'Sườn cọng'])
             ->assertDontSee(__('dinein.round', ['round' => 2]))
             // Đơn mang đi: phiếu riêng, giờ giao và còn bao lâu; món khác tuỳ chọn là dòng riêng.
             ->assertSee('is-takeaway', false)->assertSee($order->code())
-            ->assertSee(__('dinein.pickup_left', ['time' => '12:30', 'left' => '20 phút']))
+            ->assertSee(__('kitchen.pickup_left', ['time' => '12:30', 'left' => '20 phút']))
             ->assertSee('data-line-id="t'.$items[0]->id.'"', false)->assertSee('data-line-id="t'.$items[1]->id.'"', false)
             ->assertDontSee('data-line-id="t'.$items[2]->id.'"', false);
-        $this->get("$this->base/screens/{$this->bar->id}")->assertSee('data-line-id="t'.$items[2]->id.'"', false);
+        $this->get("$this->kitchenBase/{$this->bar->id}")->assertSee('data-line-id="t'.$items[2]->id.'"', false);
 
         // Bếp báo xong món mang đi: đơn sang Đang làm, món rời màn hình khu.
-        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$items[0]->id]])->assertSessionHas('status');
+        $this->post("$this->kitchenBase/{$this->kitchen->id}/done", ['takeaway' => [$items[0]->id]])->assertSessionHas('status');
         $this->assertNotNull($items[0]->fresh()->done_at);
         $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertDontSee('data-line-id="t'.$items[0]->id.'"', false);
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertDontSee('data-line-id="t'.$items[0]->id.'"', false);
         // Không báo được món của khu khác.
-        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$items[2]->id]]);
+        $this->post("$this->kitchenBase/{$this->kitchen->id}/done", ['takeaway' => [$items[2]->id]]);
         $this->assertNull($items[2]->fresh()->done_at);
     }
 
@@ -128,31 +131,31 @@ class DineInTest extends TestCase
         $item = $order->items()->withoutGlobalScopes()->first();
 
         // Chuẩn bị đơn mang đi luôn đứng đầu danh sách màn hình.
-        $this->get("$this->base/screens")->assertOk()->assertSeeInOrder([__('dinein.prep'), $this->kitchen->name]);
-        $this->get("$this->base/screens/takeaway")->assertOk()->assertSee($order->code())->assertSee('Chị Mai')
-            ->assertSee(__('dinein.items_done', ['done' => 0, 'total' => 3]))->assertDontSee('data-line-id="d', false);
+        $this->get("$this->kitchenBase")->assertOk()->assertSeeInOrder([__('kitchen.prep'), $this->kitchen->name]);
+        $this->get("$this->kitchenBase/takeaway")->assertOk()->assertSee($order->code())->assertSee('Chị Mai')
+            ->assertSee(__('kitchen.items_done', ['done' => 0, 'total' => 3]))->assertDontSee('data-line-id="d', false);
 
-        $this->post("$this->base/screens/{$this->kitchen->id}/done", ['takeaway' => [$item->id]]);
-        $this->get("$this->base/screens/takeaway")->assertSee('data-line-id="d'.$item->id.'"', false)
-            ->assertSee(__('dinein.pack_confirm_missing', ['count' => 2]));
+        $this->post("$this->kitchenBase/{$this->kitchen->id}/done", ['takeaway' => [$item->id]]);
+        $this->get("$this->kitchenBase/takeaway")->assertSee('data-line-id="d'.$item->id.'"', false)
+            ->assertSee(__('kitchen.pack_confirm_missing', ['count' => 2]));
 
-        $this->post("$this->base/screens/takeaway/{$order->id}", ['status' => 'ready'])->assertSessionHas('status', __('dinein.packed', ['code' => $order->code()]));
+        $this->post("$this->kitchenBase/takeaway/{$order->id}", ['status' => 'ready'])->assertSessionHas('status', __('kitchen.packed', ['code' => $order->code()]));
         $this->assertSame(OrderStatus::Ready, $order->fresh()->status);
         // Đơn đã đóng gói không còn ở màn hình khu.
-        $this->get("$this->base/screens/{$this->bar->id}", ['X-Board' => '1'])->assertDontSee($order->code());
+        $this->get("$this->kitchenBase/{$this->bar->id}", ['X-Board' => '1'])->assertDontSee($order->code());
 
-        $this->post("$this->base/screens/takeaway/{$order->id}", ['status' => 'delivered']);
+        $this->post("$this->kitchenBase/takeaway/{$order->id}", ['status' => 'delivered']);
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
         // Đơn đã giao sang cột phải (không có ca thì tính trong ngày), bấm xem chi tiết trong popup.
-        $this->get("$this->base/screens/takeaway")->assertSee(__('dinein.prep_empty'))
-            ->assertSee(__('dinein.delivered_today'))->assertSee('data-show-order="'.$order->id.'"', false)
+        $this->get("$this->kitchenBase/takeaway")->assertSee(__('kitchen.prep_empty'))
+            ->assertSee(__('kitchen.delivered_today'))->assertSee('data-show-order="'.$order->id.'"', false)
             ->assertSee('data-order-detail="'.$order->id.'"', false)->assertSee('0987654321')
             ->assertDontSee('/admin/takeaway/'.$order->id.'"', false);
 
         // Nhân viên có quyền đổi trạng thái đơn mang đi mở được dù không ở khu nào.
         $waiter = $this->member($this->restaurant, 'staff');
-        $this->actingAs($waiter)->get("$this->base/screens")->assertRedirect("$this->base/screens/takeaway");
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
+        $this->actingAs($waiter)->get("$this->kitchenBase")->assertRedirect("$this->kitchenBase/takeaway");
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertForbidden();
     }
 
     private function order(string $table, array $lines)
@@ -173,13 +176,13 @@ class DineInTest extends TestCase
         $manager = $this->member($this->restaurant, 'manager');
         $staff = $this->member($this->restaurant, 'staff');
 
-        foreach (['dinein.order', 'dinein.close', 'dinein.cancel', 'dinein.stations', 'dinein.settings'] as $key) {
+        foreach (['dinein.order', 'dinein.close', 'dinein.cancel', 'kitchen.stations', 'dinein.settings'] as $key) {
             $this->assertTrue($manager->can($key), $key);
         }
         $this->assertTrue($staff->can('dinein.order'));
         $this->assertTrue($staff->can('dinein.close'));
         $this->assertFalse($staff->can('dinein.cancel'));
-        $this->assertFalse($staff->can('dinein.stations'));
+        $this->assertFalse($staff->can('kitchen.stations'));
 
         $this->get($this->base)->assertRedirect("$this->base/tables");
         $this->get("$this->base/tables")->assertOk()->assertSee('A1')->assertSee('A10')->assertDontSee('A11');
@@ -244,8 +247,8 @@ class DineInTest extends TestCase
         [$rice, $tea] = OrderLine::withoutGlobalScopes()->orderBy('id')->get()->all();
 
         // Bếp chỉ thấy món của bếp.
-        $this->actingAs($this->owner)->get("$this->base/screens/{$this->kitchen->id}")->assertOk()->assertSee('Cơm tấm')->assertDontSee('Trà đá');
-        $this->get("$this->base/screens/{$this->kitchen->id}", ['X-Board' => '1'])->assertOk()->assertDontSee('<html', false)->assertSee('data-line-id="'.$rice->id.'"', false);
+        $this->actingAs($this->owner)->get("$this->kitchenBase/{$this->kitchen->id}")->assertOk()->assertSee('Cơm tấm')->assertDontSee('Trà đá');
+        $this->get("$this->kitchenBase/{$this->kitchen->id}", ['X-Board' => '1'])->assertOk()->assertDontSee('<html', false)->assertSee('data-line-id="'.$rice->id.'"', false);
 
         $this->actingAs($waiter)->getJson("$this->base/poll")->assertOk()->assertJsonCount(0, 'ready');
 
@@ -253,8 +256,8 @@ class DineInTest extends TestCase
         $table = DiningTable::withoutGlobalScopes()->sole();
         $this->post("$this->base/tables/{$table->id}/close")->assertSessionHas('error', __('dinein.close_pending'));
 
-        $this->actingAs($this->owner)->post("$this->base/screens/{$this->kitchen->id}/done", ['lines' => [$rice->id, $tea->id]])
-            ->assertSessionHas('status', trans_choice('dinein.done_count', 1, ['count' => 1]));
+        $this->actingAs($this->owner)->post("$this->kitchenBase/{$this->kitchen->id}/done", ['lines' => [$rice->id, $tea->id]])
+            ->assertSessionHas('status', trans_choice('kitchen.done_count', 1, ['count' => 1]));
         $this->assertSame(LineStatus::New, $tea->fresh()->status, 'Món của quầy nước không báo xong từ màn hình bếp.');
         $this->assertSame($this->owner->id, $rice->fresh()->done_by);
 
@@ -304,7 +307,7 @@ class DineInTest extends TestCase
     public function test_station_screen_follows_assignment_and_shift(): void
     {
         $cook = $this->member($this->restaurant, 'staff');
-        $this->actingAs($cook)->get("$this->base/screens")->assertForbidden();
+        $this->actingAs($cook)->get("$this->kitchenBase")->assertForbidden();
         $this->assertFalse(Duty::canOpenStation($cook, $this->kitchen->id));
 
         // Ca làm 10:00–14:00 thứ Hai; bây giờ 12:00 thứ Hai.
@@ -315,12 +318,12 @@ class DineInTest extends TestCase
         $this->postJson($schedule, ['user' => $this->owner->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 'a'.$this->area->id])->assertOk();
         $this->assertSame(2, Assignment::withoutGlobalScopes()->count());
         // Còn là bản nháp thì chưa mở được màn hình khu; công bố rồi mới mở.
-        $this->actingAs($cook)->get("$this->base/screens")->assertForbidden();
+        $this->actingAs($cook)->get("$this->kitchenBase")->assertForbidden();
         $this->actingAs($this->owner)->post("/{$this->restaurant->slug}/admin/schedule/week/publish", ['date' => '2026-11-09']);
 
-        $this->actingAs($cook)->get("$this->base/screens")->assertRedirect("$this->base/screens/{$this->kitchen->id}");
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk();
-        $this->get("$this->base/screens/{$this->bar->id}")->assertForbidden();
+        $this->actingAs($cook)->get("$this->kitchenBase")->assertRedirect("$this->kitchenBase/{$this->kitchen->id}");
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertOk();
+        $this->get("$this->kitchenBase/{$this->bar->id}")->assertForbidden();
         $this->get($this->base)->assertRedirect("$this->base/tables");
 
         $this->actingAs($this->owner)->order('A2', [$this->comTamLine()]);
@@ -328,14 +331,14 @@ class DineInTest extends TestCase
 
         // Hết ca thì không còn ở bếp.
         $this->travelTo(CarbonImmutable::parse('2026-11-09 15:00'));
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertForbidden();
         $this->getJson("$this->base/poll")->assertJsonCount(0, 'stations');
 
         // Tắt Lịch làm việc thì phân công không còn tác dụng.
         $this->travelTo(CarbonImmutable::parse('2026-11-09 12:00'));
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertOk();
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertOk();
         app(ModuleManager::class)->disable($this->restaurant, 'schedule');
-        $this->get("$this->base/screens/{$this->kitchen->id}")->assertForbidden();
+        $this->get("$this->kitchenBase/{$this->kitchen->id}")->assertForbidden();
     }
 
     public function test_shift_crossing_midnight_counts_for_previous_day(): void
@@ -354,17 +357,57 @@ class DineInTest extends TestCase
         $this->assertSame([], Duty::stationIds($this->owner));
     }
 
+    public function test_items_without_station_skip_the_screens(): void
+    {
+        // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.
+        $this->tra->newQuery()->withoutGlobalScopes()->whereKey($this->tra->id)->update(['dinein_station_id' => null]);
+        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 2]])->assertSessionHasNoErrors();
+        $line = OrderLine::withoutGlobalScopes()->sole();
+        $this->assertSame(LineStatus::Served, $line->status);
+        $this->assertNull($line->dinein_station_id);
+
+        $this->get("$this->kitchenBase/{$this->bar->id}", ['X-Board' => '1'])->assertDontSee('Trà đá');
+        $this->get("$this->kitchenBase/{$this->kitchen->id}", ['X-Board' => '1'])->assertDontSee('Trà đá');
+        $this->get("$this->base/tables/A1")->assertOk()->assertSee('Trà đá')->assertDontSee('<span class="badge', false);
+
+        // Gọi nhầm thì người có quyền huỷ món vẫn huỷ được.
+        $this->post("$this->base/lines/{$line->id}/cancel")->assertSessionHas('status');
+        $this->assertSame(LineStatus::Cancelled, $line->fresh()->status);
+
+        // Đơn mang đi: món không qua khu đã xong ngay, không tính vào "n/m món đã xong".
+        $order = $this->takeawayOrder();
+        $tea = $order->items()->withoutGlobalScopes()->where('menu_item_id', $this->tra->id)->sole();
+        $this->assertNotNull($tea->done_at);
+        $this->get("$this->kitchenBase/takeaway")->assertSee(__('kitchen.items_done', ['done' => 0, 'total' => 2]));
+    }
+
+    public function test_without_kitchen_module_nothing_waits_for_a_station(): void
+    {
+        app(ModuleManager::class)->disable($this->restaurant, 'kitchen');
+
+        $this->order('A1', [$this->comTamLine()])->assertSessionHasNoErrors();
+        $line = OrderLine::withoutGlobalScopes()->sole();
+        $this->assertSame(LineStatus::Served, $line->status, 'Tắt Màn hình khu thì món có khu cũng không chờ.');
+        $this->assertNull($line->dinein_station_id);
+
+        $this->get($this->kitchenBase)->assertNotFound();
+        $this->get("$this->base/tables")->assertOk()->assertDontSee(__('kitchen.screens'));
+        // Khu phục vụ vẫn ở Cài đặt chung (dùng cho Lịch làm việc), nhưng không chọn món cho khu.
+        $this->get("$this->base/stations/{$this->bar->id}/edit")->assertOk()->assertDontSee('name="items[]"', false);
+    }
+
     public function test_station_settings_move_items(): void
     {
         $capacity = "/{$this->restaurant->slug}/admin/restaurant/capacity";
         $this->get("$this->base/stations")->assertRedirect($capacity);
         $this->get($capacity)->assertOk()->assertSee(__('dinein.stations'))->assertSee('Quầy nước')
-            ->assertSee(__('dinein.unassigned', ['count' => 1, 'name' => 'Bếp']));
+            ->assertDontSee(__('dinein.unassigned', ['count' => 1]));
         $this->get("$this->base/stations/{$this->bar->id}/edit")->assertOk()->assertSee('Cơm tấm');
 
         $this->put("$this->base/stations/{$this->bar->id}", ['name' => 'Bar', 'items' => [$this->comTam->id]])->assertRedirect($capacity);
         $this->assertSame($this->bar->id, $this->comTam->fresh()->dinein_station_id);
         $this->assertNull($this->tra->fresh()->dinein_station_id, 'Bỏ chọn thì món về chưa chọn khu.');
+        $this->get($capacity)->assertSee(__('dinein.unassigned', ['count' => 1]));
         $log = ActivityLog::where('summary', __('dinein.station_items_log', ['name' => 'Bar']))->sole();
         $this->assertSame(2, ActivityLog::where('area', 'dinein')->count(), 'Đổi tên khu cũng ghi nhật ký.');
         $this->assertSame([__('dinein.log_added', ['list' => 'Cơm tấm']), __('dinein.log_removed', ['list' => 'Trà đá'])], $log->changes);
@@ -393,7 +436,7 @@ class DineInTest extends TestCase
 
         $this->post("$this->base/lines/{$line->id}/serve")->assertNotFound();
         $this->post("$this->base/tables/{$table->id}/close")->assertNotFound();
-        $this->get("$this->base/screens/{$station->id}")->assertNotFound();
+        $this->get("$this->kitchenBase/{$station->id}")->assertNotFound();
         $this->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
     }
 

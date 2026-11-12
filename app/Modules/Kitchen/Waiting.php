@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\DineIn;
+namespace App\Modules\Kitchen;
 
 /** Viết số phút cho người đọc: "25 phút", "1 giờ 20 phút". */
 final class Waiting
@@ -10,14 +10,14 @@ final class Waiting
         $minutes = abs($minutes);
 
         if ($minutes < 60) {
-            return __('dinein.duration_minutes', ['count' => $minutes]);
+            return __('kitchen.duration_minutes', ['count' => $minutes]);
         }
 
         $hours = intdiv($minutes, 60);
         $rest = $minutes % 60;
 
         return $rest === 0
-            ? __('dinein.duration_hours_only', ['hours' => $hours])
-            : __('dinein.duration_hours', ['hours' => $hours, 'minutes' => $rest]);
+            ? __('kitchen.duration_hours_only', ['hours' => $hours])
+            : __('kitchen.duration_hours', ['hours' => $hours, 'minutes' => $rest]);
     }
 }

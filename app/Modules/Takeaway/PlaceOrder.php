@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Modules\Kitchen\Kitchen;
 use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\ModuleManager;
@@ -233,12 +234,14 @@ class PlaceOrder
 
             $built[] = [
                 'menu_item_id' => $item->getKey(),
-                'dinein_station_id' => $item->dinein_station_id,
+                'dinein_station_id' => $station = Kitchen::stationFor($item),
                 'name' => $item->name,
                 'unit_price' => $item->price_takeaway + array_sum(array_column($chosen, 'price')),
                 'quantity' => (int) $row['quantity'],
                 'options' => $chosen ?: null,
                 'note' => $this->note($row),
+                // Món không qua màn hình khu thì coi như đã xong ngay, chỉ còn đóng gói.
+                'done_at' => $station === null ? now() : null,
             ];
         }
 

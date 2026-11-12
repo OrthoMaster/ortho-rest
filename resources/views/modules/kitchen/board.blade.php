@@ -3,7 +3,7 @@
     Mỗi món một dòng, có nút Xong riêng; món khác tuỳ chọn là dòng riêng.
 --}}
 @if ($tickets->isEmpty())
-    <p class="empty">{{ __('dinein.board_empty') }}</p>
+    <p class="empty">{{ __('kitchen.board_empty') }}</p>
 @else
     <div class="tickets">
         @foreach ($tickets as $ticket)
@@ -15,7 +15,7 @@
                 @php($order = $first->order)
                 @php($left = (int) now()->startOfMinute()->diffInMinutes($order->pickup_at->toImmutable()->startOfMinute(), false))
                 @php($late = $left < 0)
-                @php($label = __('dinein.takeaway_tag').' '.$order->code())
+                @php($label = __('kitchen.takeaway_tag').' '.$order->code())
             @else
                 @php($minutes = (int) $ticket['at']->diffInMinutes(now()))
                 @php($late = $minutes >= 15)
@@ -25,13 +25,13 @@
                 <div class="ticket-head">
                     @if ($takeaway)
                         <span class="ticket-title">
-                            <small class="badge ticket-tag">{{ __('dinein.takeaway_tag') }}</small>
+                            <small class="badge ticket-tag">{{ __('kitchen.takeaway_tag') }}</small>
                             <strong class="ticket-table">{{ $order->code() }}</strong>
                         </span>
-                        @include('modules.dinein.pickup-time')
+                        @include('modules.kitchen.pickup-time')
                     @else
                         <strong class="ticket-table">{{ $label }}</strong>
-                        <span class="row-note ticket-time">{{ $minutes < 1 ? __('dinein.ordered_now') : __('dinein.ordered_ago', ['time' => \App\Modules\DineIn\Waiting::text($minutes)]) }}</span>
+                        <span class="row-note ticket-time">{{ $minutes < 1 ? __('kitchen.ordered_now') : __('kitchen.ordered_ago', ['time' => \App\Modules\Kitchen\Waiting::text($minutes)]) }}</span>
                     @endif
                 </div>
                 <ul class="ticket-lines">
@@ -43,25 +43,25 @@
                                 @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
                                 @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
                             </span>
-                            <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}"
-                                  data-confirm="{{ $takeaway ? __('dinein.done_takeaway_confirm', ['name' => $line->quantity.' × '.$line->name, 'code' => $order->code()]) : __('dinein.done_confirm', ['name' => $line->quantity.' × '.$line->name]) }}" data-confirm-ok="{{ __('dinein.done') }}">
+                            <form method="post" action="{{ route('tenant.admin.kitchen.done', $station) }}"
+                                  data-confirm="{{ $takeaway ? __('kitchen.done_takeaway_confirm', ['name' => $line->quantity.' × '.$line->name, 'code' => $order->code()]) : __('kitchen.done_confirm', ['name' => $line->quantity.' × '.$line->name]) }}" data-confirm-ok="{{ __('kitchen.done') }}">
                                 @csrf
                                 <input type="hidden" name="{{ $field }}" value="{{ $line->id }}">
-                                <button class="btn btn-sm" type="submit">{{ __('dinein.done') }}</button>
+                                <button class="btn btn-sm" type="submit">{{ __('kitchen.done') }}</button>
                             </form>
                         </li>
                     @endforeach
                 </ul>
                 <div class="ticket-foot">
-                    <small class="row-note">{{ $takeaway ? $order->customer->name : __('dinein.ordered_by', ['name' => $lines->pluck('orderedBy.name')->filter()->unique()->implode(', ') ?: '—']) }}</small>
+                    <small class="row-note">{{ $takeaway ? $order->customer->name : __('kitchen.ordered_by', ['name' => $lines->pluck('orderedBy.name')->filter()->unique()->implode(', ') ?: '—']) }}</small>
                     @if ($lines->count() > 1)
-                        <form method="post" action="{{ route('tenant.admin.dinein.screens.done', $station) }}"
-                              data-confirm="{{ $takeaway ? __('dinein.done_order_confirm', ['code' => $order->code()]) : __('dinein.done_all_confirm', ['table' => $label]) }}" data-confirm-ok="{{ __('dinein.done_all') }}">
+                        <form method="post" action="{{ route('tenant.admin.kitchen.done', $station) }}"
+                              data-confirm="{{ $takeaway ? __('kitchen.done_order_confirm', ['code' => $order->code()]) : __('kitchen.done_all_confirm', ['table' => $label]) }}" data-confirm-ok="{{ __('kitchen.done_all') }}">
                             @csrf
                             @foreach ($lines as $line)
                                 <input type="hidden" name="{{ $field }}" value="{{ $line->id }}">
                             @endforeach
-                            <button class="btn btn-quiet btn-sm" type="submit">{{ __('dinein.done_all') }}</button>
+                            <button class="btn btn-quiet btn-sm" type="submit">{{ __('kitchen.done_all') }}</button>
                         </form>
                     @endif
                 </div>
@@ -72,7 +72,7 @@
 
 @if ($recent->isNotEmpty())
     <section class="panel recent-done">
-        <h2>{{ __('dinein.recent') }}</h2>
+        <h2>{{ __('kitchen.recent') }}</h2>
         <ul class="rows">
             @foreach ($recent as $row)
                 <li>

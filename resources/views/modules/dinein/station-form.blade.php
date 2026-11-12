@@ -12,26 +12,27 @@
             @include('partials.field', ['name' => 'name', 'label' => __('dinein.station_name'), 'value' => $station->name, 'maxlength' => 60])
         </section>
 
-        <section class="panel">
-            <div>
-                <h2>{{ __('dinein.station_items') }}</h2>
-                <small class="section-hint">{{ __('dinein.station_items_hint') }}</small>
-                @if ($isFallback)
-                    <small class="section-hint">{{ __('dinein.station_fallback') }}</small>
-                @endif
-            </div>
-            @foreach ($categories as $category)
-                <div class="station-items">
-                    <h3>{{ $category->name }}</h3>
-                    @foreach ($category->items as $item)
-                        <label class="check">
-                            <input type="checkbox" name="items[]" value="{{ $item->id }}" @checked(in_array($item->id, array_map('intval', old('items', $category->items->where('dinein_station_id', $station->id)->pluck('id')->all())), true))>
-                            <span>{{ $item->name }}@if ($item->dineinStation && ! $item->dineinStation->is($station)) <small class="row-note">{{ __('dinein.station_in', ['name' => $item->dineinStation->name]) }}</small>@endif</span>
-                        </label>
-                    @endforeach
+        {{-- Chọn món cho khu chỉ khi bật Màn hình khu. --}}
+        @if ($kitchen)
+            <section class="panel">
+                <div>
+                    <h2>{{ __('dinein.station_items') }}</h2>
+                    <small class="section-hint">{{ __('dinein.station_items_hint') }}</small>
+                    <small class="section-hint">{{ __('dinein.station_no_items') }}</small>
                 </div>
-            @endforeach
-        </section>
+                @foreach ($categories as $category)
+                    <div class="station-items">
+                        <h3>{{ $category->name }}</h3>
+                        @foreach ($category->items as $item)
+                            <label class="check">
+                                <input type="checkbox" name="items[]" value="{{ $item->id }}" @checked(in_array($item->id, array_map('intval', old('items', $category->items->where('dinein_station_id', $station->id)->pluck('id')->all())), true))>
+                                <span>{{ $item->name }}@if ($item->dineinStation && ! $item->dineinStation->is($station)) <small class="row-note">{{ __('dinein.station_in', ['name' => $item->dineinStation->name]) }}</small>@endif</span>
+                            </label>
+                        @endforeach
+                    </div>
+                @endforeach
+            </section>
+        @endif
 
         <button class="btn" type="submit">{{ __('dinein.save') }}</button>
     </form>

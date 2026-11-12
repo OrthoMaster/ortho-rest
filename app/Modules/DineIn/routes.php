@@ -1,7 +1,6 @@
 <?php
 
 use App\Modules\DineIn\Http\PollController;
-use App\Modules\DineIn\Http\ScreenController;
 use App\Modules\DineIn\Http\StationController;
 use App\Modules\DineIn\Http\TableController;
 use Illuminate\Support\Facades\Route;
@@ -11,7 +10,7 @@ Route::middleware('module:dinein')
     ->name('dinein.')
     ->group(function () {
         Route::get('/', [TableController::class, 'home'])->name('index');
-        Route::get('poll', PollController::class)->middleware('can_any:dinein.order,dinein.screen')->name('poll');
+        Route::get('poll', PollController::class)->middleware('can_any:dinein.order,kitchen.screen')->name('poll');
 
         // Bàn: số bàn là mã khu vực + số, ví dụ A12.
         Route::middleware('can:dinein.order')->group(function () {
@@ -24,23 +23,14 @@ Route::middleware('module:dinein')
             Route::post('lines/{line}/cancel', [TableController::class, 'cancel'])->whereNumber('line')->name('lines.cancel');
         });
         Route::post('tables/{table}/close', [TableController::class, 'close'])->whereNumber('table')->middleware('can:dinein.close')->name('tables.close');
-
-        // Màn hình khu: người có quyền hoặc đang được phân công ở khu đó.
-        Route::middleware('can:dinein.screen')->group(function () {
-            Route::get('screens', [ScreenController::class, 'index'])->name('screens.index');
-            Route::get('screens/{station}', [ScreenController::class, 'show'])->whereNumber('station')->name('screens.show');
-            Route::post('screens/{station}/done', [ScreenController::class, 'done'])->whereNumber('station')->name('screens.done');
-            // Chuẩn bị đơn mang đi (khi bật Đặt mang đi): người đổi được trạng thái đơn mang đi.
-            Route::get('screens/takeaway', [ScreenController::class, 'takeaway'])->name('screens.takeaway');
-            Route::post('screens/takeaway/{order}', [ScreenController::class, 'takeawayStatus'])->whereNumber('order')->name('screens.takeaway.status');
-        });
-
-        Route::middleware('can:dinein.settings')->prefix('stations')->name('stations.')->group(function () {
-            Route::get('/', [StationController::class, 'index'])->name('index');
-            Route::post('/', [StationController::class, 'store'])->name('store');
-            Route::post('reorder', [StationController::class, 'reorder'])->name('reorder');
-            Route::get('{station}/edit', [StationController::class, 'edit'])->whereNumber('station')->name('edit');
-            Route::put('{station}', [StationController::class, 'update'])->whereNumber('station')->name('update');
-            Route::delete('{station}', [StationController::class, 'destroy'])->whereNumber('station')->name('destroy');
-        });
     });
+
+// Khu phục vụ (Bếp, Bar...) ở Cài đặt chung → Khu vực: dùng cho Lấy đơn tại bàn, Màn hình khu và Lịch làm việc.
+Route::middleware(['module:dinein,kitchen', 'can_any:dinein.settings,settings.manage'])->prefix('dinein/stations')->name('dinein.stations.')->group(function () {
+    Route::get('/', [StationController::class, 'index'])->name('index');
+    Route::post('/', [StationController::class, 'store'])->name('store');
+    Route::post('reorder', [StationController::class, 'reorder'])->name('reorder');
+    Route::get('{station}/edit', [StationController::class, 'edit'])->whereNumber('station')->name('edit');
+    Route::put('{station}', [StationController::class, 'update'])->whereNumber('station')->name('update');
+    Route::delete('{station}', [StationController::class, 'destroy'])->whereNumber('station')->name('destroy');
+});

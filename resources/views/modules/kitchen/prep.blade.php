@@ -1,24 +1,22 @@
 @extends('layouts.admin')
 
-@section('title', __('dinein.prep'))
+@section('title', __('kitchen.prep'))
 
 @section('content')
     <div class="page-head screen-head">
-        <h1>{{ __('dinein.prep') }}</h1>
+        <h1>{{ __('kitchen.prep') }}</h1>
         <div class="screen-tools">
-            @include('modules.dinein.station-switch', ['prep' => true, 'current' => null])
+            @include('modules.kitchen.station-switch', ['prep' => true, 'current' => null])
             <button class="btn btn-quiet btn-sm sound-toggle" type="button" data-sound-toggle aria-pressed="false"
-                    data-on="{{ __('dinein.sound_on') }}" data-off="{{ __('dinein.sound_off') }}" title="{{ __('dinein.sound_hint') }}">{{ __('dinein.sound_off') }}</button>
+                    data-on="{{ __('kitchen.sound_on') }}" data-off="{{ __('kitchen.sound_off') }}" title="{{ __('kitchen.sound_hint') }}">{{ __('kitchen.sound_off') }}</button>
         </div>
     </div>
 
-    @include('modules.dinein.subnav')
-
-    <p class="lead">{{ __('dinein.prep_lead') }}</p>
+    <p class="lead">{{ __('kitchen.prep_lead') }}</p>
 
     {{-- Tự tải lại mỗi vài giây; có đơn mới hoặc món vừa xong thì kêu. --}}
     <div data-board>
-        @include('modules.dinein.prep-board')
+        @include('modules.kitchen.prep-board')
     </div>
 
     {{-- Xem đơn: nội dung chép từ template của đơn được bấm. --}}

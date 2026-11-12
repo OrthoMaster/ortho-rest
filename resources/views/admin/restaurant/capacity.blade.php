@@ -84,7 +84,7 @@
             </div>
 
             @if ($unassigned > 0 && $stations->isNotEmpty())
-                <p class="flash flash-warn">{{ __('dinein.unassigned', ['count' => $unassigned, 'name' => $stations->first()->name]) }}</p>
+                <p class="flash flash-warn">{{ __('dinein.unassigned', ['count' => $unassigned]) }}</p>
             @endif
 
             <section class="panel">
@@ -93,11 +93,15 @@
                         <li class="row-link" data-sort-id="{{ $station->id }}">
                             @include('partials.drag-handle', ['label' => $station->name])
                             <span class="row-name"><a href="{{ route('tenant.admin.dinein.stations.edit', $station) }}">{{ $station->name }}</a></span>
-                            <small class="row-note">{{ __('dinein.station_item_count', ['count' => $station->items_count]) }}</small>
+                            @if ($kitchen)
+                                <small class="row-note">{{ __('dinein.station_item_count', ['count' => $station->items_count]) }}</small>
+                            @endif
                         </li>
                     @endforeach
                 </ul>
-                <small class="row-note">{{ __('dinein.station_fallback') }}</small>
+                @if ($kitchen)
+                    <small class="row-note">{{ __('dinein.station_no_items') }}</small>
+                @endif
             </section>
         </section>
     @endif

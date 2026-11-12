@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
-use App\Modules\DineIn\Models\Station;
+use App\Modules\Kitchen\Kitchen;
 use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
@@ -16,7 +16,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -29,7 +28,6 @@ class TableController extends Controller
 
         return redirect()->route(match (true) {
             $user->can('dinein.order') => 'tenant.admin.dinein.tables.index',
-            Gate::allows('dinein.screen') => 'tenant.admin.dinein.screens.index',
             $user->can('dinein.settings') => 'tenant.admin.restaurant.capacity.index',
             default => abort(403),
         });
@@ -137,7 +135,16 @@ class TableController extends Controller
             $round = $table->nextRound();
 
             foreach ($lines as $line) {
-                $table->lines()->create([...$line, 'round' => $round, 'status' => LineStatus::New, 'ordered_by' => $request->user()->id]);
+                // Món không qua màn hình khu (chưa chọn khu, hoặc tắt Màn hình khu) coi như đã mang ra ngay.
+                $direct = $line['dinein_station_id'] === null;
+                $table->lines()->create([
+                    ...$line,
+                    'round' => $round,
+                    'status' => $direct ? LineStatus::Served : LineStatus::New,
+                    'ordered_by' => $request->user()->id,
+                    'done_at' => $direct ? now() : null,
+                    'served_at' => $direct ? now() : null,
+                ]);
             }
 
             return array_sum(array_column($lines, 'quantity'));
@@ -158,9 +165,9 @@ class TableController extends Controller
 
     public function cancel(Request $request, OrderLine $line): RedirectResponse
     {
-        abort_unless(in_array($line->status, [LineStatus::New, LineStatus::Done], true), 422);
-        // Khu đã làm xong thì cần quyền riêng mới huỷ.
-        abort_if($line->status === LineStatus::Done && ! $request->user()->can('dinein.cancel'), 403);
+        abort_unless($line->isCancellable(), 422);
+        // Khu đã làm xong (hoặc món không qua khu, đã mang ra luôn) thì cần quyền riêng mới huỷ.
+        abort_if($line->status !== LineStatus::New && ! $request->user()->can('dinein.cancel'), 403);
 
         $line->update(['status' => LineStatus::Cancelled, 'cancelled_by' => $request->user()->id, 'cancelled_at' => now()]);
 
@@ -227,7 +234,6 @@ class TableController extends Controller
             ->whereKey(array_column($input, 'item'))
             ->get()
             ->keyBy('id');
-        $fallback = Station::fallback()?->id;
         $lines = [];
 
         foreach (array_values($input) as $index => $row) {
@@ -249,7 +255,7 @@ class TableController extends Controller
 
             $lines[] = [
                 'menu_item_id' => $item->id,
-                'dinein_station_id' => $item->dinein_station_id ?? $fallback,
+                'dinein_station_id' => Kitchen::stationFor($item),
                 'name' => $item->name,
                 'unit_price' => $item->price_dine_in + array_sum(array_column($chosen, 'price')),
                 'quantity' => (int) $row['quantity'],

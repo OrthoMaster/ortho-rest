@@ -5,7 +5,10 @@
         {{ $line->quantity }} × {{ $line->name }}
         @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
         @if ($line->note)<small class="dine-note">{{ $line->note }}</small>@endif
-        <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
+        {{-- Món không qua màn hình khu thì không có trạng thái để theo dõi. --}}
+        @if ($line->hasKitchenStatus())
+            <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
+        @endif
     </span>
     <strong class="line-total">{{ vnd($line->total()) }}</strong>
     <span class="line-tools">
@@ -15,7 +18,7 @@
                 <button class="btn btn-sm" type="submit">{{ __('dinein.serve') }}</button>
             </form>
         @endif
-        @if ($status === \App\Modules\DineIn\LineStatus::New || ($status === \App\Modules\DineIn\LineStatus::Done && auth()->user()->can('dinein.cancel')))
+        @if ($line->isCancellable() && ($status === \App\Modules\DineIn\LineStatus::New || auth()->user()->can('dinein.cancel')))
             @component('partials.kebab', ['label' => __('dinein.line_actions')])
                 <form method="post" action="{{ route('tenant.admin.dinein.lines.cancel', $line) }}" data-confirm-danger data-confirm-title="{{ __('dinein.cancel') }}" data-confirm-ok="{{ __('dinein.cancel') }}" data-confirm="{{ __('dinein.cancel_confirm', ['name' => $line->name]) }}">
                     @csrf

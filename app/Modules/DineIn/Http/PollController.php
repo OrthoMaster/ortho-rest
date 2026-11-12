@@ -47,25 +47,23 @@ class PollController extends Controller
                 ->all();
         }
 
-        $stationIds = Duty::stationIds($user);
-        $takeaway = has_module('takeaway');
-        $fallback = Station::fallback()?->id;
-        $stations = Station::whereKey($stationIds)->orderBy('sort_order')->orderBy('id')->get()->map(fn (Station $station) => [
-            'id' => $station->id,
-            'name' => $station->name,
-            'url' => route('tenant.admin.dinein.screens.show', $station),
-            'ids' => OrderLine::where('status', LineStatus::New)
-                ->where(fn (Builder $query) => $query->where('dinein_station_id', $station->id)
-                    ->when($station->id === $fallback, fn (Builder $query) => $query->orWhereNull('dinein_station_id')))
-                ->pluck('id')
-                // Món mang đi còn chờ cũng báo, khoá có chữ t để không trùng với món tại bàn.
-                ->concat($takeaway ? TakeawayOrderItem::whereNull('done_at')
-                    ->whereHas('order', fn (Builder $query) => $query->whereIn('status', [OrderStatus::New, OrderStatus::Preparing])->whereDate('pickup_date', today()))
-                    ->where(fn (Builder $query) => $query->where('dinein_station_id', $station->id)
-                        ->when($station->id === $fallback, fn (Builder $query) => $query->orWhereNull('dinein_station_id')))
-                    ->pluck('id')->map(fn (int $id) => 't'.$id) : [])
-                ->all(),
-        ])->all();
+        // Màn hình khu: người đang làm ở bếp, bar nhận báo món mới (tại bàn và mang đi) của khu mình.
+        $stations = [];
+
+        if (has_module('kitchen')) {
+            $takeaway = has_module('takeaway');
+            $stations = Station::whereKey(Duty::stationIds($user))->orderBy('sort_order')->orderBy('id')->get()->map(fn (Station $station) => [
+                'id' => $station->id,
+                'name' => $station->name,
+                'url' => route('tenant.admin.kitchen.show', $station),
+                'ids' => OrderLine::where('status', LineStatus::New)->where('dinein_station_id', $station->id)->pluck('id')
+                    // Món mang đi khoá có chữ t để không trùng với món tại bàn.
+                    ->concat($takeaway ? TakeawayOrderItem::whereNull('done_at')->where('dinein_station_id', $station->id)
+                        ->whereHas('order', fn (Builder $query) => $query->whereIn('status', [OrderStatus::New, OrderStatus::Preparing])->whereDate('pickup_date', today()))
+                        ->pluck('id')->map(fn (int $id) => 't'.$id) : [])
+                    ->all(),
+            ])->all();
+        }
 
         return response()->json(['ready' => $ready, 'stations' => $stations]);
     }

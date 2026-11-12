@@ -52,6 +52,19 @@ class OrderLine extends Model
         return $this->belongsTo(User::class, 'done_by');
     }
 
+    /** Món đi qua màn hình khu thì có trạng thái (Đang làm, Đã xong...); món không qua khu thì không hiện. */
+    public function hasKitchenStatus(): bool
+    {
+        return $this->dinein_station_id !== null || $this->status === LineStatus::Cancelled;
+    }
+
+    /** Huỷ được khi chưa mang ra; món không qua khu (đã mang ra luôn) cũng huỷ được. */
+    public function isCancellable(): bool
+    {
+        return in_array($this->status, [LineStatus::New, LineStatus::Done], true)
+            || ($this->dinein_station_id === null && $this->status === LineStatus::Served);
+    }
+
     public function total(): int
     {
         return $this->unit_price * $this->quantity;
