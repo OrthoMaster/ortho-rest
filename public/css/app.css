@@ -1295,6 +1295,11 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-range .field { margin: 0; }
 .leave-range .picker-trigger { width: auto; }
 .leave-period { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .4rem; }
+/* Danh sách của người duyệt: tên nhân viên là dòng chính, dòng ngày nhỏ hơn một chút. */
+.leave-who { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; }
+.leave-who strong { font-size: 1rem; }
+.leave-who .person-pill { padding: .1rem .55rem; font-size: .75rem; }
+.leave-who + .leave-period { font-size: .875rem; }
 .leave-period > * { white-space: nowrap; }
 .leave-list .row-name .person-pill { justify-self: start; }
 .leave-shifts { margin: 0; padding: 0; border: 0; }

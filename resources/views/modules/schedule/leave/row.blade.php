@@ -3,13 +3,19 @@
 @php($mine = $leave->user_id === auth()->id())
 <li>
     <span class="row-name">
+        {{-- Người duyệt: tên nhân viên rõ ràng, cạnh là bộ phận (màu của bộ phận). --}}
         @if ($approver)
-            <span class="person-pill tone-{{ $leave->user->department?->tone ?? 0 }}">{{ $leave->user->name }}</span>
+            <span class="leave-who">
+                <strong>{{ $leave->user->name }}</strong>
+                @if ($leave->user->department)
+                    <span class="person-pill tone-{{ $leave->user->department->tone }}">{{ $leave->user->department->name }}</span>
+                @endif
+            </span>
         @endif
         {{-- Một dòng: ngày · cả ngày hoặc ca · số ngày, kèm nhãn có lương / không lương khi đã duyệt. --}}
         <span class="leave-period">
             {{-- Dấu · dính vào mục trước, để khi xuống dòng không đứng đầu dòng. --}}
-            <strong>{{ $leave->dateText() }}&nbsp;·</strong>
+            <strong>{{ $leave->dateText(true) }}&nbsp;·</strong>
             <span>{{ $leave->partText() }}&nbsp;·</span>
             <span>{{ trans_choice('leave.days', $leave->days, ['days' => \App\Modules\Schedule\LeaveBook::format($leave->days)]) }}</span>
             @if ($leave->status === \App\Modules\Schedule\LeaveStatus::Approved)

@@ -28,7 +28,7 @@
         </div>
 
     @if ($leaves->isEmpty())
-        <p class="empty">{{ $filterDay ? __('leave.filter_day_empty') : ($filter === 'pending' ? __('leave.empty_pending') : __('leave.empty')) }}</p>
+        <p class="empty">{{ $filter === 'pending' ? __('leave.empty_pending') : ($filterDay ? __('leave.filter_day_empty') : __('leave.empty')) }}</p>
     @else
         <section class="panel">
             <ul class="rows leave-list">

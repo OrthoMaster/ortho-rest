@@ -76,10 +76,11 @@ class LeaveRequest extends Model
         return $this->isWholeDay() ? $this->dateText() : $this->dateText().' · '.$this->partText();
     }
 
-    /** Chỉ phần ngày: "T3 10/11" hoặc "T3 10/11 – T5 12/11". */
-    public function dateText(): string
+    /** Chỉ phần ngày: "T3 10/11" hoặc "T3 10/11 – T5 12/11"; $long: "Thứ 3 10/11". */
+    public function dateText(bool $long = false): string
     {
-        $day = fn (CarbonImmutable $date) => __('ui.calendar.weekdays_short')[$date->dayOfWeekIso - 1].' '.$date->format('d/m');
+        $names = $long ? __('leave.weekdays') : __('ui.calendar.weekdays_short');
+        $day = fn (CarbonImmutable $date) => $names[$date->dayOfWeekIso - 1].' '.$date->format('d/m');
 
         return $this->starts_on->equalTo($this->ends_on) ? $day($this->starts_on) : $day($this->starts_on).' – '.$day($this->ends_on);
     }

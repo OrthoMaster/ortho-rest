@@ -165,10 +165,13 @@ class LeaveTest extends TestCase
 
         // Lọc theo một ngày (bấm cột trên lịch): chỉ còn đơn nghỉ vào ngày đó, cột được chọn tô nổi.
         $make($this->lan, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-16', 'status' => LeaveStatus::Pending]);
-        $this->get("$this->base?day=2026-11-16")->assertOk()->assertSee('T2 16/11')->assertDontSee('T5 12/11')
+        $this->get("$this->base?day=2026-11-16")->assertOk()->assertSee('Thứ 2 16/11')->assertDontSee('Thứ 5 12/11')
             ->assertSee('is-selected', false)->assertSee('data-day-url', false);
-        $this->get("$this->base?status=all&day=2026-11-12")->assertSee('T5 12/11')->assertDontSee('T2 16/11');
-        $this->get("$this->base?day=2026-11-20")->assertSee(__('leave.filter_day_empty'));
+        $this->get("$this->base?status=all&day=2026-11-12")->assertSee('Thứ 5 12/11')->assertDontSee('Thứ 2 16/11');
+        $this->get("$this->base?day=2026-11-20")->assertSee(__('leave.empty_pending'));
+        $this->get("$this->base?status=all&day=2026-11-20")->assertSee(__('leave.filter_day_empty'));
+        // Người duyệt thấy tên nhân viên rõ ràng, ngày viết đủ "Thứ 2".
+        $this->get("$this->base?day=2026-11-16")->assertSee('<strong>Lan</strong>', false);
     }
 
     public function test_approver_adjusts_balance_with_history(): void
@@ -213,8 +216,8 @@ class LeaveTest extends TestCase
         $this->actingAs($this->lan);
         // Một dòng: ngày · cả ngày · số ngày, nhãn có lương / không lương.
         $this->get("$this->base/mine?view=requests")->assertOk()->assertSee(__('leave.filter_any'))
-            ->assertSeeInOrder(['T6 02/10', __('schedule.whole_day'), '1 ngày', __('leave.paid')])->assertSee(__('leave.unpaid'));
-        $this->get("$this->base/mine?view=requests&from=2026-10-01&to=2026-10-31")->assertSee('T6 02/10')->assertDontSee('T7 05/09');
+            ->assertSeeInOrder(['Thứ 6 02/10', __('schedule.whole_day'), '1 ngày', __('leave.paid')])->assertSee(__('leave.unpaid'));
+        $this->get("$this->base/mine?view=requests&from=2026-10-01&to=2026-10-31")->assertSee('Thứ 6 02/10')->assertDontSee('Thứ 7 05/09');
         $this->get("$this->base/mine?view=requests&from=2026-01-01&to=2026-01-31")->assertSee(__('leave.filter_empty'));
         // Thông tin số ngày phép: chỉ các dòng trong khoảng.
         $this->get("$this->base/mine?from=2026-03-01&to=2026-03-31")->assertSee(__('leave.history_monthly', ['month' => '02/2026']))
