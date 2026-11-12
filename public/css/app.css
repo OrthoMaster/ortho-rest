@@ -103,7 +103,9 @@ a { color: var(--primary-ink); }
 .field { display: grid; gap: .3rem; }
 .field label { font-weight: 500; font-size: .9375rem; }
 .field small { color: var(--ink-soft); font-size: .8125rem; }
-.field small.error { color: var(--bad-ink); }
+.field small.error, small.error { color: var(--bad-ink); }
+/* Nhóm lựa chọn đang thiếu (chưa chọn ca...): viền đỏ để thấy ngay chỗ thiếu. */
+fieldset.has-error .toggle-list, fieldset.has-error .choice-list { border-color: var(--bad-ink); box-shadow: 0 0 0 1px var(--bad-ink); }
 
 input:not([type=checkbox]), select, textarea {
     width: 100%;

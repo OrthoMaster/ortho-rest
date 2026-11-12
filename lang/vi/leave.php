@@ -62,9 +62,6 @@ return [
     'empty_pending' => 'Không có đơn nào chờ duyệt.',
     'sent_by' => 'Gửi :time bởi :name',
     'decided_by' => ':status bởi :name lúc :time',
-    'auto_rejected' => 'Tự chuyển sang không duyệt lúc :time',
-    'expired_note' => 'Đã đến giờ nghỉ mà chưa được duyệt.',
-    'log_expired' => 'Đơn xin nghỉ của :name (:period) quá hạn chưa duyệt, tự chuyển sang không duyệt',
     'paid' => 'Có lương',
     'unpaid' => 'Không lương',
 

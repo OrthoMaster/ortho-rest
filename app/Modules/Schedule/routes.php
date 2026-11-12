@@ -1,13 +1,12 @@
 <?php
 
 use App\Modules\Schedule\Http\DefaultsController;
-use App\Modules\Schedule\Http\ExpireOverdueLeaves;
 use App\Modules\Schedule\Http\LeaveController;
 use App\Modules\Schedule\Http\ScheduleController;
 use App\Modules\Schedule\Http\SettingsController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['module:schedule', 'can:schedule.open', ExpireOverdueLeaves::class])
+Route::middleware(['module:schedule', 'can:schedule.open'])
     ->prefix('schedule')
     ->name('schedule.')
     ->group(function () {

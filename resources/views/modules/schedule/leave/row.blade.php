@@ -19,11 +19,7 @@
         @if ($leave->reason)<small>{{ $leave->reason }}</small>@endif
         <small>
             @if ($leave->decided_at)
-                @if ($leave->decided_by === null && $leave->status === \App\Modules\Schedule\LeaveStatus::Rejected)
-                    {{ __('leave.auto_rejected', ['time' => $leave->decided_at->format('d/m H:i')]) }}
-                @else
-                    {{ __('leave.decided_by', ['status' => $leave->status->label(), 'name' => $leave->decider?->name ?? '—', 'time' => $leave->decided_at->format('d/m H:i')]) }}
-                @endif
+                {{ __('leave.decided_by', ['status' => $leave->status->label(), 'name' => $leave->decider?->name ?? '—', 'time' => $leave->decided_at->format('d/m H:i')]) }}
                 @if ($leave->decision_note) · {{ $leave->decision_note }}@endif
             @else
                 {{ __('leave.sent_by', ['time' => $leave->created_at->format('d/m H:i'), 'name' => $leave->creator?->name ?? '—']) }}

@@ -34,7 +34,7 @@
             </div>
 
             {{-- Nghỉ theo ca: chỉ hiện các ca của thứ đang chọn. --}}
-            <fieldset class="leave-shifts" data-leave-shifts @if ($wholeDay) hidden @endif>
+            <fieldset @class(['leave-shifts', 'has-error' => $errors->has('shifts')]) data-leave-shifts @if ($wholeDay) hidden @endif>
                 <legend>{{ __('leave.shifts') }}@include('partials.required')</legend>
                 <div class="toggle-list">
                     @foreach ($shifts as $weekday => $dayShifts)
@@ -47,7 +47,8 @@
                     @endforeach
                 </div>
                 <small class="row-note" data-leave-no-shifts hidden>{{ __('leave.no_shifts') }}</small>
-                @error('shifts')<small class="error">{{ $message }}</small>@enderror
+                {{-- Báo đỏ ngay trên máy khi bấm gửi mà chưa chọn ca; lỗi từ máy chủ cũng hiện ở đây. --}}
+                <small class="error" data-leave-shift-error role="alert" @unless ($errors->has('shifts')) hidden @endunless>{{ $errors->first('shifts') ?: __('leave.pick_shift') }}</small>
             </fieldset>
 
             @include('partials.textarea', ['name' => 'reason', 'label' => __('leave.reason'), 'value' => '', 'rows' => 2, 'maxlength' => 500, 'placeholder' => __('leave.reason_example')])

@@ -2483,6 +2483,29 @@
             leaveForm.querySelector('[data-leave-no-shifts]').hidden = visible > 0;
         };
 
+        // Nghỉ theo ca mà chưa chọn ca: không gửi, báo đỏ ngay dưới danh sách ca.
+        var shiftBox = leaveForm.querySelector('[data-leave-shifts]');
+        var shiftError = leaveForm.querySelector('[data-leave-shift-error]');
+        var showShiftError = function (show) {
+            shiftBox.classList.toggle('has-error', show);
+            shiftError.hidden = !show;
+        };
+
+        leaveForm.addEventListener('submit', function (event) {
+            if (!leaveWhole.checked && !shiftBox.querySelector('input[type=checkbox]:checked')) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                showShiftError(true);
+                shiftBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        }, true);
+        shiftBox.addEventListener('change', function () {
+            if (shiftBox.querySelector('input[type=checkbox]:checked')) {
+                showShiftError(false);
+            }
+        });
+        leaveWhole.addEventListener('change', function () { showShiftError(false); });
+
         leaveWhole.addEventListener('change', syncLeave);
         leaveStart.addEventListener('change', syncLeave);
         syncLeave();
