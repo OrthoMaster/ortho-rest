@@ -1,14 +1,14 @@
 @extends('layouts.admin')
 
-@section('title', __('leave.mine'))
+@section('title', __('leave.nav'))
 
 @section('content')
     <div class="page-head">
-        <h1>{{ __('schedule.title') }}</h1>
+        <h1>{{ __('leave.nav') }}</h1>
         <a class="btn" href="{{ route('tenant.admin.schedule.leave.create') }}">{{ __('leave.add') }}</a>
     </div>
 
-    @include('modules.schedule.subnav')
+    @include('modules.schedule.leave.subnav')
 
     {{--
         Máy tính: cột trái hẹp (chọn người, phép còn lại); cột phải rộng: đơn đang chờ (chỉ khi có) ở trên,

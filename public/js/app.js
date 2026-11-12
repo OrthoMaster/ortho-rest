@@ -7,7 +7,7 @@
         var panel = document.getElementById('sidebar-panel');
         var backdrop = document.querySelector('.nav-backdrop');
 
-        var setOpen = function (open) {
+        var setNavOpen = function (open) {
             shell.classList.toggle('nav-open', open);
             document.body.classList.toggle('no-scroll', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -21,22 +21,22 @@
         };
 
         toggle.addEventListener('click', function () {
-            setOpen(!shell.classList.contains('nav-open'));
+            setNavOpen(!shell.classList.contains('nav-open'));
         });
 
         backdrop.addEventListener('click', function () {
-            setOpen(false);
+            setNavOpen(false);
         });
 
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape' && shell.classList.contains('nav-open')) {
-                setOpen(false);
+                setNavOpen(false);
                 toggle.focus();
             }
         });
 
         window.matchMedia('(min-width: 761px)').addEventListener('change', function () {
-            setOpen(false);
+            setNavOpen(false);
         });
     }
 

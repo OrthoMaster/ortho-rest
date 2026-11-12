@@ -2,7 +2,8 @@
 
 return [
     'title' => 'Đơn xin nghỉ',
-    'mine' => 'Nghỉ phép',
+    'nav' => 'Nghỉ phép',
+    'mine' => 'Ngày phép',
     'mine_pending' => 'Đơn đang chờ duyệt',
     'mine_history' => 'Các đơn đã xin',
     'book_of' => 'Nhân viên',

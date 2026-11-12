@@ -300,13 +300,21 @@ class StaffTest extends TestCase
 
     public function test_left_menu_groups_daily_service_between_lines(): void
     {
-        $this->enableModules($this->restaurant, 'menu', 'takeaway');
+        $this->enableModules($this->restaurant, 'menu', 'takeaway', 'schedule');
 
+        // Nhóm phục vụ khách và nhóm nội bộ (Nội bộ, Lịch làm việc, Nghỉ phép) có đường kẻ; Nhật ký ngay trên Cài đặt chung.
         $this->get($this->admin)->assertSeeInOrder([
             __('ui.nav.dashboard'),
             'nav-sep', __('modules.reservation'), __('modules.takeaway'), __('modules.menu'), 'nav-sep',
-            __('ui.nav.customers'), __('activity.title'), __('modules.staff'), __('ui.restaurant.title'), __('ui.nav.profile'),
+            __('ui.nav.customers'),
+            'nav-sep', __('modules.staff'), __('modules.schedule'), __('leave.nav'), 'nav-sep',
+            __('activity.title'), __('ui.restaurant.title'), __('ui.nav.profile'),
         ], false);
+
+        // Ở trang nghỉ phép thì mục Nghỉ phép sáng, Lịch làm việc không sáng.
+        $this->get("$this->admin/schedule/leave")->assertOk()
+            ->assertSee('/schedule/leave" class="active">'.__('leave.nav'), false)
+            ->assertDontSee('/schedule" class="active"', false);
     }
 
     public function test_departments_and_contract_fields(): void

@@ -4,11 +4,11 @@
 
 @section('content')
     <div class="page-head">
-        <h1>{{ __('schedule.title') }}</h1>
+        <h1>{{ __('leave.nav') }}</h1>
         <a class="btn" href="{{ route('tenant.admin.schedule.leave.create') }}">{{ __('leave.add') }}</a>
     </div>
 
-    @include('modules.schedule.subnav')
+    @include('modules.schedule.leave.subnav')
 
     {{-- Màn hình rộng: lịch nhỏ bên trái để xem còn đủ người không, danh sách đơn bên phải. --}}
     <div class="cols cols-2-xl leave-board">

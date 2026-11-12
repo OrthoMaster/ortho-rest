@@ -961,6 +961,7 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .toggle-row:has(input:disabled) { cursor: default; }
 .toggle-row input:disabled { opacity: .55; cursor: default; }
 .nav-sep { margin: .45rem .5rem; border: 0; border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent); }
+.nav-sep + .nav-sep { display: none; }
 .area-code { display: inline-grid; place-items: center; min-width: 2.25rem; height: 1.75rem; padding: 0 .4rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); background: var(--primary-soft); border-radius: var(--radius); }
 
 .code-input { max-width: 6rem; text-transform: uppercase; font-weight: 700; letter-spacing: .08em; }
