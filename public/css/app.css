@@ -1108,7 +1108,7 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .schedule thead th span { display: block; font-weight: 400; color: var(--ink-soft); }
 .schedule thead th.is-today { color: var(--primary-ink); background: var(--primary-soft); }
 /* Cột Khu / việc: màn hình to thì rộng ra; màn hình nhỏ giữ cố định bên trái, các cột ngày cuộn ngang. */
-.schedule .schedule-target { position: sticky; left: 0; z-index: 1; width: clamp(8.5rem, 14vw, 16rem); padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
+.schedule .schedule-target { position: sticky; left: 0; z-index: 3; width: clamp(8.5rem, 14vw, 16rem); padding: .6rem .75rem; font-weight: 600; background: var(--surface); }
 .schedule thead .schedule-target { background: var(--ground); }
 .schedule tbody th.schedule-target { display: table-cell; }
 .schedule .schedule-target .area-code { margin: 0 0 .25rem; }
@@ -1206,7 +1206,6 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .need-input { margin-left: auto; }
 .need-input input { width: 2.6rem; min-height: 0; padding: .05rem .25rem; font-size: .75rem; text-align: center; -moz-appearance: textfield; }
 .need-input input::-webkit-inner-spin-button, .need-input input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
-.planner.is-editable .slot-zone { cursor: copy; }
 .schedule td.slot-zone.is-drop-target { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary-ink); }
 .schedule td.slot-zone.is-warned { background: var(--warn-bg); }
 .schedule td.slot-zone.is-blocked { background: var(--bad-bg); cursor: not-allowed; }
@@ -1306,12 +1305,12 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 /* Lịch nhỏ ở Đơn xin nghỉ: số người nghỉ theo ca và bộ phận. */
 .leave-calendar-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
 .leave-calendar-head h2 { margin: 0; }
-.leave-cal { width: 100%; min-width: 28rem; border-collapse: collapse; table-layout: fixed; font-size: .8125rem; }
+.leave-cal { width: 100%; min-width: 28rem; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .8125rem; }
 .leave-cal th, .leave-cal td { padding: .4rem .45rem; text-align: center; vertical-align: top; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
 .leave-cal tr > :first-child { width: 7rem; text-align: left; border-left: 0; }
 .leave-cal tbody tr:last-child > * { border-bottom: 0; }
 /* Cột bộ phận đứng yên khi cuộn ngang trên điện thoại. */
-.leave-cal tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.leave-cal tr > :first-child { position: sticky; left: 0; z-index: 3; background: var(--surface); box-shadow: 1px 0 0 var(--line); }
 .leave-cal thead tr > :first-child { background: var(--ground); }
 .leave-cal thead th { font-weight: 600; background: var(--ground); }
 .leave-cal thead th span { display: block; font-weight: 400; color: var(--ink-soft); }
