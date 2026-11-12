@@ -162,6 +162,13 @@ class LeaveTest extends TestCase
             ->assertSee('Ca trưa: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 1, 'people' => 2]), false)
             ->assertSee('Ca tối: '.__('leave.calendar_cell', ['approved' => 1, 'pending' => 0, 'people' => 2]), false)
             ->assertSee(__('leave.mine'));
+
+        // Lọc theo một ngày (bấm cột trên lịch): chỉ còn đơn nghỉ vào ngày đó, cột được chọn tô nổi.
+        $make($this->lan, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-16', 'status' => LeaveStatus::Pending]);
+        $this->get("$this->base?day=2026-11-16")->assertOk()->assertSee('T2 16/11')->assertDontSee('T5 12/11')
+            ->assertSee('is-selected', false)->assertSee('data-day-url', false);
+        $this->get("$this->base?status=all&day=2026-11-12")->assertSee('T5 12/11')->assertDontSee('T2 16/11');
+        $this->get("$this->base?day=2026-11-20")->assertSee(__('leave.filter_day_empty'));
     }
 
     public function test_approver_adjusts_balance_with_history(): void

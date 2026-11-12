@@ -40,8 +40,16 @@ class LeaveController extends Controller
 
         $filter = $request->query('status') === 'all' ? 'all' : 'pending';
 
+        // Lọc theo một ngày: đơn có ngày nghỉ trùng ngày đó (chọn ở ô ngày hoặc bấm cột trên lịch).
+        try {
+            $day = $request->filled('day') ? CarbonImmutable::parse((string) $request->query('day'))->startOfDay() : null;
+        } catch (\Throwable) {
+            $day = null;
+        }
+
         $leaves = LeaveRequest::with(['user.department', 'creator', 'decider'])
             ->when($filter === 'pending', fn ($query) => $query->where('status', LeaveStatus::Pending))
+            ->when($day, fn ($query) => $query->whereDate('starts_on', '<=', $day)->whereDate('ends_on', '>=', $day))
             ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
             ->orderByDesc('starts_on')
             ->limit(200)
@@ -53,6 +61,7 @@ class LeaveController extends Controller
             'leaves' => $leaves,
             'approver' => true,
             'filter' => $filter,
+            'filterDay' => $day,
             ...$this->calendar($request),
             // Cho hộp thoại duyệt: phép còn lại và số ô đang xếp lịch của từng đơn chờ.
             'balances' => $pending->mapWithKeys(fn ($leave) => [$leave->id => LeaveBook::balance($leave->user)]),
@@ -168,7 +177,8 @@ class LeaveController extends Controller
     private function calendar(Request $request): array
     {
         try {
-            $date = CarbonImmutable::parse((string) $request->query('date', 'today'));
+            // Đang lọc một ngày thì lịch mở ở tuần của ngày đó.
+            $date = CarbonImmutable::parse((string) $request->query('date', $request->query('day', 'today')));
         } catch (\Throwable) {
             $date = CarbonImmutable::today();
         }

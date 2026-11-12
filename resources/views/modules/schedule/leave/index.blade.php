@@ -15,13 +15,20 @@
     @include('modules.schedule.leave.calendar')
 
     <div class="stack">
-        <nav class="chips" aria-label="{{ __('leave.title') }}">
-            <a href="{{ request()->fullUrlWithQuery(['status' => null]) }}" @class(['chip', 'is-active' => $filter === 'pending'])>{{ __('leave.filter_pending') }}</a>
-            <a href="{{ request()->fullUrlWithQuery(['status' => 'all']) }}" @class(['chip', 'is-active' => $filter === 'all'])>{{ __('leave.filter_all') }}</a>
-        </nav>
+        {{-- Chờ duyệt / Tất cả, và lọc theo một ngày (chọn ở ô ngày hoặc bấm cột trên lịch). --}}
+        <div class="leave-list-bar">
+            <nav class="chips" aria-label="{{ __('leave.title') }}">
+                <a href="{{ request()->fullUrlWithQuery(['status' => null]) }}" @class(['chip', 'is-active' => $filter === 'pending'])>{{ __('leave.filter_pending') }}</a>
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'all']) }}" @class(['chip', 'is-active' => $filter === 'all'])>{{ __('leave.filter_all') }}</a>
+            </nav>
+            <form method="get" class="leave-range" onchange="this.submit()">
+                @include('partials.query-hidden', ['except' => ['day', 'date']])
+                @include('partials.date-picker', ['name' => 'day', 'label' => __('leave.filter_day'), 'value' => $filterDay?->toDateString(), 'placeholder' => __('leave.filter_any'), 'hideLabel' => true])
+            </form>
+        </div>
 
     @if ($leaves->isEmpty())
-        <p class="empty">{{ $filter === 'pending' ? __('leave.empty_pending') : __('leave.empty') }}</p>
+        <p class="empty">{{ $filterDay ? __('leave.filter_day_empty') : ($filter === 'pending' ? __('leave.empty_pending') : __('leave.empty')) }}</p>
     @else
         <section class="panel">
             <ul class="rows leave-list">

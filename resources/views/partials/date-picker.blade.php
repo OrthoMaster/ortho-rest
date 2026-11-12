@@ -1,5 +1,6 @@
 {{-- Ô chọn ngày hiện thứ, bấm mở lịch. $min là ngày nhỏ nhất chọn được, bỏ trống thì chọn được mọi ngày.
-     $withYear: ngày xa (ngày bắt đầu làm...) thì hiện năm và có nút lùi, tới cả năm; $placeholder: cho phép để trống. --}}
+     $withYear: ngày xa (ngày bắt đầu làm...) thì hiện năm và có nút lùi, tới cả năm; $placeholder: cho phép để trống
+     (khi đó lịch có nút Bỏ chọn ngày). --}}
 <div class="field" data-date-picker data-min="{{ $min ?? '' }}" @if ($withYear ?? false) data-with-year @endif data-placeholder="{{ $placeholder ?? '' }}" data-today="{{ today()->toDateString() }}"
      data-weekdays="{{ json_encode(array_values(__('ui.calendar.weekdays')), JSON_UNESCAPED_UNICODE) }}"
      data-weekdays-short="{{ json_encode(array_values(__('ui.calendar.weekdays_short')), JSON_UNESCAPED_UNICODE) }}"
@@ -33,6 +34,9 @@
         <div class="calendar-foot">
             <button class="btn btn-quiet btn-sm" type="button" data-date-shortcut="0">{{ __('ui.calendar.today') }}</button>
             <button class="btn btn-quiet btn-sm" type="button" data-date-shortcut="1">{{ __('ui.calendar.tomorrow') }}</button>
+            @isset($placeholder)
+                <button class="btn btn-quiet btn-sm" type="button" data-date-clear>{{ __('ui.calendar.clear_date') }}</button>
+            @endisset
             <button class="link" type="button" data-close-dialog>{{ __('ui.common.close') }}</button>
         </div>
     </dialog>

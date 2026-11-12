@@ -1283,6 +1283,11 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-balance strong.is-negative { color: var(--bad-ink); }
 .leave-balance small { flex-basis: 100%; color: var(--ink-soft); }
 .leave-list li { flex-wrap: nowrap; }
+@media (max-width: 760px) {
+    /* Điện thoại: nhãn và nút xuống hàng dưới, không đè lên nhau. */
+    .leave-list li { flex-wrap: wrap; }
+    .leave-list .row-name { flex-basis: 100%; }
+}
 .leave-list .row-name { display: grid; flex: 1 1 auto; min-width: 0; gap: .2rem; }
 .leave-list .badge { flex: none; }
 .leave-list-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; }
@@ -1315,10 +1320,9 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-cal-slot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .2rem; min-height: 1.6rem; padding: .1rem; border-radius: 6px; }
 .leave-cal-slot + .leave-cal-slot { margin-top: .2rem; }
 .leave-cal-slot small { flex-basis: 100%; overflow: hidden; font-size: .6875rem; color: var(--ink-soft); white-space: nowrap; text-overflow: ellipsis; }
-.leave-cal-slot.is-heavy { background: color-mix(in srgb, var(--bad-bg) 70%, var(--surface)); }
 .leave-cal-none { color: var(--ink-soft); }
 .leave-count { display: inline-grid; place-items: center; min-width: 1.4rem; height: 1.4rem; padding: 0 .3rem; font-size: .75rem; border-radius: 999px; }
-.leave-count.is-approved { color: var(--ok-ink); background: var(--ok-bg); }
+.leave-count.is-approved { color: var(--bad-ink); background: var(--bad-bg); }
 .leave-count.is-pending { color: var(--warn-ink); background: var(--warn-bg); }
 .leave-cal-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: 0; font-size: .8125rem; color: var(--ink-soft); }
 .leave-history li { flex-wrap: nowrap; align-items: center; }
@@ -1330,6 +1334,17 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-history-change small { font-size: .75rem; color: var(--ink-soft); }
 h2 .count { display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; margin-left: .35rem; padding: 0 .4rem; font-size: .8125rem; color: var(--warn-ink); background: var(--warn-bg); border-radius: 999px; vertical-align: middle; }
 .leave-cal-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.legend-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; }
+.legend-dot.is-approved { background: var(--bad-bg); box-shadow: inset 0 0 0 1.5px var(--bad-ink); }
+.legend-dot.is-pending { background: var(--warn-bg); box-shadow: inset 0 0 0 1.5px var(--warn-ink); }
+.leave-cal-tip { flex-basis: 100%; }
+/* Bấm cột ngày để lọc danh sách đơn; cột đang chọn tô nổi. */
+.leave-cal [data-day-url] { cursor: pointer; }
+.leave-cal thead th a { display: block; color: inherit; text-decoration: none; }
+.leave-cal tbody td[data-day-url]:hover { background: color-mix(in srgb, var(--primary-soft) 35%, var(--surface)); }
+.leave-cal thead th.is-selected { color: var(--surface); background: var(--primary-ink); }
+.leave-cal thead th.is-selected span { color: inherit; }
+.leave-cal td.is-selected { background: color-mix(in srgb, var(--primary-soft) 70%, var(--surface)); box-shadow: inset 2px 0 0 var(--primary-ink), inset -2px 0 0 var(--primary-ink); }
 .leave-shifts legend { margin-bottom: .4rem; padding: 0; font-weight: 600; }
 @media (max-width: 760px) {
     .planner, .people-card, .people-card-open { display: none !important; }

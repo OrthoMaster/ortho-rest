@@ -1729,6 +1729,11 @@
                 choose(day.dataset.date);
             } else if (shortcut) {
                 choose(toIso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(shortcut.dataset.dateShortcut))));
+            } else if (event.target.closest('[data-date-clear]')) {
+                value.value = '';
+                text.textContent = picker.dataset.placeholder;
+                value.dispatchEvent(new Event('change', { bubbles: true }));
+                dialog.close();
             }
         });
 
@@ -2510,6 +2515,20 @@
         leaveStart.addEventListener('change', syncLeave);
         syncLeave();
     }
+
+    // Lịch nhỏ ở Đơn xin nghỉ: bấm vào ô của một ngày thì lọc danh sách theo ngày đó.
+    document.querySelectorAll('.leave-cal td[data-day-url]').forEach(function (cell) {
+        cell.addEventListener('click', function () { window.location.href = cell.dataset.dayUrl; });
+    });
+    // Cột đang chọn nằm ngoài khung (điện thoại): cuộn tới cột đó.
+    document.querySelectorAll('.leave-cal thead th.is-selected').forEach(function (head) {
+        var wrap = head.closest('.table-wrap');
+        var sticky = wrap.querySelector('thead th');
+
+        if (head.offsetLeft + head.offsetWidth > wrap.clientWidth) {
+            wrap.scrollLeft = head.offsetLeft - sticky.offsetWidth - 8;
+        }
+    });
 
     // Phân công và Lịch mặc định: kéo tên vào ô (hoặc bấm tên rồi bấm ô), kéo tên sang ô khác,
     // giữ lâu một tên trong lịch để hiện nút Xoá. Mọi thay đổi lưu ngay.
