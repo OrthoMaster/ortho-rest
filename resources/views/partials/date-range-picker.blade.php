@@ -1,11 +1,12 @@
 {{-- Chọn khoảng ngày trên lịch: bấm ngày đầu rồi ngày cuối. $maxDays giới hạn độ dài, $max là ngày lớn nhất.
-     $from và $to có thể null (chưa chọn), khi đó nút hiện $placeholder và lịch có nút Bỏ chọn ngày. --}}
+     $from và $to có thể null (chưa chọn), khi đó nút hiện $placeholder và lịch có nút Bỏ chọn ngày.
+     $shortcuts = false: bỏ các nút "7 ngày", ":maxDays ngày" và không nhắc giới hạn số ngày (tra cứu khoảng dài). --}}
 <div class="field" data-date-range data-today="{{ today()->toDateString() }}" data-max="{{ $max ?? '' }}" data-max-days="{{ $maxDays }}"
      data-weekdays="{{ json_encode(array_values(__('ui.calendar.weekdays')), JSON_UNESCAPED_UNICODE) }}"
      data-weekdays-short="{{ json_encode(array_values(__('ui.calendar.weekdays_short')), JSON_UNESCAPED_UNICODE) }}"
      data-month-label="{{ __('ui.calendar.month') }}" data-today-label="{{ __('ui.calendar.today') }}"
      data-placeholder="{{ $placeholder ?? '' }}"
-     data-start-hint="{{ __('ui.calendar.range_start') }}" data-end-hint="{{ __('ui.calendar.range_end', ['days' => $maxDays]) }}">
+     data-start-hint="{{ __('ui.calendar.range_start') }}" data-end-hint="{{ ($shortcuts ?? true) ? __('ui.calendar.range_end', ['days' => $maxDays]) : __('ui.calendar.range_end_free') }}">
     <span @class(['field-label', 'visually-hidden' => ! ($showLabel ?? false)]) id="range-label">{{ $label }}</span>
     <input type="hidden" name="from" value="{{ $from?->toDateString() }}" data-range-from>
     <input type="hidden" name="to" value="{{ $to?->toDateString() }}" data-range-to>
@@ -29,8 +30,10 @@
         <p class="calendar-hint" data-range-status aria-live="polite"></p>
         <div class="calendar-foot">
             <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="0">{{ __('ui.calendar.today') }}</button>
-            <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="6">{{ __('ui.calendar.last_days', ['days' => 7]) }}</button>
-            @if ($longShortcut ?? true)
+            @if ($shortcuts ?? true)
+                <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="6">{{ __('ui.calendar.last_days', ['days' => 7]) }}</button>
+            @endif
+            @if (($shortcuts ?? true) && ($longShortcut ?? true))
                 <button class="btn btn-quiet btn-sm" type="button" data-range-shortcut="{{ $maxDays - 1 }}">{{ __('ui.calendar.last_days', ['days' => $maxDays]) }}</button>
             @endif
             @isset($placeholder)

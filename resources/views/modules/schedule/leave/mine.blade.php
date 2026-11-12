@@ -60,7 +60,7 @@
                     @if ($hasData)
                         <form method="get" class="leave-range" onchange="this.submit()">
                             @include('partials.query-hidden', ['except' => ['from', 'to', 'page']])
-                            @include('partials.date-range-picker', ['label' => __('leave.filter_range'), 'from' => $from, 'to' => $to, 'maxDays' => 366, 'placeholder' => __('leave.filter_any')])
+                            @include('partials.date-range-picker', ['label' => __('leave.filter_range'), 'from' => $from, 'to' => $to, 'maxDays' => 3660, 'shortcuts' => false, 'placeholder' => __('leave.filter_any')])
                         </form>
                     @endif
                     </div>

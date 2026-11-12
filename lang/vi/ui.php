@@ -28,6 +28,7 @@ return [
         'clear_range' => 'Bỏ chọn ngày',
         'range_start' => 'Chọn ngày bắt đầu',
         'range_end' => 'Chọn ngày kết thúc, tối đa :days ngày',
+        'range_end_free' => 'Chọn ngày kết thúc',
         'last_days' => ':days ngày',
         'previous_range' => 'Khoảng trước',
         'next_range' => 'Khoảng sau',
