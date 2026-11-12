@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
         $manager = $this->user('manager@quan-demo.test', 'Quản lý Demo', $demo, UserRole::Staff, phone: '0900000001');
         $staff = $this->user('staff@quan-demo.test', 'Nhân viên Demo', $demo, UserRole::Staff, phone: '0900000002');
 
-        foreach (['website', 'menu', 'reservation', 'takeaway', 'dinein', 'staff', 'schedule'] as $module) {
+        foreach (['website', 'menu', 'reservation', 'takeaway', 'dinein', 'kitchen', 'staff', 'schedule'] as $module) {
             $modules->enable($demo, $module);
         }
 
@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
             $user->positions()->syncWithoutDetaching([Position::forRestaurant($demo)->where('preset', $preset)->value('id')]);
         }
 
-        $this->demoData($demo);
+        $this->demoData($demo, $modules);
 
         // *.localhost tự trỏ về máy mình trên Chrome, Edge, Firefox: khỏi sửa file hosts.
         $custom = Restaurant::firstOrCreate(['slug' => 'bun-cha-ha-noi'], [
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /** Chỉ tạo khi quán chưa có menu, để chạy lại seed không nhân đôi dữ liệu. */
-    private function demoData(Restaurant $restaurant): void
+    private function demoData(Restaurant $restaurant, ModuleManager $modules): void
     {
         if (MenuCategory::forRestaurant($restaurant)->exists()) {
             return;
@@ -110,7 +110,10 @@ class DatabaseSeeder extends Seeder
         }
 
         // Lấy đơn tại bàn: đồ uống ở quầy nước, Cơm tấm có tuỳ chọn.
-        MenuItem::whereIn('name', ['Trà đá', 'Cà phê sữa đá'])->update(['dinein_station_id' => Station::orderBy('sort_order')->skip(1)->value('id')]);
+        // Món ăn làm ở Bếp, đồ uống ở Quầy nước (món chưa chọn khu thì không qua màn hình khu).
+        [$kitchen, $bar] = Station::orderBy('sort_order')->pluck('id')->all();
+        MenuItem::whereNull('dinein_station_id')->update(['dinein_station_id' => $kitchen]);
+        MenuItem::whereIn('name', ['Trà đá', 'Cà phê sữa đá'])->update(['dinein_station_id' => $bar]);
         $comTam = MenuItem::where('name', 'Cơm tấm sườn')->first();
         foreach ([
             ['Thịt', true, false, [['Sườn', 0], ['Sườn cọng', 15000], ['Thêm trứng', 8000]]],
@@ -144,7 +147,10 @@ class DatabaseSeeder extends Seeder
         ], ReservationSource::Phone);
 
         app(PlaceOrder::class)->handle(
-            [MenuItem::where('name', 'Phở bò tái')->value('id') => 2, MenuItem::where('name', 'Cà phê sữa đá')->value('id') => 1],
+            [
+                ['item' => MenuItem::where('name', 'Phở bò tái')->value('id'), 'quantity' => 2],
+                ['item' => MenuItem::where('name', 'Cà phê sữa đá')->value('id'), 'quantity' => 1],
+            ],
             ['customer_name' => 'Anh Tuấn', 'customer_phone' => '0987654321', 'pickup_at' => $today->copy()->setTime(18, 30)],
         );
 
