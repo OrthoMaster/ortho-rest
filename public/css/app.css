@@ -1041,13 +1041,17 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 dialog.dine-dialog { width: min(32rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
 /* Đầu hộp thoại có đường kẻ ngang hết bề rộng, đứng yên khi cuộn danh sách. */
 .dialog-head { position: sticky; top: -1.25rem; z-index: 1; margin: -1.25rem -1.25rem 0; padding: 1rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--line); }
-.dine-dialog .rows .line-tools { flex: none; }
+[data-cart-lines] .line-tools { flex: none; }
+/* Đặt mang đi: máy tính đã có khung Món đã chọn ở cột phải nên ẩn nút mở hộp. */
+@media (min-width: 1024px) {
+    .takeaway-review { display: none; }
+}
 /* Điện thoại: giá xuống dưới tên để tên món không bị bóp hẹp bởi hai nút. */
 @media (max-width: 760px) {
-    .dine-dialog .dine-lines li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name tools" "total tools"; align-items: center; gap: .25rem .75rem; }
-    .dine-dialog .dine-lines .row-name { grid-area: name; }
-    .dine-dialog .dine-lines .line-total { grid-area: total; justify-self: start; text-align: left; }
-    .dine-dialog .dine-lines .line-tools { grid-area: tools; }
+    [data-cart-lines] li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name tools" "total tools"; align-items: center; gap: .25rem .75rem; }
+    [data-cart-lines] .row-name { grid-area: name; }
+    [data-cart-lines] .line-total { grid-area: total; justify-self: start; text-align: left; }
+    [data-cart-lines] .line-tools { grid-area: tools; }
 }
 .dine-dialog .rows li { flex-wrap: nowrap; }
 .dine-dialog .rows .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }

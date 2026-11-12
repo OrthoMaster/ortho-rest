@@ -4,8 +4,11 @@ namespace App\Modules\Takeaway\Http;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Menu\Models\MenuCategory;
+use App\Modules\Menu\Models\MenuItem;
+use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\ModuleManager;
 use App\Modules\Takeaway\Models\TakeawayOrder;
+use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
 use App\Modules\Takeaway\PlaceOrder;
 use App\Support\Phone;
@@ -55,9 +58,8 @@ class OrderController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $quantities = array_map('intval', $data['items']);
 
-        $order = $this->orders->handle($quantities, $data, $request->user());
+        $order = $this->orders->handle($data['lines'], $data, $request->user());
 
         return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', __('takeaway.saved'));
     }
@@ -74,40 +76,70 @@ class OrderController extends Controller
     public function update(Request $request, TakeawayOrder $order): RedirectResponse
     {
         $data = $this->validated($request, $order);
-        $quantities = array_map('intval', $data['items']);
 
         $oldCode = $order->code();
-        $updated = $this->orders->update($order, $quantities, $data, $request->user());
+        $updated = $this->orders->update($order, $data['lines'] ?? [], $data, $request->user());
 
         $message = $updated->code() === $oldCode ? __('takeaway.updated') : __('takeaway.updated_code', ['code' => $updated->code()]);
 
         return redirect()->route('tenant.admin.takeaway.show', $order)->with('status', $message);
     }
 
+    /**
+     * Form tạo / sửa đơn: chọn món giống gọi món tại bàn (bấm món mở hộp tuỳ chọn, số lượng, ghi chú).
+     * Món đang có trong đơn luôn có trong dữ liệu menu để sửa được, kể cả khi menu đã ẩn nó.
+     */
     private function form(TakeawayOrder $order): View
     {
         $settings = $this->modules->settings(tenant(), 'takeaway');
         $default = now()->ceilMinutes(self::MINUTE_STEP);
-        $inOrder = $order->exists ? $order->items->whereNotNull('menu_item_id')->keyBy('menu_item_id') : collect();
-        $ids = $inOrder->keys()->all();
+        $inOrder = $order->exists ? $order->items->whereNotNull('menu_item_id') : collect();
+        $ids = $inOrder->pluck('menu_item_id')->unique()->values()->all();
 
-        // Món đang có trong đơn luôn phải hiện, kể cả khi menu đã ẩn nó.
-        $categories = MenuCategory::with(['items' => fn ($query) => $query->where(fn ($query) => $query
-            ->where(fn ($query) => $query->whereNotNull('price_takeaway')->where('is_visible', true))
-            ->orWhereIn('id', $ids))])
+        $categories = MenuCategory::with(['items' => fn ($query) => $query
+            ->where(fn ($query) => $query->where(fn ($query) => $query->whereNotNull('price_takeaway')->where('is_visible', true))->orWhereIn('id', $ids))
+            ->with('optionGroups.options')])
             ->orderBy('sort_order')
-            ->get()
-            ->each(function (MenuCategory $category) use ($ids): void {
-                if (! $category->is_visible) {
-                    $category->setRelation('items', $category->items->whereIn('id', $ids));
-                }
-            })
-            ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty());
+            ->get();
+
+        $menu = $categories->flatMap(fn (MenuCategory $category) => $category->items)->unique('id')->map(fn (MenuItem $item) => [
+            'id' => $item->id,
+            'name' => $item->name,
+            'price' => $item->price_takeaway ?? 0,
+            'groups' => $item->optionGroups->map(fn (MenuItemOptionGroup $group) => [
+                'id' => $group->id,
+                'name' => $group->name,
+                'required' => $group->is_required,
+                'multiple' => $group->is_multiple,
+                'options' => $group->options->map->only(['id', 'name', 'price'])->values(),
+            ])->values(),
+        ])->values();
+
+        // Danh sách để chọn: chỉ món đang bán mang đi (món hết hiện nhãn Hết món).
+        $listed = $categories
+            ->filter(fn (MenuCategory $category) => $category->is_visible)
+            ->each(fn (MenuCategory $category) => $category->setRelation('items', $category->items->filter(fn (MenuItem $item) => $item->is_visible && $item->price_takeaway !== null)->values()))
+            ->filter(fn (MenuCategory $category) => $category->items->isNotEmpty())
+            ->values();
+
+        // Đơn đang sửa: mỗi món giữ id dòng, giá lúc đặt và tuỳ chọn đã chép để hiện đúng như trên đơn.
+        $lines = $inOrder->map(fn (TakeawayOrderItem $line) => [
+            'item' => $line->menu_item_id,
+            'quantity' => $line->quantity,
+            'options' => $line->optionIds(),
+            'note' => $line->note ?? '',
+            'line' => $line->id,
+            'unit' => $line->unit_price,
+            'name' => $line->name,
+            'optionLines' => $line->optionLines(),
+        ])->values()->all();
 
         return view('modules.takeaway.form', [
             'order' => $order,
-            'categories' => $categories,
-            'inOrder' => $inOrder,
+            'categories' => $listed,
+            'menu' => $menu,
+            'lines' => old('lines') !== null ? array_values(old('lines')) : $lines,
+            'kept' => collect($lines)->keyBy('line')->all(),
             'detached' => $order->exists ? $order->items->whereNull('menu_item_id') : collect(),
             'defaultDate' => $order->exists ? $order->pickup_at->toDateString() : $default->toDateString(),
             'defaultTime' => $order->exists ? $order->pickup_at->format('H:i') : $default->format('H:i'),
@@ -130,13 +162,18 @@ class OrderController extends Controller
             'pickup_date' => ['required', 'date_format:Y-m-d'],
             'pickup_time' => ['required', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'items' => ['required', 'array'],
-            'items.*' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'lines' => [$order ? 'nullable' : 'required', 'array', 'max:100'],
+            'lines.*.item' => ['required', 'integer'],
+            'lines.*.quantity' => ['required', 'integer', 'min:0', 'max:999'],
+            'lines.*.options' => ['array'],
+            'lines.*.options.*' => ['integer'],
+            'lines.*.note' => ['nullable', 'string', 'max:200'],
+            'lines.*.line' => ['nullable', 'integer'],
             'discount_mode' => ['nullable', Rule::in(['none', 'code', 'percent', 'amount'])],
             'discount_code' => ['nullable', 'required_if:discount_mode,code', 'string', 'max:40'],
             'discount_percent' => ['nullable', 'required_if:discount_mode,percent', 'integer', 'min:1', 'max:100'],
             'discount_thousands' => ['nullable', 'required_if:discount_mode,amount', 'integer', 'min:1', 'max:999999'],
-        ]);
+        ], ['lines.required' => __('takeaway.no_items')]);
 
         $this->authorizeDiscount($request, $data, $order);
 

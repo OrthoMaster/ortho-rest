@@ -7,6 +7,7 @@ use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
+use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOptionGroup;
@@ -242,28 +243,7 @@ class TableController extends Controller
             }
 
             $picked = array_map('intval', $row['options'] ?? []);
-            $chosen = [];
-
-            foreach ($item->optionGroups as $group) {
-                $inGroup = $group->options->filter(fn ($option) => in_array($option->id, $picked, true));
-
-                if ($group->is_required && $inGroup->isEmpty()) {
-                    $fail(__('dinein.option_required', ['name' => $item->name, 'group' => $group->name]));
-                }
-
-                if (! $group->is_multiple && $inGroup->count() > 1) {
-                    $fail(__('dinein.option_single', ['name' => $item->name, 'group' => $group->name]));
-                }
-
-                foreach ($inGroup as $option) {
-                    $chosen[] = ['group' => $group->name, 'name' => $option->name, 'price' => $option->price];
-                }
-            }
-
-            // Tuỳ chọn không thuộc món này.
-            if (count($chosen) !== count(array_unique($picked))) {
-                $fail(__('dinein.item_unavailable'));
-            }
+            $chosen = ChosenOptions::resolve($item, $picked, $fail, 'dinein');
 
             $note = trim((string) ($row['note'] ?? ''));
 

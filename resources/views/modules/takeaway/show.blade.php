@@ -41,10 +41,10 @@
 
     <section class="panel">
         <h2>{{ __('takeaway.items') }}</h2>
-        <ul class="rows">
+        <ul class="rows dine-lines">
             @foreach ($order->items as $item)
                 <li>
-                    <span class="row-name">{{ $item->quantity }} × {{ $item->name }}</span>
+                    <span class="row-name">{{ $item->quantity }} × {{ $item->name }}@foreach ($item->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach @if ($item->note)<small class="dine-note">{{ $item->note }}</small>@endif</span>
                     <span>{{ vnd($item->lineTotal()) }}</span>
                 </li>
             @endforeach

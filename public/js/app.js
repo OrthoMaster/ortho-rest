@@ -655,7 +655,8 @@
         document.addEventListener('visibilitychange', poll);
     }
 
-    // Gọi món tại bàn: bấm món mở hộp thoại tuỳ chọn, số lượng, ghi chú; đơn giữ ở trình duyệt đến khi gửi.
+    // Chọn món (Lấy đơn tại bàn, Đặt mang đi): bấm món mở hộp thoại tuỳ chọn, số lượng, ghi chú;
+    // đơn giữ ở trình duyệt đến khi gửi. Món đã có của đơn mang đi (line) giữ giá lúc đặt nếu không đổi tuỳ chọn.
     var dineForm = document.querySelector('[data-dine-order]');
 
     if (dineForm) {
@@ -668,16 +669,38 @@
         JSON.parse(dineForm.querySelector('[data-dine-menu]').textContent).forEach(function (item) {
             dineMenu[item.id] = item;
         });
+        var keptNode = dineForm.querySelector('[data-dine-kept]');
+        var kept = keptNode ? JSON.parse(keptNode.textContent) : {};
+        var byNumber = function (a, b) { return a - b; };
+
         JSON.parse(dineForm.querySelector('[data-dine-old]').textContent).forEach(function (line) {
-            if (dineMenu[line.item]) {
-                cart.push({
-                    item: Number(line.item),
-                    quantity: Math.max(1, Number(line.quantity) || 1),
-                    options: (line.options || []).map(Number),
-                    note: line.note || '',
-                });
+            if (!dineMenu[line.item] || !(Number(line.quantity) > 0)) {
+                return;
             }
+
+            var entry = {
+                item: Number(line.item),
+                quantity: Math.min(999, Math.max(1, Number(line.quantity) || 1)),
+                options: (line.options || []).map(Number).sort(byNumber),
+                note: line.note || '',
+            };
+            var original = line.line ? kept[line.line] : null;
+
+            if (original && Number(original.item) === entry.item) {
+                entry.line = original.line;
+                entry.unit = original.unit;
+                entry.name = original.name;
+                entry.keptOptions = original.options.map(Number).sort(byNumber).join();
+                entry.keptLines = original.optionLines;
+            }
+
+            cart.push(entry);
         });
+
+        // Món cũ còn nguyên tuỳ chọn thì hiện và tính như trên đơn.
+        var isKept = function (line) {
+            return line.line !== undefined && line.options.join() === line.keptOptions;
+        };
 
         var allOptions = function (item) {
             return [].concat.apply([], item.groups.map(function (group) { return group.options; }));
@@ -685,12 +708,20 @@
         var unitPrice = function (line) {
             var item = dineMenu[line.item];
 
+            if (isKept(line)) {
+                return line.unit;
+            }
+
             return allOptions(item).reduce(function (sum, option) {
                 return sum + (line.options.indexOf(option.id) !== -1 ? option.price : 0);
             }, item.price);
         };
         // Tuỳ chọn theo nhóm, mỗi nhóm một dòng: "Thịt: Sườn cọng".
         var optionLines = function (line) {
+            if (isKept(line)) {
+                return line.keptLines;
+            }
+
             return dineMenu[line.item].groups.map(function (group) {
                 var names = group.options.filter(function (option) {
                     return line.options.indexOf(option.id) !== -1;
@@ -709,7 +740,8 @@
             return input;
         };
         var inputs = dineForm.querySelector('[data-dine-inputs]');
-        var cartList = document.querySelector('[data-cart-lines]');
+        var cartLists = document.querySelectorAll('[data-cart-lines]');
+        var fixedCount = Number(dineForm.dataset.fixedCount) || 0;
 
         var renderCart = function () {
             var count = 0;
@@ -717,7 +749,9 @@
             var perItem = {};
 
             inputs.replaceChildren();
-            cartList.replaceChildren();
+            cartLists.forEach(function (list) {
+                list.replaceChildren();
+            });
 
             cart.forEach(function (line, index) {
                 var prefix = 'lines[' + index + ']';
@@ -729,6 +763,9 @@
                     inputs.appendChild(hidden(prefix + '[options][]', id));
                 });
                 inputs.appendChild(hidden(prefix + '[note]', line.note));
+                if (line.line !== undefined) {
+                    inputs.appendChild(hidden(prefix + '[line]', line.line));
+                }
 
                 count += line.quantity;
                 total += price;
@@ -737,7 +774,7 @@
                 var row = document.createElement('li');
                 var name = document.createElement('span');
                 name.className = 'row-name';
-                name.textContent = line.quantity + ' × ' + dineMenu[line.item].name;
+                name.textContent = line.quantity + ' × ' + (isKept(line) && line.name ? line.name : dineMenu[line.item].name);
 
                 optionLines(line).concat(line.note ? [line.note] : []).forEach(function (text, position, list) {
                     var small = document.createElement('small');
@@ -774,7 +811,9 @@
                 row.appendChild(name);
                 row.appendChild(amount);
                 row.appendChild(tools);
-                cartList.appendChild(row);
+                cartLists.forEach(function (list, position) {
+                    list.appendChild(position === 0 ? row : row.cloneNode(true));
+                });
             });
 
             document.querySelectorAll('[data-dine-count]').forEach(function (node) {
@@ -786,7 +825,9 @@
             document.querySelectorAll('[data-dine-submit], [data-cart-send], [data-dine-review]').forEach(function (button) {
                 button.disabled = cart.length === 0;
             });
-            document.querySelector('[data-cart-empty]').hidden = cart.length > 0;
+            document.querySelectorAll('[data-cart-empty]').forEach(function (node) {
+                node.hidden = cart.length > 0 || fixedCount > 0;
+            });
             dineForm.querySelectorAll('[data-dine-pick]').forEach(function (button) {
                 var badge = button.querySelector('[data-picked-count]');
                 var picked = perItem[button.dataset.dinePick] || 0;
@@ -794,9 +835,13 @@
                 badge.hidden = picked === 0;
                 badge.textContent = '× ' + picked;
             });
+
+            // Đơn mang đi tính giảm giá và tổng tiền từ đây.
+            dineForm.cartState = { count: count, total: total };
+            dineForm.dispatchEvent(new CustomEvent('cart-change'));
         };
 
-        cartList.addEventListener('click', function (event) {
+        var onCartClick = function (event) {
             var remove = event.target.closest('[data-remove-line]');
 
             if (remove) {
@@ -809,6 +854,10 @@
             if (edit) {
                 openItem(cart[Number(edit.dataset.editLine)].item, Number(edit.dataset.editLine));
             }
+        };
+
+        cartLists.forEach(function (list) {
+            list.addEventListener('click', onCartClick);
         });
         document.querySelector('[data-cart-send]').addEventListener('click', function () {
             dineForm.requestSubmit();
@@ -839,7 +888,16 @@
         };
         var syncAdd = function () {
             itemError.hidden = true;
-            addButton.textContent = (editing === null ? dineForm.dataset.addLabel : dineForm.dataset.updateLabel) + ' · ' + dineMoney(unitPrice({ item: currentItem.id, options: picked() }) * quantity());
+            var draft = { item: currentItem.id, options: picked().sort(byNumber) };
+            var edited = editing === null ? null : cart[editing];
+
+            if (edited && edited.line !== undefined) {
+                draft.line = edited.line;
+                draft.unit = edited.unit;
+                draft.keptOptions = edited.keptOptions;
+            }
+
+            addButton.textContent = (editing === null ? dineForm.dataset.addLabel : dineForm.dataset.updateLabel) + ' · ' + dineMoney(unitPrice(draft) * quantity());
         };
 
         var openItem = function (id, lineIndex) {
@@ -939,10 +997,17 @@
                 return;
             }
 
-            var line = { item: currentItem.id, quantity: quantity(), options: picked().sort(function (a, b) { return a - b; }), note: noteInput.value.trim() };
+            var line = { item: currentItem.id, quantity: quantity(), options: picked().sort(byNumber), note: noteInput.value.trim() };
             var edited = editing === null ? null : cart[editing];
+
+            // Sửa món cũ của đơn: giữ id dòng để server giữ giá lúc đặt nếu tuỳ chọn không đổi.
+            if (edited && edited.line !== undefined) {
+                ['line', 'unit', 'name', 'keptOptions', 'keptLines'].forEach(function (key) {
+                    line[key] = edited[key];
+                });
+            }
             var same = cart.find(function (other) {
-                return other !== edited && other.item === line.item && other.note === line.note && other.options.join() === line.options.join();
+                return other !== edited && other.line === line.line && other.item === line.item && other.note === line.note && other.options.join() === line.options.join();
             });
 
             // Sửa thành giống hệt một món khác trong đơn thì gộp số lượng.
@@ -951,7 +1016,7 @@
             }
 
             if (same) {
-                same.quantity = Math.min(99, same.quantity + line.quantity);
+                same.quantity = Math.min(999, same.quantity + line.quantity);
             } else if (edited) {
                 cart.splice(editing, 0, line);
             } else {
@@ -1402,75 +1467,33 @@
         }
     }
 
-    // Tạo đơn: chọn món trong popup, số lượng nằm trong input ẩn của từng món.
+    // Tạo đơn mang đi: chọn món dùng chung với gọi món tại bàn (ở trên); đây tính giảm giá và tổng.
     var orderForm = document.querySelector('[data-order-form]');
 
     if (orderForm) {
         var money = function (amount) {
             return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
         };
-        var pickRows = Array.prototype.slice.call(orderForm.querySelectorAll('.picker [data-item-id]'));
-        var linesList = orderForm.querySelector('[data-order-lines]');
-        var lineTemplate = orderForm.querySelector('template[data-order-line]');
-        var byId = {};
-        var picked = [];
-
-        pickRows.forEach(function (row) {
-            byId[row.dataset.itemId] = row;
-            row.pickQty = row.querySelector('[data-qty]');
-
-            if (Number(row.pickQty.value) > 0) {
-                picked.push(row.dataset.itemId);
-            }
-        });
 
         var renderOrder = function () {
-            var fixedTotal = Number(orderForm.dataset.fixedTotal) || 0;
-            var total = fixedTotal;
-            var count = 0;
-
-            linesList.textContent = '';
-
-            pickRows.forEach(function (row) {
-                var qty = Number(row.pickQty.value);
-
-                row.classList.toggle('has-qty', qty > 0);
-                row.classList.toggle('is-zero', qty === 0);
-                row.querySelector('[data-count]').textContent = qty;
-            });
-
-            picked.forEach(function (id) {
-                var row = byId[id];
-                var qty = Number(row.pickQty.value);
-                var price = Number(row.dataset.price);
-                var line = lineTemplate.content.firstElementChild.cloneNode(true);
-
-                line.dataset.itemId = id;
-                line.querySelector('[data-line-name]').textContent = row.dataset.name;
-                line.querySelector('[data-line-price]').textContent = money(price);
-                line.querySelector('[data-line-total]').textContent = money(price * qty);
-                line.querySelector('[data-count]').textContent = qty;
-                linesList.appendChild(line);
-
-                total += price * qty;
-                count += qty;
-            });
-
-            orderForm.querySelector('[data-order-empty]').hidden = picked.length > 0 || fixedTotal > 0;
-
+            var state = orderForm.cartState || { count: 0, total: 0 };
+            var total = (Number(orderForm.dataset.fixedTotal) || 0) + state.total;
+            var count = (Number(orderForm.dataset.fixedCount) || 0) + state.count;
             var off = discountOff(total);
-            var saving = orderForm.querySelector('[data-order-saving]');
 
-            saving.hidden = off === 0;
-            saving.textContent = off > 0 ? '−' + money(off) : '';
-
-            orderForm.querySelectorAll('[data-order-total]').forEach(function (node) {
+            document.querySelectorAll('[data-order-saving]').forEach(function (saving) {
+                saving.hidden = off === 0;
+                saving.textContent = off > 0 ? '−' + money(off) : '';
+            });
+            document.querySelectorAll('[data-order-total]').forEach(function (node) {
                 node.textContent = money(total - off);
             });
-            orderForm.querySelectorAll('[data-order-count]').forEach(function (node) {
+            document.querySelectorAll('[data-order-count]').forEach(function (node) {
                 node.textContent = orderForm.dataset.countLabel.replace(':count', count);
             });
         };
+
+        orderForm.addEventListener('cart-change', renderOrder);
 
         var discountSection = orderForm.querySelector('[data-discount]');
         var modeInputs = Array.prototype.slice.call(discountSection.querySelectorAll('input[name=discount_mode]'));
@@ -1572,80 +1595,6 @@
                 event.preventDefault();
                 checkCode();
             }
-        });
-
-        var changeQty = function (id, step) {
-            var row = byId[id];
-            var qty = Math.min(999, Math.max(0, Number(row.pickQty.value) + step));
-
-            row.pickQty.value = qty;
-
-            if (qty > 0 && picked.indexOf(id) === -1) {
-                picked.push(id);
-            } else if (qty === 0) {
-                picked = picked.filter(function (other) {
-                    return other !== id;
-                });
-            }
-
-            renderOrder();
-        };
-
-        orderForm.addEventListener('click', function (event) {
-            var row = event.target.closest('[data-item-id]');
-            var stepButton = event.target.closest('[data-step]');
-
-            if (!row) {
-                return;
-            }
-
-            if (stepButton) {
-                changeQty(row.dataset.itemId, Number(stepButton.dataset.step));
-            } else if (row.closest('.picker')) {
-                changeQty(row.dataset.itemId, 1);
-            }
-        });
-
-        var pickSearch = orderForm.querySelector('[data-pick-search]');
-        var pickGroups = Array.prototype.slice.call(orderForm.querySelectorAll('[data-pick-group]'));
-        var pickItems = Array.prototype.slice.call(orderForm.querySelectorAll('[data-pick-search-text]'));
-        var pickEmpty = orderForm.querySelector('[data-pick-empty]');
-        var pickerDialog = document.getElementById('pick-dialog');
-
-        pickItems.forEach(function (item) {
-            item.searchText = plain(item.dataset.pickSearchText);
-        });
-
-        var filterPicker = function () {
-            var words = plain(pickSearch.value).trim().split(/\s+/).filter(Boolean);
-            var found = 0;
-
-            pickItems.forEach(function (item) {
-                var show = words.every(function (word) {
-                    return item.searchText.indexOf(word) !== -1;
-                });
-
-                item.hidden = !show;
-                found += show ? 1 : 0;
-            });
-
-            pickGroups.forEach(function (group) {
-                group.hidden = !group.querySelector('li:not([hidden])');
-            });
-
-            pickEmpty.hidden = found > 0;
-        };
-
-        pickSearch.addEventListener('input', filterPicker);
-        pickSearch.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-            }
-        });
-        // Mỗi lần mở popup là tìm lại từ đầu.
-        pickerDialog.addEventListener('close', function () {
-            pickSearch.value = '';
-            filterPicker();
         });
 
         syncDiscountMode();

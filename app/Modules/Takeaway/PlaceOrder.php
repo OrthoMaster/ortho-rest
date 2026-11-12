@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\ModuleManager;
 use App\Modules\Takeaway\Models\DiscountCode;
@@ -19,31 +20,26 @@ class PlaceOrder
     public function __construct(private ModuleManager $modules) {}
 
     /**
-     * @param  array<int, int>  $quantities  id món => số lượng
+     * @param  list<array{item: int, quantity: int, options?: list<int>, note?: ?string, line?: ?int}>  $lines  các món đã chọn
      * @param  array{customer_name: string, customer_phone: string, pickup_at: mixed, notes?: ?string, locale?: string, discount_mode?: ?string, discount_code?: ?string, discount_percent?: mixed, discount_amount?: mixed}  $data
      */
-    public function handle(array $quantities, array $data, ?User $user = null): TakeawayOrder
+    public function handle(array $lines, array $data, ?User $user = null): TakeawayOrder
     {
-        $quantities = array_filter($quantities, fn (int $quantity): bool => $quantity > 0);
+        $lines = $this->filled($lines);
 
-        if ($quantities === []) {
-            throw ValidationException::withMessages(['items' => __('takeaway.no_items')]);
+        if ($lines === []) {
+            throw ValidationException::withMessages(['lines' => __('takeaway.no_items')]);
         }
 
         $pickup = CarbonImmutable::parse($data['pickup_at']);
         $this->assertPickupTime($pickup);
 
-        return DB::transaction(function () use ($quantities, $data, $user, $pickup): TakeawayOrder {
+        return DB::transaction(function () use ($lines, $data, $user, $pickup): TakeawayOrder {
             // Khoá hàng của quán để số đơn tăng dần không trùng.
             Restaurant::whereKey(tenant()->getKey())->lockForUpdate()->first();
 
-            $items = MenuItem::orderableForTakeaway()->whereKey(array_keys($quantities))->get();
-
-            if ($items->count() !== count($quantities)) {
-                throw ValidationException::withMessages(['items' => __('takeaway.item_unavailable')]);
-            }
-
-            $subtotal = $items->sum(fn (MenuItem $item): int => $item->price_takeaway * $quantities[$item->getKey()]);
+            $built = $this->build($lines);
+            $subtotal = array_sum(array_map(fn (array $line): int => $line['unit_price'] * $line['quantity'], $built));
             $discount = $this->discount($data, $subtotal);
 
             $order = TakeawayOrder::create([
@@ -61,14 +57,8 @@ class PlaceOrder
                 'locale' => $data['locale'] ?? 'vi',
             ]);
 
-            foreach ($items as $item) {
-                $order->items()->create([
-                    'restaurant_id' => $order->restaurant_id,
-                    'menu_item_id' => $item->getKey(),
-                    'name' => $item->name,
-                    'unit_price' => $item->price_takeaway,
-                    'quantity' => $quantities[$item->getKey()],
-                ]);
+            foreach ($built as $line) {
+                $order->items()->create(['restaurant_id' => $order->restaurant_id, ...$line]);
             }
 
             return $order;
@@ -76,15 +66,15 @@ class PlaceOrder
     }
 
     /**
-     * Khách gọi sửa đơn. Món đã có giữ giá lúc đặt, món mới lấy giá hiện tại.
-     * Giảm giá giữ nguyên cách tính cũ và tính lại trên tạm tính mới.
+     * Sửa đơn. Món đã có (cùng món, cùng tuỳ chọn) giữ giá lúc đặt, chỉ đổi số lượng và ghi chú;
+     * món mới hoặc đổi tuỳ chọn lấy giá hiện tại. Giảm giá giữ nguyên cách tính cũ và tính lại trên tạm tính mới.
      *
-     * @param  array<int, int>  $quantities
+     * @param  list<array{item: int, quantity: int, options?: list<int>, note?: ?string, line?: ?int}>  $lines
      * @param  array<string, mixed>  $data
      */
-    public function update(TakeawayOrder $order, array $quantities, array $data, ?User $user = null): TakeawayOrder
+    public function update(TakeawayOrder $order, array $lines, array $data, ?User $user = null): TakeawayOrder
     {
-        $quantities = array_filter($quantities, fn (int $quantity): bool => $quantity > 0);
+        $lines = $this->filled($lines);
 
         $pickup = CarbonImmutable::parse($data['pickup_at']);
 
@@ -92,54 +82,67 @@ class PlaceOrder
             $this->assertPickupTime($pickup);
         }
 
-        return DB::transaction(function () use ($order, $quantities, $data, $user, $pickup): TakeawayOrder {
+        return DB::transaction(function () use ($order, $lines, $data, $user, $pickup): TakeawayOrder {
             // Cùng thứ tự khoá với lúc tạo đơn, vì đổi ngày nhận cũng cấp số mới.
             Restaurant::whereKey(tenant()->getKey())->lockForUpdate()->first();
 
             $order = TakeawayOrder::whereKey($order->getKey())->lockForUpdate()->with(['items', 'customer'])->firstOrFail();
 
             if (! $order->isEditable()) {
-                throw ValidationException::withMessages(['items' => __('takeaway.not_editable')]);
+                throw ValidationException::withMessages(['lines' => __('takeaway.not_editable')]);
             }
 
-            $existing = $order->items->whereNotNull('menu_item_id')->keyBy('menu_item_id');
+            $existing = $order->items->whereNotNull('menu_item_id')->keyBy('id');
             $detached = $order->items->whereNull('menu_item_id');
 
-            if ($quantities === [] && $detached->isEmpty()) {
-                throw ValidationException::withMessages(['items' => __('takeaway.no_items')]);
+            if ($lines === [] && $detached->isEmpty()) {
+                throw ValidationException::withMessages(['lines' => __('takeaway.no_items')]);
             }
 
-            $newIds = array_diff(array_keys($quantities), $existing->keys()->all());
-            $newItems = MenuItem::orderableForTakeaway()->whereKey($newIds)->get();
+            // Dòng nào còn là món cũ (cùng món, cùng tuỳ chọn) thì giữ, còn lại là món mới.
+            $kept = [];
+            $fresh = [];
 
-            if ($newItems->count() !== count($newIds)) {
-                throw ValidationException::withMessages(['items' => __('takeaway.item_unavailable')]);
-            }
+            foreach ($lines as $row) {
+                $line = isset($row['line']) ? $existing->get((int) $row['line']) : null;
+                $picked = array_map('intval', $row['options'] ?? []);
+                sort($picked);
 
-            $changes = [];
-
-            foreach ($existing as $menuItemId => $line) {
-                $quantity = $quantities[$menuItemId] ?? 0;
-
-                if ($quantity === 0) {
-                    $changes[] = __('takeaway.change_removed', ['name' => $line->name]);
-                    $line->delete();
-                } elseif ($quantity !== $line->quantity) {
-                    $changes[] = __('takeaway.change_quantity', ['name' => $line->name, 'from' => $line->quantity, 'to' => $quantity]);
-                    $line->update(['quantity' => $quantity]);
+                if ($line && ! isset($kept[$line->id]) && $line->menu_item_id === (int) $row['item'] && $line->optionIds() === $picked) {
+                    $kept[$line->id] = $row;
+                } else {
+                    $fresh[] = $row;
                 }
             }
 
-            foreach ($newItems as $item) {
-                $changes[] = __('takeaway.change_added', ['quantity' => $quantities[$item->getKey()], 'name' => $item->name]);
+            $built = $this->build($fresh);
+            $changes = [];
 
-                $order->items()->create([
-                    'restaurant_id' => $order->restaurant_id,
-                    'menu_item_id' => $item->getKey(),
-                    'name' => $item->name,
-                    'unit_price' => $item->price_takeaway,
-                    'quantity' => $quantities[$item->getKey()],
-                ]);
+            foreach ($existing as $id => $line) {
+                if (! isset($kept[$id])) {
+                    $changes[] = __('takeaway.change_removed', ['name' => $line->label()]);
+                    $line->delete();
+
+                    continue;
+                }
+
+                $quantity = (int) $kept[$id]['quantity'];
+                $note = $this->note($kept[$id]);
+
+                if ($quantity !== $line->quantity) {
+                    $changes[] = __('takeaway.change_quantity', ['name' => $line->label(), 'from' => $line->quantity, 'to' => $quantity]);
+                }
+
+                if ($note !== $line->note) {
+                    $changes[] = __('takeaway.change_line_note', ['name' => $line->label()]);
+                }
+
+                $line->update(['quantity' => $quantity, 'note' => $note]);
+            }
+
+            foreach ($built as $line) {
+                $created = $order->items()->create(['restaurant_id' => $order->restaurant_id, ...$line]);
+                $changes[] = __('takeaway.change_added', ['quantity' => $created->quantity, 'name' => $created->label()]);
             }
 
             $customer = Customer::remember($data['customer_name'], $data['customer_phone']);
@@ -196,6 +199,55 @@ class PlaceOrder
 
             return $order;
         });
+    }
+
+    /**
+     * Bỏ dòng số lượng 0, đánh lại chỉ số.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function filled(array $lines): array
+    {
+        return array_values(array_filter($lines, fn ($row): bool => is_array($row) && (int) ($row['quantity'] ?? 0) > 0));
+    }
+
+    /**
+     * Món mới: món phải đang bán mang đi, kiểm tra tuỳ chọn, chép tên và giá hiện tại.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function build(array $rows): array
+    {
+        $items = MenuItem::orderableForTakeaway()->with('optionGroups.options')
+            ->whereKey(array_map(fn (array $row): int => (int) $row['item'], $rows))
+            ->get()
+            ->keyBy('id');
+        $fail = fn (string $message) => throw ValidationException::withMessages(['lines' => $message]);
+        $built = [];
+
+        foreach ($rows as $row) {
+            $item = $items->get((int) $row['item']) ?? $fail(__('takeaway.item_unavailable'));
+            $chosen = ChosenOptions::resolve($item, $row['options'] ?? [], $fail, 'takeaway');
+
+            $built[] = [
+                'menu_item_id' => $item->getKey(),
+                'name' => $item->name,
+                'unit_price' => $item->price_takeaway + array_sum(array_column($chosen, 'price')),
+                'quantity' => (int) $row['quantity'],
+                'options' => $chosen ?: null,
+                'note' => $this->note($row),
+            ];
+        }
+
+        return $built;
+    }
+
+    private function note(array $row): ?string
+    {
+        $note = trim((string) ($row['note'] ?? ''));
+
+        return $note === '' ? null : $note;
     }
 
     /** Gọi trong transaction đã khoá hàng của quán. */

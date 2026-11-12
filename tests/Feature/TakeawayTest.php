@@ -10,6 +10,7 @@ use App\Modules\ModuleManager;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\DiscountCode;
 use App\Modules\Takeaway\Models\TakeawayOrder;
+use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,7 +57,10 @@ class TakeawayTest extends TestCase
         ]);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<int, int>  $items  id món => số lượng
+     * @return array<string, mixed>
+     */
     private function form(array $items, array $overrides = []): array
     {
         return [
@@ -64,9 +68,24 @@ class TakeawayTest extends TestCase
             'customer_phone' => '0987654321',
             'pickup_date' => '2026-12-01',
             'pickup_time' => '12:00',
-            'items' => $items,
+            'lines' => collect($items)->map(fn (int $quantity, int $id) => ['item' => $id, 'quantity' => $quantity])->values()->all(),
             ...$overrides,
         ];
+    }
+
+    /** Sửa đơn: món đã có trên đơn gửi kèm id dòng, như form gửi. */
+    private function editForm(TakeawayOrder $order, array $items, array $overrides = []): array
+    {
+        $form = $this->form($items, $overrides);
+        $existing = TakeawayOrderItem::withoutGlobalScopes()->where('takeaway_order_id', $order->id)->pluck('id', 'menu_item_id');
+
+        foreach ($form['lines'] as &$line) {
+            if ($existing->has($line['item'])) {
+                $line['line'] = $existing[$line['item']];
+            }
+        }
+
+        return $form;
     }
 
     private function order(): TakeawayOrder
@@ -120,7 +139,7 @@ class TakeawayTest extends TestCase
         $dineInOnly = $this->item($this->restaurant, 'Tại quán', null);
 
         foreach ([$soldOut, $hidden, $dineInOnly] as $item) {
-            $this->post($this->base, $this->form([$item->id => 1]))->assertSessionHasErrors('items');
+            $this->post($this->base, $this->form([$item->id => 1]))->assertSessionHasErrors('lines');
         }
 
         $this->assertSame(0, TakeawayOrder::forRestaurant($this->restaurant)->count());
@@ -131,12 +150,12 @@ class TakeawayTest extends TestCase
         $other = Restaurant::factory()->create();
         $otherItem = $this->item($other, 'Của quán khác', 1000);
 
-        $this->post($this->base, $this->form([$otherItem->id => 1]))->assertSessionHasErrors('items');
+        $this->post($this->base, $this->form([$otherItem->id => 1]))->assertSessionHasErrors('lines');
     }
 
     public function test_empty_order_is_refused(): void
     {
-        $this->post($this->base, $this->form([$this->pho->id => 0]))->assertSessionHasErrors('items');
+        $this->post($this->base, $this->form([$this->pho->id => 0]))->assertSessionHasErrors('lines');
     }
 
     public function test_pickup_must_be_within_pickup_hours(): void
@@ -167,7 +186,7 @@ class TakeawayTest extends TestCase
 
         $this->get("$this->base/create")
             ->assertOk()
-            ->assertSee('name="items['.$this->pho->id.']"', false)
+            ->assertSee('data-dine-pick="'.$this->pho->id.'"', false)
             ->assertSee('Đã hết')
             ->assertSee(__('menu.sold_out'))
             ->assertDontSee('Chỉ tại quán')
@@ -446,7 +465,7 @@ class TakeawayTest extends TestCase
         $order = $this->pickup('2026-12-06');
         $this->pickup('2026-12-07');
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-07']))
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 1], ['pickup_date' => '2026-12-07']))
             ->assertSessionHasNoErrors()
             ->assertSessionHas('status', __('takeaway.updated_code', ['code' => 'M002_07']));
 
@@ -460,7 +479,7 @@ class TakeawayTest extends TestCase
     {
         $order = $this->pickup('2026-12-06');
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1], ['pickup_date' => '2026-12-06', 'pickup_time' => '13:00']))
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 1], ['pickup_date' => '2026-12-06', 'pickup_time' => '13:00']))
             ->assertSessionHasNoErrors()
             ->assertSessionHas('status', __('takeaway.updated'));
 
@@ -512,7 +531,7 @@ class TakeawayTest extends TestCase
         $this->pho->newQuery()->withoutGlobalScopes()->whereKey($this->pho->id)->update(['price_takeaway' => 99000]);
         $tra = $this->item($this->restaurant, 'Trà', 10000);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3, $tra->id => 1]))
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3, $tra->id => 1]))
             ->assertSessionHasNoErrors();
 
         $fresh = $order->fresh();
@@ -526,7 +545,7 @@ class TakeawayTest extends TestCase
         $order = $this->order();
         $tra = $this->item($this->restaurant, 'Trà', 10000);
 
-        $this->put("$this->base/{$order->id}", $this->form([$tra->id => 1], ['pickup_time' => '13:00', 'notes' => 'Ít đá']))
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$tra->id => 1], ['pickup_time' => '13:00', 'notes' => 'Ít đá']))
             ->assertSessionHasNoErrors();
 
         $this->actingInTenant($this->restaurant);
@@ -545,7 +564,7 @@ class TakeawayTest extends TestCase
     {
         $order = $this->order();
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 2]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 2]))->assertSessionHasNoErrors();
 
         $this->actingInTenant($this->restaurant);
         $this->assertSame(0, $order->edits()->count());
@@ -556,7 +575,7 @@ class TakeawayTest extends TestCase
         $order = $this->order();
         $this->post("$this->base/{$order->id}/status", ['status' => 'preparing']);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
 
         $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
     }
@@ -568,7 +587,7 @@ class TakeawayTest extends TestCase
 
         $this->get("$this->base/{$order->id}")->assertDontSee(__('takeaway.edit'));
         $this->get("$this->base/{$order->id}/edit")->assertRedirect("$this->base/{$order->id}");
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasErrors('items');
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasErrors('lines');
 
         $this->assertSame(140000, $order->fresh()->total);
     }
@@ -578,11 +597,50 @@ class TakeawayTest extends TestCase
         $order = $this->order();
         $this->pho->newQuery()->withoutGlobalScopes()->whereKey($this->pho->id)->update(['is_sold_out' => true, 'is_visible' => false]);
 
-        $this->get("$this->base/{$order->id}/edit")->assertOk()->assertSee('name="items['.$this->pho->id.']" value="2"', false);
+        $this->get("$this->base/{$order->id}/edit")->assertOk()->assertSee('"item":'.$this->pho->id.',"quantity":2', false);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 1]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 1]))->assertSessionHasNoErrors();
 
         $this->assertSame(70000, $order->fresh()->total);
+    }
+
+    public function test_options_and_notes_like_ordering_at_the_table(): void
+    {
+        $comTam = $this->item($this->restaurant, 'Cơm tấm', 50000);
+        $meat = $comTam->optionGroups()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Thịt', 'is_required' => true]);
+        $sauce = $comTam->optionGroups()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Nước chấm', 'is_multiple' => true]);
+        $suon = $meat->options()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Sườn', 'price' => 0]);
+        $cong = $meat->options()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Sườn cọng', 'price' => 15000]);
+        $ot = $sauce->options()->create(['restaurant_id' => $this->restaurant->id, 'name' => 'Không ớt', 'price' => 0]);
+
+        // Nhóm bắt buộc phải chọn, nhóm chọn một không chọn hai.
+        $line = fn (array $options, int $quantity = 1, ?string $note = null) => ['item' => $comTam->id, 'quantity' => $quantity, 'options' => $options, 'note' => $note];
+        $this->post($this->base, $this->form([], ['lines' => [$line([$ot->id])]]))->assertSessionHasErrors(['lines' => __('takeaway.option_required', ['name' => 'Cơm tấm', 'group' => 'Thịt'])]);
+        $this->post($this->base, $this->form([], ['lines' => [$line([$suon->id, $cong->id])]]))->assertSessionHasErrors('lines');
+
+        // Cùng món, khác tuỳ chọn là hai dòng; giá gồm tiền cộng thêm.
+        $this->post($this->base, $this->form([], ['lines' => [$line([$cong->id, $ot->id], 2, 'Ít cơm'), $line([$suon->id])]]))->assertSessionHasNoErrors();
+        $order = TakeawayOrder::forRestaurant($this->restaurant)->latest('id')->first();
+        $this->assertSame(2 * 65000 + 50000, $order->total);
+
+        $this->get("$this->base/{$order->id}")->assertSee('Thịt: Sườn cọng')->assertSee('Nước chấm: Không ớt')->assertSee('Ít cơm');
+
+        // Sửa: dòng giữ tuỳ chọn thì giữ giá cũ dù menu đổi giá; đổi tuỳ chọn là món mới, giá hiện tại.
+        $comTam->newQuery()->withoutGlobalScopes()->whereKey($comTam->id)->update(['price_takeaway' => 60000]);
+        $rows = TakeawayOrderItem::withoutGlobalScopes()->where('takeaway_order_id', $order->id)->orderBy('id')->get();
+        $this->get("$this->base/{$order->id}/edit")->assertOk()->assertSee('"line":'.$rows[0]->id, false);
+
+        $this->put("$this->base/{$order->id}", $this->form([], ['lines' => [
+            [...$line([$cong->id, $ot->id], 3, 'Ít cơm'), 'line' => $rows[0]->id],
+            [...$line([$cong->id]), 'line' => $rows[1]->id],
+        ]]))->assertSessionHasNoErrors();
+
+        $this->assertSame(3 * 65000 + 75000, $order->fresh()->total);
+        $this->actingInTenant($this->restaurant);
+        $changes = $order->edits()->sole()->changes;
+        $this->assertContains('Cơm tấm (Thịt: Sườn cọng; Nước chấm: Không ớt): 2 → 3 phần', $changes);
+        $this->assertContains('Bỏ Cơm tấm (Thịt: Sườn)', $changes);
+        $this->assertContains('Thêm 1 × Cơm tấm (Thịt: Sườn cọng)', $changes);
     }
 
     public function test_new_item_must_be_available(): void
@@ -590,7 +648,7 @@ class TakeawayTest extends TestCase
         $order = $this->order();
         $soldOut = $this->item($this->restaurant, 'Hết', 10000, ['is_sold_out' => true]);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 2, $soldOut->id => 1]))->assertSessionHasErrors('items');
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 2, $soldOut->id => 1]))->assertSessionHasErrors('lines');
     }
 
     public function test_edit_keeps_a_code_that_was_turned_off_and_recalculates_it(): void
@@ -599,7 +657,7 @@ class TakeawayTest extends TestCase
         $order = $this->discounted(['discount_mode' => 'code', 'discount_code' => 'GIAM10']);
         $code->update(['is_active' => false, 'value' => 50]);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 4], [
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 4], [
             'discount_enabled' => 1, 'discount_mode' => 'code', 'discount_code' => 'GIAM10',
         ]))->assertSessionHasNoErrors();
 
@@ -614,12 +672,12 @@ class TakeawayTest extends TestCase
 
         $this->actingAs($staff)->get("$this->base/{$order->id}/edit")->assertSee('Đơn đang giảm 10%');
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], $keep))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3], $keep))->assertSessionHasNoErrors();
         $this->assertSame(189000, $order->fresh()->total);
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], [...$keep, 'discount_percent' => 50]))->assertForbidden();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3], [...$keep, 'discount_percent' => 50]))->assertForbidden();
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
         $this->assertSame(210000, $order->fresh()->total);
     }
 
@@ -643,8 +701,8 @@ class TakeawayTest extends TestCase
         $order = $this->order();
         $this->travelTo(Carbon::parse('2026-12-01 18:00'));
 
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3]))->assertSessionHasNoErrors();
-        $this->put("$this->base/{$order->id}", $this->form([$this->pho->id => 3], ['pickup_time' => '13:00']))->assertSessionHasErrors('pickup_at');
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3], ['pickup_time' => '13:00']))->assertSessionHasErrors('pickup_at');
     }
 
     public function test_order_of_another_restaurant_cannot_be_edited(): void
