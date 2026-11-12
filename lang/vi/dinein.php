@@ -59,6 +59,7 @@ return [
     'subtotal' => 'Tạm tính',
     'subtotal_hint' => 'Chưa gồm giảm giá. Thu tiền ở phần mềm hoá đơn.',
     'serve' => 'Đã mang ra',
+    'waiting_serve' => 'Đang chờ ra bàn',
     'serve_confirm' => 'Báo đã mang :name ra bàn?',
     'served' => 'Đã mang :name ra bàn.',
     'cancel' => 'Huỷ món',
@@ -72,7 +73,7 @@ return [
     'closed' => 'Đã đóng bàn :table.',
     'status' => [
         'new' => 'Đang làm',
-        'done' => 'Đã xong',
+        'done' => 'Đã làm xong',
         'served' => 'Đã mang ra',
         'cancelled' => 'Đã huỷ',
     ],

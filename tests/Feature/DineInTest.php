@@ -413,7 +413,8 @@ class DineInTest extends TestCase
         $this->get("$this->base/tables")->assertSee('tile-alert', false)->assertSee(__('dinein.ready_count', ['count' => 2]));
         $this->get("$this->base/tables", ['X-Board' => '1'])->assertDontSee('<html', false)->assertSee('tile-alert', false);
         $this->get("$this->base/tables/A1", ['X-Board' => '1'])->assertDontSee('<html', false)
-            ->assertSee('line-head', false)->assertSee(__('dinein.serve'));
+            ->assertSee('line-head', false)->assertSee(__('dinein.serve'))
+            ->assertSeeInOrder([__('dinein.status.done'), __('dinein.waiting_serve')]);
         $this->post("$this->base/lines/{$rice->id}/serve");
         $this->get("$this->base/tables")->assertDontSee('tile-alert', false);
         $this->getJson("$this->base/poll")->assertJsonCount(0, 'ready');

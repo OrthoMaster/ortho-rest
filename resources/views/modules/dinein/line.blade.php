@@ -7,6 +7,9 @@
             <span>{{ $line->quantity }} × {{ $line->name }}</span>
             @if ($line->hasKitchenStatus())
                 <span @class(['badge', $status->badge()])>{{ $status->label() }}</span>
+                @if ($status === \App\Modules\DineIn\LineStatus::Done)
+                    <span class="badge badge-warn">{{ __('dinein.waiting_serve') }}</span>
+                @endif
             @endif
         </span>
         @foreach ($line->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
