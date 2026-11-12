@@ -1,6 +1,8 @@
 {{-- Một nhóm tuỳ chọn trong form. $key là khoá của nhóm; dùng cả làm mẫu (khoá __G__) cho JS. --}}
 @php($group = $group ?? ['name' => '', 'required' => false, 'multiple' => false, 'options' => [['name' => '', 'price' => 0]]])
-<section class="panel stack option-group" data-option-group data-key="{{ $key }}">
+{{-- Máy tính: tên nhóm và các toggle cột trái, danh sách lựa chọn cột phải (rộng hơn). Điện thoại một cột. --}}
+<section class="panel option-group" data-option-group data-key="{{ $key }}">
+    <div class="stack option-group-side">
     <div class="option-group-head">
         <div class="field">
             <label for="group-{{ $key }}-name">{{ __('menu.option_group_name') }}@include('partials.required')</label>
@@ -23,6 +25,8 @@
             <input type="checkbox" name="groups[{{ $key }}][required]" value="1" @checked($group['required'] ?? false)>
         </label>
     </div>
+    </div>
+    <div class="stack option-group-main">
     <div class="option-rows" data-option-rows>
         <div class="option-row option-row-head" aria-hidden="true">
             <span>{{ __('menu.option_name') }}</span><span>{{ __('menu.option_price') }}</span><span></span>
@@ -34,5 +38,6 @@
     @error("groups.$key.options")<small class="error">{{ $message }}</small>@enderror
     <div>
         <button class="btn btn-quiet btn-sm" type="button" data-add-option>{{ __('menu.option_add') }}</button>
+    </div>
     </div>
 </section>

@@ -969,6 +969,10 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 /* Tuỳ chọn khi gọi món */
 .option-copy { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-bottom: 1rem; }
 .option-copy .field { flex: 1 1 16rem; }
+.option-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+@media (min-width: 1024px) {
+    .option-group { grid-template-columns: minmax(16rem, 2fr) minmax(0, 3fr); gap: 1.5rem 2rem; align-items: start; }
+}
 .option-group-head { display: flex; align-items: flex-start; gap: .75rem; }
 .option-group-head .field { flex: 1; }
 .option-group-head .row-btn { margin-top: 1.6rem; color: var(--bad-ink); }
