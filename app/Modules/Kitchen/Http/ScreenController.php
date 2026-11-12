@@ -3,6 +3,8 @@
 namespace App\Modules\Kitchen\Http;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
@@ -71,12 +73,21 @@ class ScreenController extends Controller
         ]);
         $by = ['done_by' => $request->user()->id, 'done_at' => now()];
 
-        $count = $this->lines($station)->whereKey($data['lines'] ?? [])->where('status', LineStatus::New)
-            ->update(['status' => LineStatus::Done, ...$by]);
+        // Báo xong từng món để ghi nhật ký theo bàn, kèm giờ gọi và giờ xong.
+        $lines = $this->lines($station)->whereKey($data['lines'] ?? [])->where('status', LineStatus::New)->get();
+        $lines->each(fn (OrderLine $line) => $line->update(['status' => LineStatus::Done, ...$by]));
+        $lines->groupBy('dinein_table_id')->each(fn ($group) => LineLog::done($station->name, $group));
+        $count = $lines->count();
 
         if (($data['takeaway'] ?? []) !== [] && has_module('takeaway')) {
             $items = $this->takeawayLines($station)->whereKey($data['takeaway'])->get();
             $count += $items->sum(fn (TakeawayOrderItem $item) => $item->update($by) ? 1 : 0);
+
+            foreach ($items->groupBy('takeaway_order_id') as $group) {
+                $order = $group->first()->order;
+                ActivityLog::record($order->restaurant_id, 'takeaway', __('kitchen.log_done_takeaway', ['station' => $station->name, 'code' => $order->code(), 'count' => $group->sum('quantity')]),
+                    $group->map(fn (TakeawayOrderItem $item) => $item->quantity.' × '.$item->label().' · '.__('kitchen.log_times', ['ordered' => $item->created_at->format('H:i'), 'done' => $item->done_at->format('H:i')]))->all(), $order);
+            }
 
             // Bếp bắt đầu trả món thì đơn chuyển sang Đang làm.
             TakeawayOrder::whereKey($items->pluck('takeaway_order_id')->unique())->where('status', OrderStatus::New)

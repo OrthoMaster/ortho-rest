@@ -19,8 +19,8 @@
             <ul class="rows dine-lines">
                 @foreach ($finished as $row)
                     <li>
-                        <span class="row-name">{{ $row['where'] }} · {{ $row['line']->quantity }} × {{ $row['line']->name }}@foreach ($row['line']->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach</span>
-                        <small class="row-note">{{ $row['at']->format('H:i') }}</small>
+                        <span class="row-name">{{ $row['where'] }} · {{ $row['line']->quantity }} × {{ $row['line']->name }}@foreach ($row['line']->optionLines() as $optionLine)<small>{{ $optionLine }}</small>@endforeach
+                            <small class="finished-times">{{ __('kitchen.finished_times', ['ordered' => $row['line']->created_at->format('H:i'), 'done' => $row['at']->format('H:i')]) }}</small></span>
                     </li>
                 @endforeach
             </ul>

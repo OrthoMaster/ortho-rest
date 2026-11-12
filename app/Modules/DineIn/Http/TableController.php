@@ -3,6 +3,7 @@
 namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
+use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
@@ -12,6 +13,7 @@ use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\Reservation\Models\Area;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -133,19 +135,23 @@ class TableController extends Controller
                 ]);
 
             $round = $table->nextRound();
+            $created = new EloquentCollection;
 
             foreach ($lines as $line) {
                 // Món không qua màn hình khu (chưa chọn khu, hoặc tắt Màn hình khu) coi như đã mang ra ngay.
                 $direct = $line['dinein_station_id'] === null;
-                $table->lines()->create([
+                $created->push($table->lines()->create([
                     ...$line,
                     'round' => $round,
                     'status' => $direct ? LineStatus::Served : LineStatus::New,
                     'ordered_by' => $request->user()->id,
                     'done_at' => $direct ? now() : null,
                     'served_at' => $direct ? now() : null,
-                ]);
+                    'served_by' => $direct ? $request->user()->id : null,
+                ]));
             }
+
+            LineLog::ordered($table, $round, $created->load('station'));
 
             return array_sum(array_column($lines, 'quantity'));
         });
@@ -158,7 +164,8 @@ class TableController extends Controller
     {
         abort_unless($line->status === LineStatus::Done, 422);
 
-        $line->update(['status' => LineStatus::Served, 'served_at' => now()]);
+        $line->update(['status' => LineStatus::Served, 'served_at' => now(), 'served_by' => auth()->id()]);
+        LineLog::served($line);
 
         return back()->with('status', __('dinein.served', ['name' => $line->name]));
     }
@@ -169,7 +176,9 @@ class TableController extends Controller
         // Khu đã làm xong (hoặc món không qua khu, đã mang ra luôn) thì cần quyền riêng mới huỷ.
         abort_if($line->status !== LineStatus::New && ! $request->user()->can('dinein.cancel'), 403);
 
+        $before = $line->status;
         $line->update(['status' => LineStatus::Cancelled, 'cancelled_by' => $request->user()->id, 'cancelled_at' => now()]);
+        LineLog::cancelled($line, $before);
 
         return back()->with('status', __('dinein.cancelled', ['name' => $line->name]));
     }
@@ -183,6 +192,7 @@ class TableController extends Controller
         }
 
         $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id]);
+        LineLog::closed($table, $table->subtotal(), (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
         return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
     }

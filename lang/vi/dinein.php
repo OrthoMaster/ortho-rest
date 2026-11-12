@@ -109,5 +109,21 @@ return [
     'station_items_log' => 'Đổi món của khu :name',
     'log_added' => 'Thêm: :list',
     'log_removed' => 'Bỏ: :list',
+
+    // Nhật ký món tại bàn
+    'log_ordered' => 'Bàn :table · lượt :round: gọi :count món',
+    'log_direct' => 'không qua khu, coi như đã mang ra',
+    'log_done' => ':station báo xong :count món bàn :table',
+    'log_served' => 'Bàn :table: đã mang ra :name',
+    'log_cancelled' => 'Bàn :table: huỷ :name',
+    'log_before' => 'Trước khi huỷ: :status',
+    'log_closed' => 'Đóng bàn :table',
+    'log_opened_at' => 'Mở bàn lúc :time',
+    'log_items' => ':count món đã mang ra',
+    'log_total' => 'Tạm tính :total',
+    'log_at_ordered' => 'gọi :time',
+    'log_at_done' => 'xong :time',
+    'log_at_served' => 'mang ra :time',
+    'log_at_cancelled' => 'huỷ :time',
     'save' => 'Lưu',
 ];

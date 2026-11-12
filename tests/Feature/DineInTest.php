@@ -362,6 +362,35 @@ class DineInTest extends TestCase
         $this->assertSame([], Duty::stationIds($this->owner));
     }
 
+    public function test_every_step_of_a_table_is_logged_with_who_and_when(): void
+    {
+        $waiter = $this->member($this->restaurant, 'staff', ['name' => 'Lan']);
+        $this->actingAs($waiter)->order('A1', [$this->comTamLine(['Sườn cọng'], 2, 'Ít cơm')]);
+        $rice = OrderLine::withoutGlobalScopes()->sole();
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 12:14'));
+        $this->actingAs($this->owner)->post("$this->kitchenBase/{$this->kitchen->id}/done", ['lines' => [$rice->id]]);
+        // Đơn đã xong trong ca: giờ nhận và giờ xong.
+        $this->get("$this->kitchenBase/{$this->kitchen->id}", ['X-Board' => '1'])->assertSee(__('kitchen.finished_times', ['ordered' => '12:00', 'done' => '12:14']));
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 12:16'));
+        $this->actingAs($waiter)->post("$this->base/lines/{$rice->id}/serve");
+        $this->assertSame($waiter->id, $rice->fresh()->served_by);
+        $this->post("$this->base/tables/{$rice->dinein_table_id}/close");
+
+        $logs = ActivityLog::where('area', 'dinein')->orderBy('id')->get();
+        $name = '2 × Cơm tấm (Thịt: Sườn cọng; Ít cơm)';
+        $this->assertSame([
+            __('dinein.log_ordered', ['table' => 'A1', 'round' => 1, 'count' => 2]),
+            __('dinein.log_done', ['station' => $this->kitchen->name, 'table' => 'A1', 'count' => 2]),
+            __('dinein.log_served', ['table' => 'A1', 'name' => $name]),
+            __('dinein.log_closed', ['table' => 'A1']),
+        ], $logs->pluck('summary')->all());
+        $this->assertSame([$waiter->id, $this->owner->id, $waiter->id, $waiter->id], $logs->pluck('user_id')->all());
+        $this->assertSame([$name.' · '.$this->kitchen->name], $logs[0]->changes);
+        $this->assertSame(['gọi 12:00 · xong 12:14 · mang ra 12:16'], $logs[2]->changes);
+    }
+
     public function test_items_without_station_skip_the_screens(): void
     {
         // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.
