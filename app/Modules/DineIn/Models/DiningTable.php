@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /** Một lượt khách ở một bàn: mở khi gọi món đầu tiên, đóng khi khách về. */
 class DiningTable extends Model
@@ -59,6 +60,25 @@ class DiningTable extends Model
     public function subtotal(): int
     {
         return $this->lines->filter(fn (OrderLine $line) => $line->status->billable())->sum(fn (OrderLine $line) => $line->total());
+    }
+
+    /**
+     * Phiếu tạm tính: các món chưa huỷ, gộp mọi lượt; cùng món, cùng tuỳ chọn, cùng giá thì cộng số lượng.
+     *
+     * @return Collection<int, array{name: string, options: list<string>, quantity: int, unit: int, total: int}>
+     */
+    public function billLines(): Collection
+    {
+        return $this->lines->filter(fn (OrderLine $line) => $line->status->billable())
+            ->groupBy(fn (OrderLine $line) => $line->name.'|'.implode(';', $line->optionLines()).'|'.$line->unit_price)
+            ->map(fn ($lines) => [
+                'name' => $lines->first()->name,
+                'options' => $lines->first()->optionLines(),
+                'quantity' => $lines->sum('quantity'),
+                'unit' => $lines->first()->unit_price,
+                'total' => $lines->sum(fn (OrderLine $line) => $line->total()),
+            ])
+            ->values();
     }
 
     public function nextRound(): int

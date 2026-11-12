@@ -1028,6 +1028,14 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .dine-lines .row-name small.dine-note, .ticket-name .dine-note { color: var(--warn-ink); font-style: italic; }
 .dine-line.is-cancelled .row-name, .dine-line.is-cancelled .line-total { color: var(--ink-soft); text-decoration: line-through; }
 .dine-lines .line-tools .btn { white-space: nowrap; }
+.dine-actions-end { display: flex; flex-wrap: wrap; gap: .5rem; }
+.dine-actions-end form { display: contents; }
+/* Phiếu tạm tính: số lượng cột trái, giá đơn vị dưới tên, thành tiền bên phải. */
+.bill-lines li { flex-wrap: nowrap; align-items: flex-start; gap: .75rem; }
+.bill-lines .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.bill-qty { flex: none; min-width: 1.75rem; font-weight: 700; text-align: right; }
+.bill-total { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-top: .75rem; border-top: 2px solid var(--line); }
+.bill-total strong { font-size: 1.375rem; }
 /* Điện thoại: tên món một hàng riêng, giá và nút xuống hàng dưới để tên không bị bóp. */
 @media (max-width: 760px) {
     .dine-lines li.dine-line { flex-wrap: wrap; row-gap: .4rem; }

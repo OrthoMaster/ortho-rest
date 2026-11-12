@@ -26,11 +26,46 @@
 <div class="dine-actions">
     <a class="btn" href="{{ route('tenant.admin.dinein.tables.order', $label) }}">{{ __('dinein.order_more') }}</a>
     @can('dinein.close')
-        <form method="post" action="{{ route('tenant.admin.dinein.tables.close', $table) }}"
-              data-confirm-title="{{ __('dinein.close_title', ['table' => $label]) }}" data-confirm-ok="{{ __('dinein.close') }}"
-              data-confirm="{{ __('dinein.close_confirm', ['total' => vnd($table->subtotal())]) }}">
-            @csrf
-            <button class="btn btn-quiet" type="submit">{{ __('dinein.close') }}</button>
-        </form>
+        <span class="dine-actions-end">
+            <button class="btn btn-quiet" type="button" data-open-dialog="bill-dialog">{{ __('dinein.bill') }}</button>
+            <form method="post" action="{{ route('tenant.admin.dinein.tables.close', $table) }}"
+                  data-confirm-title="{{ __('dinein.close_title', ['table' => $label]) }}" data-confirm-ok="{{ __('dinein.close') }}"
+                  data-confirm="{{ __('dinein.close_confirm', ['total' => vnd($table->subtotal())]) }}">
+                @csrf
+                <button class="btn btn-quiet" type="submit">{{ __('dinein.close') }}</button>
+            </form>
+        </span>
+
+        {{-- Phiếu tạm tính: mọi món gộp lại (không theo lượt), để nhập vào máy tính tiền. --}}
+        <dialog id="bill-dialog" class="dine-dialog bill-dialog" aria-labelledby="bill-title" data-backdrop-close>
+            <div class="stack">
+                <div class="panel-head dialog-head">
+                    <div>
+                        <h2 id="bill-title">{{ __('dinein.bill_title', ['table' => $label]) }}</h2>
+                        <small class="row-note">{{ __('dinein.bill_meta', ['opened' => $table->created_at->format('H:i d/m'), 'now' => now()->format('H:i')]) }}</small>
+                    </div>
+                    <button class="row-btn" type="button" data-close-dialog aria-label="{{ __('ui.common.close') }}">✕</button>
+                </div>
+                @php($bill = $table->billLines())
+                @if ($bill->isEmpty())
+                    <p class="row-note">{{ __('dinein.bill_empty') }}</p>
+                @else
+                    <ul class="rows bill-lines">
+                        @foreach ($bill as $row)
+                            <li>
+                                <span class="bill-qty">{{ $row['quantity'] }}</span>
+                                <span class="row-name">{{ $row['name'] }}@foreach ($row['options'] as $optionLine)<small>{{ $optionLine }}</small>@endforeach<small>{{ vnd($row['unit']) }}</small></span>
+                                <strong class="line-total">{{ vnd($row['total']) }}</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                <div class="bill-total">
+                    <span>{{ __('dinein.bill_count', ['count' => $bill->sum('quantity')]) }}</span>
+                    <strong>{{ vnd($table->subtotal()) }}</strong>
+                </div>
+                <small class="row-note">{{ __('dinein.subtotal_hint') }}</small>
+            </div>
+        </dialog>
     @endcan
 </div>

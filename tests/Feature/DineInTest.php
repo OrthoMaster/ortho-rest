@@ -420,6 +420,18 @@ class DineInTest extends TestCase
         $this->getJson("$this->base/poll")->assertJsonCount(0, 'ready');
     }
 
+    public function test_bill_merges_rounds_like_a_receipt(): void
+    {
+        $this->order('A1', [$this->comTamLine(['Sườn cọng'], 1, 'Ít cơm'), ['item' => $this->tra->id, 'quantity' => 1]]);
+        $this->order('A1', [$this->comTamLine(['Sườn cọng'], 2, null), $this->comTamLine(['Sườn'], 1, null)]);
+
+        $this->get("$this->base/tables/A1")->assertOk()->assertSee(__('dinein.bill'))
+            ->assertSee(__('dinein.bill_title', ['table' => 'A1']))
+            // Cùng món, cùng tuỳ chọn ở hai lượt gộp thành 3 phần; khác tuỳ chọn là dòng riêng.
+            ->assertSeeInOrder(['bill-qty">3<', 'Cơm tấm', 'Thịt: Sườn cọng', vnd(300000)], false)
+            ->assertSee(__('dinein.bill_count', ['count' => 5]))->assertSee(vnd(300000 + 85000 + 10000));
+    }
+
     public function test_items_without_station_skip_the_screens(): void
     {
         // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.
