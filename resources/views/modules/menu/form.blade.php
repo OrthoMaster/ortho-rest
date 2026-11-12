@@ -7,7 +7,10 @@
 
     @php($selectedCategory = old('menu_category_id', $item->menu_category_id ?? ($categories->isEmpty() ? 'new' : '')))
 
-    <form method="post" enctype="multipart/form-data" class="panel narrow stack" data-guard
+    {{-- Sửa món: thông tin món cột trái, Tuỳ chọn cột phải (điện thoại xếp một cột). --}}
+    <div @class(['cols cols-2 w-lg item-edit' => $item->exists])>
+    <div class="stack">
+    <form method="post" enctype="multipart/form-data" @class(['panel stack', 'narrow' => ! $item->exists]) data-guard
           action="{{ $item->exists ? route('tenant.admin.menu.items.update', $item) : route('tenant.admin.menu.items.store') }}">
         @csrf
         @if ($item->exists) @method('put') @endif
@@ -46,9 +49,11 @@
         <button class="btn" type="submit">{{ __('menu.save_item') }}</button>
     </form>
 
+    </div>
+
     @if ($item->exists)
         {{-- Tuỳ chọn khi gọi món ở trang con riêng, vì có nhiều nhóm và lựa chọn. --}}
-        <section class="panel narrow stack item-options">
+        <section class="panel stack item-options">
             <div class="item-options-head">
                 <div>
                     <h2>{{ __('menu.options') }}</h2>
@@ -60,8 +65,11 @@
                 <p class="option-summary"><strong>{{ $group->name }}</strong> {{ $group->options->map(fn ($option) => $option->name.($option->price > 0 ? ' +'.vnd($option->price) : ''))->implode(' · ') }}</p>
             @endforeach
         </section>
+    @endif
+    </div>
 
-        <form method="post" action="{{ route('tenant.admin.menu.items.destroy', $item) }}" data-confirm-danger data-confirm="{{ __('menu.item_delete_confirm', ['name' => $item->name]) }}">
+    @if ($item->exists)
+        <form method="post" class="item-delete" action="{{ route('tenant.admin.menu.items.destroy', $item) }}" data-confirm-danger data-confirm="{{ __('menu.item_delete_confirm', ['name' => $item->name]) }}">
             @csrf
             @method('delete')
             <button class="link link-danger" type="submit">{{ __('menu.item_delete') }}</button>

@@ -981,8 +981,10 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .option-price:has(input:focus) { border-color: var(--primary-ink); box-shadow: 0 0 0 1px var(--primary-ink); }
 .option-row .option-price input { flex: 1; width: 100%; }
 .option-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; }
+.item-edit .item-options { margin-top: 0; }
 .item-options { margin-top: 1rem; }
 .item-options-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.item-options-head .btn { flex: none; white-space: nowrap; }
 .option-summary { font-size: .9375rem; }
 .option-summary strong { margin-right: .35rem; }
 @media (max-width: 760px) {
