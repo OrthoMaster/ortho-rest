@@ -23,4 +23,5 @@ return [
     'anonymize' => 'Xoá thông tin khách',
     'anonymize_title' => 'Xoá thông tin khách?',
     'anonymize_confirm' => 'Tên, số điện thoại, email và ghi chú của :name sẽ bị xoá ngay và không lấy lại được. Các lượt đặt vẫn giữ nhưng không còn biết là của ai.',
+    'offer_until' => 'hạn :date',
 ];

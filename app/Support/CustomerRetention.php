@@ -26,12 +26,13 @@ class CustomerRetention
     /** Báo trước bao nhiêu ngày. */
     public const NOTICE_DAYS = 7;
 
-    /** Lần cuối có việc với quán: lượt đặt bàn hay đơn mang đi gần nhất, kể cả trong tương lai. */
+    /** Lần cuối có việc với quán: lượt đặt bàn, đơn mang đi hay lượt ngồi bàn gần nhất, kể cả trong tương lai. */
     public static function lastSeenSql(): string
     {
         return 'GREATEST(customers.created_at, '
             .'COALESCE((select max(reserved_at) from reservations where reservations.customer_id = customers.id), customers.created_at), '
-            .'COALESCE((select max(pickup_at) from takeaway_orders where takeaway_orders.customer_id = customers.id), customers.created_at))';
+            .'COALESCE((select max(pickup_at) from takeaway_orders where takeaway_orders.customer_id = customers.id), customers.created_at), '
+            .'COALESCE((select max(created_at) from dinein_tables where dinein_tables.customer_id = customers.id), customers.created_at))';
     }
 
     public static function days(Restaurant $restaurant): int

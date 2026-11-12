@@ -60,12 +60,14 @@ final class LineLog
             [__('dinein.log_before', ['status' => $before->label()]), self::times($line)], $line->diningTable);
     }
 
-    public static function closed(DiningTable $table, int $total, int $count): void
+    public static function closed(DiningTable $table, int $subtotal, int $discount, int $count): void
     {
-        ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_closed', ['table' => $table->label]), [
+        ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_closed', ['table' => $table->label]), array_values(array_filter([
             __('dinein.log_opened_at', ['time' => $table->created_at->format('H:i d/m')]),
             __('dinein.log_items', ['count' => $count]),
-            __('dinein.log_total', ['total' => vnd($total)]),
-        ], $table);
+            __('dinein.log_total', ['total' => vnd($subtotal)]),
+            $discount > 0 ? __('dinein.log_discount', ['amount' => vnd($discount)]) : null,
+            $table->customer ? __('dinein.log_customer', ['name' => $table->customer->name]) : null,
+        ])), $table);
     }
 }

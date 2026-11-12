@@ -20,6 +20,8 @@ return [
         'dinein.order' => ['manager', 'staff'],
         'dinein.close' => ['manager', 'staff'],
         'dinein.cancel' => ['manager'],
+        'dinein.offers' => ['manager'],
+        'dinein.incidents' => ['manager'],
         'dinein.settings' => ['manager'],
     ],
     'kitchen' => [

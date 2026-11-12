@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ShiftType;
 use App\Models\ActivityLog;
+use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -430,6 +431,58 @@ class DineInTest extends TestCase
             // Cùng món, cùng tuỳ chọn ở hai lượt gộp thành 3 phần; khác tuỳ chọn là dòng riêng.
             ->assertSeeInOrder(['bill-qty">3<', 'Cơm tấm', 'Thịt: Sườn cọng', vnd(300000)], false)
             ->assertSee(__('dinein.bill_count', ['count' => 5]))->assertSee(vnd(300000 + 85000 + 10000));
+    }
+
+    public function test_guest_by_phone_incident_and_offer_for_next_visit(): void
+    {
+        // Trà đá không qua khu nên mang ra luôn, đóng bàn được ngay.
+        $this->tra->newQuery()->withoutGlobalScopes()->whereKey($this->tra->id)->update(['dinein_station_id' => null]);
+        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 2]]);
+        $table = DiningTable::withoutGlobalScopes()->sole();
+        $tables = "$this->base/tables/{$table->id}";
+
+        // Gắn khách theo số điện thoại; ghi sự cố.
+        $this->post("$tables/guest", ['name' => 'Chị Mai', 'phone' => '12ab'])->assertSessionHasErrorsIn('guest-dialog', 'phone');
+        $this->post("$tables/guest", ['name' => 'Chị Mai', 'phone' => '0987 654 321'])->assertSessionHas('status');
+        $this->post("$tables/incidents", ['kind' => 'slow', 'note' => 'Chờ trà 30 phút'])->assertSessionHas('status');
+        $this->get("$this->base/tables/A1")->assertSee('Chị Mai')->assertSee('0987654321')
+            ->assertSee(__('dinein.incident_kinds.slow'))->assertSee('Chờ trà 30 phút');
+
+        // Tặng ưu đãi lần sau (cần quyền), rồi đóng bàn.
+        $staff = $this->member($this->restaurant, 'staff');
+        $this->actingAs($staff)->post("$tables/gift", ['type' => 'percent', 'percent' => 10, 'reason' => 'Món ra chậm'])->assertForbidden();
+        $this->actingAs($this->owner)->post("$tables/gift", ['type' => 'percent', 'percent' => 10, 'reason' => 'Món ra chậm', 'expires_on' => '2027-02-01'])->assertSessionHas('status');
+        $this->post("$tables/close");
+
+        // Lần sau khách quay lại: gắn theo số điện thoại là thấy ưu đãi, áp vào phiếu, dùng một lần.
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 12:00'));
+        $this->order('A2', [['item' => $this->tra->id, 'quantity' => 5]]);
+        $next = DiningTable::withoutGlobalScopes()->whereNull('closed_at')->sole();
+        $this->post("$this->base/tables/{$next->id}/guest", ['name' => 'Mai', 'phone' => '0987654321']);
+        $offer = CustomerOffer::withoutGlobalScopes()->sole();
+        $this->assertSame($next->fresh()->customer_id, $offer->customer_id, 'Cùng số điện thoại là cùng khách.');
+        $this->get("$this->base/tables/A2")->assertSee(__('dinein.offers_title'))->assertSee('Món ra chậm')->assertSee(__('dinein.guest_visits', ['count' => 2]));
+
+        $this->post("$this->base/tables/{$next->id}/offers/{$offer->id}")->assertSessionHas('status', __('dinein.offer_applied'));
+        $this->get("$this->base/tables/A2")->assertSee(__('dinein.bill_due'))->assertSee('−'.vnd(5000))->assertSee(vnd(45000));
+        $this->post("$this->base/tables/{$next->id}/offers/{$offer->id}")->assertSessionHas('error');
+
+        // Bỏ giảm thì ưu đãi trả lại; áp lại rồi đóng bàn thì lưu số tiền giảm.
+        $this->delete("$this->base/tables/{$next->id}/discount");
+        $this->assertNull($offer->fresh()->used_at);
+        $this->post("$this->base/tables/{$next->id}/offers/{$offer->id}");
+        $this->post("$this->base/tables/{$next->id}/close");
+        $this->assertSame(5000, $next->fresh()->discount_amount);
+        $this->assertNotNull($offer->fresh()->used_at);
+        $this->assertTrue(ActivityLog::where('summary', __('dinein.log_closed', ['table' => 'A2']))->first()->changes === [
+            __('dinein.log_opened_at', ['time' => '12:00 20/11']), __('dinein.log_items', ['count' => 5]),
+            __('dinein.log_total', ['total' => vnd(50000)]), __('dinein.log_discount', ['amount' => vnd(5000)]), __('dinein.log_customer', ['name' => 'Mai']),
+        ]);
+
+        // Trang Sự cố (quản lý): lọc theo ngày, xuất Excel.
+        $this->get("$this->base/incidents?from=2026-11-09&to=2026-11-20")->assertOk()->assertSee('Chờ trà 30 phút')->assertSee('Mai');
+        $this->get("$this->base/incidents/export?from=2026-11-09&to=2026-11-20")->assertOk();
+        $this->actingAs($staff)->get("$this->base/incidents")->assertForbidden();
     }
 
     public function test_items_without_station_skip_the_screens(): void

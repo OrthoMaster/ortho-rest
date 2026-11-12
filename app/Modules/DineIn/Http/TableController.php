@@ -65,7 +65,7 @@ class TableController extends Controller
     public function show(string $label): View
     {
         [$area, $number] = $this->resolve($label);
-        $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener']);
+        $table = $this->openTable($area, $number)?->load(['lines.orderedBy', 'opener', 'customer', 'offer', 'incidents.creator']);
 
         return view(request()->hasHeader('X-Board') && $table ? 'modules.dinein.table-board' : 'modules.dinein.table', [
             'area' => $area,
@@ -191,8 +191,10 @@ class TableController extends Controller
             return back()->with('error', __('dinein.close_pending'));
         }
 
-        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id]);
-        LineLog::closed($table, $table->subtotal(), (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
+        // Giảm giá tính theo tạm tính lúc đóng bàn và lưu lại.
+        $discount = $table->discount();
+        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount]);
+        LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
         return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
     }

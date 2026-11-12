@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\DineIn\Http\GuestController;
+use App\Modules\DineIn\Http\IncidentController;
 use App\Modules\DineIn\Http\PollController;
 use App\Modules\DineIn\Http\StationController;
 use App\Modules\DineIn\Http\TableController;
@@ -21,6 +23,20 @@ Route::middleware('module:dinein')
             Route::post('tables/{label}/order', [TableController::class, 'store'])->where('label', '[A-Za-z]{1,2}[0-9]{1,3}')->name('tables.store');
             Route::post('lines/{line}/serve', [TableController::class, 'serve'])->whereNumber('line')->name('lines.serve');
             Route::post('lines/{line}/cancel', [TableController::class, 'cancel'])->whereNumber('line')->name('lines.cancel');
+
+            // Khách và sự cố của bàn đang có khách.
+            Route::post('tables/{table}/guest', [GuestController::class, 'attach'])->whereNumber('table')->name('tables.guest');
+            Route::delete('tables/{table}/guest', [GuestController::class, 'detach'])->whereNumber('table')->name('tables.guest.remove');
+            Route::post('tables/{table}/incidents', [GuestController::class, 'incident'])->whereNumber('table')->name('tables.incidents');
+            Route::post('tables/{table}/gift', [GuestController::class, 'gift'])->whereNumber('table')->middleware('can:dinein.offers')->name('tables.gift');
+        });
+        Route::middleware('can:dinein.close')->group(function () {
+            Route::post('tables/{table}/offers/{offer}', [GuestController::class, 'apply'])->whereNumber(['table', 'offer'])->name('tables.offer');
+            Route::delete('tables/{table}/discount', [GuestController::class, 'removeDiscount'])->whereNumber('table')->name('tables.discount.remove');
+        });
+        Route::middleware('can:dinein.incidents')->group(function () {
+            Route::get('incidents', [IncidentController::class, 'index'])->name('incidents');
+            Route::get('incidents/export', [IncidentController::class, 'export'])->name('incidents.export');
         });
         Route::post('tables/{table}/close', [TableController::class, 'close'])->whereNumber('table')->middleware('can:dinein.close')->name('tables.close');
     });

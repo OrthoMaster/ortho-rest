@@ -1,4 +1,9 @@
-{{-- Các lượt gọi món, tạm tính và nút của một bàn đang có khách. --}}
+{{--
+    Một bàn đang có khách. Máy tính: cột trái các lượt gọi món, tạm tính và nút;
+    cột phải khách và sự cố. Điện thoại xếp một cột.
+--}}
+<div class="table-layout">
+<div class="stack">
 @foreach ($rounds as $round => $lines)
     <section class="panel">
         <div class="panel-head">
@@ -21,6 +26,9 @@
         </div>
         <strong class="dine-total">{{ vnd($table->subtotal()) }}</strong>
     </div>
+    @if ($table->discount_type)
+        @include('modules.dinein.bill-discount')
+    @endif
 </section>
 
 <div class="dine-actions">
@@ -64,8 +72,17 @@
                     <span>{{ __('dinein.bill_count', ['count' => $bill->sum('quantity')]) }}</span>
                     <strong>{{ vnd($table->subtotal()) }}</strong>
                 </div>
+                @if ($table->discount_type)
+                    @include('modules.dinein.bill-discount', ['inBill' => true])
+                @endif
                 <small class="row-note">{{ __('dinein.subtotal_hint') }}</small>
             </div>
         </dialog>
     @endcan
+</div>
+</div>
+
+<div class="stack">
+    @include('modules.dinein.table-guest')
+</div>
 </div>

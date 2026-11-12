@@ -2,9 +2,12 @@
 
 namespace App\Modules\DineIn\Models;
 
+use App\Models\Customer;
+use App\Models\CustomerOffer;
 use App\Models\User;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\Reservation\Models\Area;
+use App\Modules\Takeaway\DiscountType;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -23,7 +26,13 @@ class DiningTable extends Model
 
     protected function casts(): array
     {
-        return ['table_number' => 'integer', 'closed_at' => 'immutable_datetime'];
+        return [
+            'table_number' => 'integer',
+            'closed_at' => 'immutable_datetime',
+            'discount_type' => DiscountType::class,
+            'discount_value' => 'integer',
+            'discount_amount' => 'integer',
+        ];
     }
 
     public function area(): BelongsTo
@@ -34,6 +43,21 @@ class DiningTable extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(OrderLine::class, 'dinein_table_id')->orderBy('round')->orderBy('id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function offer(): BelongsTo
+    {
+        return $this->belongsTo(CustomerOffer::class, 'customer_offer_id');
+    }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class, 'dinein_table_id')->latest('id');
     }
 
     public function opener(): BelongsTo
@@ -79,6 +103,22 @@ class DiningTable extends Model
                 'total' => $lines->sum(fn (OrderLine $line) => $line->total()),
             ])
             ->values();
+    }
+
+    /** Số tiền giảm trên phiếu (theo tạm tính hiện tại; đóng bàn thì lưu lại). */
+    public function discount(): int
+    {
+        if ($this->closed_at !== null) {
+            return $this->discount_amount;
+        }
+
+        return $this->discount_type?->amountOff((int) $this->discount_value, $this->subtotal()) ?? 0;
+    }
+
+    /** Còn phải trả: tạm tính trừ giảm giá. */
+    public function total(): int
+    {
+        return $this->subtotal() - $this->discount();
     }
 
     public function nextRound(): int

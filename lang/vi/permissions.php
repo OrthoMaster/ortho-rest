@@ -36,6 +36,8 @@ return [
         'dinein.order' => 'Lấy đơn, gọi thêm món, báo đã mang ra',
         'dinein.close' => 'Xem tạm tính và đóng bàn',
         'dinein.cancel' => 'Huỷ món khu đã làm xong',
+        'dinein.offers' => 'Tặng ưu đãi lần sau cho khách',
+        'dinein.incidents' => 'Xem danh sách sự cố, xuất Excel',
         'dinein.settings' => 'Cài đặt khu phục vụ và món của từng khu',
         'kitchen.stations' => 'Mở màn hình mọi khu (bếp, bar) dù không được phân công',
         'schedule.view' => 'Xem lịch làm việc của mọi người',

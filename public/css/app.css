@@ -1028,6 +1028,30 @@ dialog.calendar { width: min(22rem, calc(100vw - 2rem)); padding: 1rem; }
 .dine-lines .row-name small.dine-note, .ticket-name .dine-note { color: var(--warn-ink); font-style: italic; }
 .dine-line.is-cancelled .row-name, .dine-line.is-cancelled .line-total { color: var(--ink-soft); text-decoration: line-through; }
 .dine-lines .line-tools .btn { white-space: nowrap; }
+/* Chi tiết bàn: món và tạm tính bên trái, khách và sự cố bên phải (điện thoại xếp dưới). */
+.table-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (min-width: 1024px) {
+    .table-layout { grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr); }
+}
+.guest-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; margin: 0; }
+.offer-box { display: grid; gap: .5rem; padding: .75rem .85rem; background: var(--ok-bg); border-radius: var(--radius); }
+.offer-box .rows li { padding-inline: 0; }
+.offer-box form { display: contents; }
+.incident-panel .row-name { display: grid; gap: .3rem; justify-items: start; }
+.incident-panel .row-name small { color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.incident-note { font-weight: 400; white-space: pre-line; }
+.incident-list li { align-items: flex-start; flex-wrap: nowrap; gap: 1rem; }
+.incident-when { flex: none; min-width: 5.5rem; color: var(--ink-soft); font-size: .875rem; }
+.incident-list .row-name { display: grid; gap: .3rem; }
+.incident-list .row-name small { color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.incident-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.bill-discount { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.bill-discount .row-name small { display: block; color: var(--ink-soft); font-size: .8125rem; font-weight: 400; }
+.bill-discount-amount { margin-left: auto; font-weight: 600; color: var(--ok-ink); }
+.bill-discount form { display: contents; }
+.bill-due strong { color: var(--ink); }
+.gift-form:has(input[value=percent]:checked) [data-gift=amount],
+.gift-form:has(input[value=amount]:checked) [data-gift=percent] { display: none; }
 .dine-actions-end { display: flex; flex-wrap: wrap; gap: .5rem; }
 .dine-actions-end form { display: contents; }
 /* Phiếu tạm tính: số lượng cột trái, giá đơn vị dưới tên, thành tiền bên phải. */
