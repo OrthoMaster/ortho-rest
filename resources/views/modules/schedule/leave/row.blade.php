@@ -6,11 +6,17 @@
         @if ($approver)
             <span class="person-pill tone-{{ $leave->user->department?->tone ?? 0 }}">{{ $leave->user->name }}</span>
         @endif
-        <strong>{{ $leave->periodText() }}</strong>
-        <small>
-            {{ trans_choice('leave.days', $leave->days, ['days' => \App\Modules\Schedule\LeaveBook::format($leave->days)]) }}
-            @if ($leave->reason) · {{ $leave->reason }}@endif
-        </small>
+        {{-- Một dòng: ngày · cả ngày hoặc ca · số ngày, kèm nhãn có lương / không lương khi đã duyệt. --}}
+        <span class="leave-period">
+            {{-- Dấu · dính vào mục trước, để khi xuống dòng không đứng đầu dòng. --}}
+            <strong>{{ $leave->dateText() }}&nbsp;·</strong>
+            <span>{{ $leave->partText() }}&nbsp;·</span>
+            <span>{{ trans_choice('leave.days', $leave->days, ['days' => \App\Modules\Schedule\LeaveBook::format($leave->days)]) }}</span>
+            @if ($leave->status === \App\Modules\Schedule\LeaveStatus::Approved)
+                <span @class(['badge', 'badge-ok' => $leave->is_paid, 'badge-muted' => ! $leave->is_paid])>{{ __($leave->is_paid ? 'leave.paid' : 'leave.unpaid') }}</span>
+            @endif
+        </span>
+        @if ($leave->reason)<small>{{ $leave->reason }}</small>@endif
         <small>
             @if ($leave->decided_at)
                 @if ($leave->decided_by === null && $leave->status === \App\Modules\Schedule\LeaveStatus::Rejected)
@@ -18,7 +24,6 @@
                 @else
                     {{ __('leave.decided_by', ['status' => $leave->status->label(), 'name' => $leave->decider?->name ?? '—', 'time' => $leave->decided_at->format('d/m H:i')]) }}
                 @endif
-                @if ($leave->status === \App\Modules\Schedule\LeaveStatus::Approved) · {{ __($leave->is_paid ? 'leave.paid' : 'leave.unpaid') }}@endif
                 @if ($leave->decision_note) · {{ $leave->decision_note }}@endif
             @else
                 {{ __('leave.sent_by', ['time' => $leave->created_at->format('d/m H:i'), 'name' => $leave->creator?->name ?? '—']) }}

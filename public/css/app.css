@@ -502,6 +502,7 @@ tr.is-muted td { color: var(--ink-soft); }
 .badge-ok { color: var(--ok-ink); background: var(--ok-bg); }
 .badge-warn { color: var(--warn-ink); background: var(--warn-bg); }
 .badge-bad { color: var(--bad-ink); background: var(--bad-bg); }
+.badge-muted { color: var(--ink-soft); background: var(--ground); }
 
 .tags { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
 .tags li { padding: .2rem .65rem; background: var(--primary-soft); border-radius: var(--radius); font-size: .9375rem; }
@@ -1282,6 +1283,12 @@ body:has(.order-bar) .dine-alerts { bottom: 5.5rem; }
 .leave-list li { flex-wrap: nowrap; }
 .leave-list .row-name { display: grid; flex: 1 1 auto; min-width: 0; gap: .2rem; }
 .leave-list .badge { flex: none; }
+.leave-list-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; }
+.leave-list-bar .chips { margin: 0; }
+.leave-range .field { margin: 0; }
+.leave-range .picker-trigger { width: auto; }
+.leave-period { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .4rem; }
+.leave-period > * { white-space: nowrap; }
 .leave-list .row-name .person-pill { justify-self: start; }
 .leave-shifts { margin: 0; padding: 0; border: 0; }
 /* Lịch nhỏ ở Đơn xin nghỉ: số người nghỉ theo ca và bộ phận. */

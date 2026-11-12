@@ -81,20 +81,36 @@ class LeaveController extends Controller
 
         // Bên phải: đơn đang chờ (nếu có) ở trên, dưới là Lịch sử phép hoặc Các đơn đã xin, có trang.
         $view = $request->query('view') === 'requests' ? 'requests' : 'history';
-        $data = ['person' => $user, 'approver' => $approver, 'users' => $users, 'view' => $view, 'balance' => null, 'pending' => collect(), 'list' => null];
+        $data = ['person' => $user, 'approver' => $approver, 'users' => $users, 'view' => $view, 'balance' => null, 'pending' => collect(), 'list' => null, 'hasData' => false, 'from' => null, 'to' => null];
 
         if ($user === null) {
             return view('modules.schedule.leave.mine', $data);
         }
 
         $data['balance'] = LeaveBook::balance($user);
+
+        // Lọc theo khoảng ngày (để tra cứu khi có nhiều đơn).
+        try {
+            $from = $request->filled('from') ? CarbonImmutable::parse((string) $request->query('from'))->startOfDay() : null;
+            $to = $request->filled('to') ? CarbonImmutable::parse((string) $request->query('to'))->endOfDay() : null;
+        } catch (\Throwable) {
+            $from = $to = null;
+        }
+        $data['from'] = $from;
+        $data['to'] = $to;
         $data['pending'] = LeaveRequest::with(['decider', 'user', 'creator'])->where('user_id', $user->id)->where('status', LeaveStatus::Pending)->orderBy('starts_on')->get();
 
         if ($view === 'requests') {
-            $data['list'] = LeaveRequest::with(['decider', 'user', 'creator'])->where('user_id', $user->id)
-                ->where('status', '!=', LeaveStatus::Pending)->orderByDesc('starts_on')->paginate(15)->withQueryString();
+            $query = LeaveRequest::with(['decider', 'user', 'creator'])->where('user_id', $user->id)->where('status', '!=', LeaveStatus::Pending);
+            $data['hasData'] = (clone $query)->exists();
+            $data['list'] = $query
+                ->when($from, fn ($query) => $query->whereDate('ends_on', '>=', $from))
+                ->when($to, fn ($query) => $query->whereDate('starts_on', '<=', $to))
+                ->orderByDesc('starts_on')->paginate(15)->withQueryString();
         } else {
             $history = collect(LeaveBook::history($user));
+            $data['hasData'] = $history->isNotEmpty();
+            $history = $history->filter(fn ($entry) => (! $from || $entry['at'] >= $from) && (! $to || $entry['at'] <= $to));
             $page = LengthAwarePaginator::resolveCurrentPage();
             $data['list'] = (new LengthAwarePaginator($history->forPage($page, 15)->values(), $history->count(), 15, $page, ['path' => $request->url()]))->withQueryString();
         }

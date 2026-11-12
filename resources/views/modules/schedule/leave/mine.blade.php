@@ -50,17 +50,27 @@
                 @endif
 
                 <section class="stack">
+                    {{-- Chuyển danh sách bên trái, lọc khoảng ngày bên phải (chỉ khi có dữ liệu). --}}
+                    <div class="leave-list-bar">
                     <nav class="chips" aria-label="{{ __('leave.mine') }}">
                         <a href="{{ request()->fullUrlWithQuery(['view' => null, 'page' => null]) }}" @class(['chip', 'is-active' => $view === 'history'])>{{ __('leave.history') }}</a>
                         <a href="{{ request()->fullUrlWithQuery(['view' => 'requests', 'page' => null]) }}" @class(['chip', 'is-active' => $view === 'requests'])>{{ __('leave.mine_history') }}</a>
                     </nav>
+
+                    @if ($hasData)
+                        <form method="get" class="leave-range" onchange="this.submit()">
+                            @include('partials.query-hidden', ['except' => ['from', 'to', 'page']])
+                            @include('partials.date-range-picker', ['label' => __('leave.filter_range'), 'from' => $from, 'to' => $to, 'maxDays' => 366, 'placeholder' => __('leave.filter_any')])
+                        </form>
+                    @endif
+                    </div>
 
                     @if ($view === 'history')
                         {{-- Lịch sử phép: cộng tự động mỗi tháng, nghỉ có lương, chỉnh tay (ai chỉnh, từ bao nhiêu thành bao nhiêu, lý do). --}}
                         @if (! $balance)
                             <p class="empty">{{ __('leave.balance_none') }}</p>
                         @elseif ($list->isEmpty())
-                            <p class="empty">{{ __('leave.history_empty') }}</p>
+                            <p class="empty">{{ $from ? __('leave.filter_empty') : __('leave.history_empty') }}</p>
                         @else
                             <section class="panel">
                                 <ul class="rows leave-history">
@@ -80,7 +90,7 @@
                             </section>
                         @endif
                     @elseif ($list->isEmpty())
-                        <p class="empty">{{ __('leave.empty') }}</p>
+                        <p class="empty">{{ $from ? __('leave.filter_empty') : __('leave.empty') }}</p>
                     @else
                         <section class="panel">
                             <ul class="rows leave-list">

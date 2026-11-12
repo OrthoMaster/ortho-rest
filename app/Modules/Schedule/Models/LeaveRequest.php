@@ -73,14 +73,20 @@ class LeaveRequest extends Model
     /** "T3 10/11" hoặc "T3 10/11 – T5 12/11", kèm tên ca nếu nghỉ theo ca. */
     public function periodText(): string
     {
+        return $this->isWholeDay() ? $this->dateText() : $this->dateText().' · '.$this->partText();
+    }
+
+    /** Chỉ phần ngày: "T3 10/11" hoặc "T3 10/11 – T5 12/11". */
+    public function dateText(): string
+    {
         $day = fn (CarbonImmutable $date) => __('ui.calendar.weekdays_short')[$date->dayOfWeekIso - 1].' '.$date->format('d/m');
-        $text = $this->starts_on->equalTo($this->ends_on) ? $day($this->starts_on) : $day($this->starts_on).' – '.$day($this->ends_on);
 
-        if (! $this->isWholeDay()) {
-            $names = Shift::whereKey($this->shift_ids)->orderBy('start_time')->pluck('name')->implode(', ');
-            $text .= ' · '.$names;
-        }
+        return $this->starts_on->equalTo($this->ends_on) ? $day($this->starts_on) : $day($this->starts_on).' – '.$day($this->ends_on);
+    }
 
-        return $text;
+    /** "Cả ngày" hoặc tên các ca nghỉ. */
+    public function partText(): string
+    {
+        return $this->isWholeDay() ? __('schedule.whole_day') : Shift::whereKey($this->shift_ids)->orderBy('start_time')->pluck('name')->implode(', ');
     }
 }

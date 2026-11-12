@@ -217,6 +217,23 @@ class LeaveTest extends TestCase
         $this->post($this->base, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'whole_day' => 1])->assertSessionHasErrors('user_id');
     }
 
+    public function test_leave_book_filters_by_date_range(): void
+    {
+        $make = fn (array $attributes) => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'days' => 1, 'status' => LeaveStatus::Approved, 'is_paid' => true, 'decided_at' => now(), ...$attributes]);
+        $make(['starts_on' => '2026-10-02', 'ends_on' => '2026-10-02']);
+        $make(['starts_on' => '2026-09-05', 'ends_on' => '2026-09-05', 'is_paid' => false]);
+
+        $this->actingAs($this->lan);
+        // Một dòng: ngày · cả ngày · số ngày, nhãn có lương / không lương.
+        $this->get("$this->base/mine?view=requests")->assertOk()->assertSee(__('leave.filter_any'))
+            ->assertSeeInOrder(['T6 02/10', __('schedule.whole_day'), '1 ngày', __('leave.paid')])->assertSee(__('leave.unpaid'));
+        $this->get("$this->base/mine?view=requests&from=2026-10-01&to=2026-10-31")->assertSee('T6 02/10')->assertDontSee('T7 05/09');
+        $this->get("$this->base/mine?view=requests&from=2026-01-01&to=2026-01-31")->assertSee(__('leave.filter_empty'));
+        // Thông tin số ngày phép: chỉ các dòng trong khoảng.
+        $this->get("$this->base/mine?from=2026-03-01&to=2026-03-31")->assertSee(__('leave.history_monthly', ['month' => '02/2026']))
+            ->assertDontSee(__('leave.history_monthly', ['month' => '03/2026']));
+    }
+
     public function test_unpaid_and_rejected_do_not_use_balance(): void
     {
         $make = fn () => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);

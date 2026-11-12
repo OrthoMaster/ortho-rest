@@ -1,9 +1,8 @@
-{{-- Phép còn lại của một người. --}}
+{{-- Ngày phép còn lại của một người (chỉ con số, không kèm số tích được / đã nghỉ). --}}
 @if ($balance)
     <p class="leave-balance">
         <span>{{ __('leave.balance') }}</span>
         <strong @class(['is-negative' => $balance['left'] < 0])>{{ __('leave.balance_value', ['days' => \App\Modules\Schedule\LeaveBook::format($balance['left'])]) }}</strong>
-        <small>{{ __('leave.balance_detail', ['earned' => \App\Modules\Schedule\LeaveBook::format($balance['earned']), 'since' => $balance['since']->format('d/m/Y'), 'used' => \App\Modules\Schedule\LeaveBook::format($balance['used'])]) }}@if (($balance['adjusted'] ?? 0) != 0) {{ __('leave.balance_adjusted', ['days' => ($balance['adjusted'] > 0 ? '+' : '').\App\Modules\Schedule\LeaveBook::format($balance['adjusted'])]) }}@endif</small>
     </p>
 @else
     <p class="row-note">{{ __('leave.balance_none') }}</p>
