@@ -14,6 +14,7 @@ use App\Modules\Schedule\Roster;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -78,22 +79,27 @@ class LeaveController extends Controller
             $user = $isOwner && $approver ? $users->first() : $viewer;
         }
 
+        // Bên phải: đơn đang chờ (nếu có) ở trên, dưới là Lịch sử phép hoặc Các đơn đã xin, có trang.
+        $view = $request->query('view') === 'requests' ? 'requests' : 'history';
+        $data = ['person' => $user, 'approver' => $approver, 'users' => $users, 'view' => $view, 'balance' => null, 'pending' => collect(), 'list' => null];
+
         if ($user === null) {
-            return view('modules.schedule.leave.mine', ['person' => null, 'approver' => $approver, 'users' => $users, 'history' => [], 'balance' => null, 'leaves' => collect()]);
+            return view('modules.schedule.leave.mine', $data);
         }
 
-        return view('modules.schedule.leave.mine', [
-            'person' => $user,
-            'approver' => $approver,
-            'users' => $users,
-            'history' => LeaveBook::history($user),
-            'balance' => LeaveBook::balance($user),
-            'leaves' => LeaveRequest::with(['decider', 'user'])->where('user_id', $user->id)
-                ->orderByRaw('status = ? desc', [LeaveStatus::Pending->value])
-                ->orderByDesc('starts_on')
-                ->limit(100)
-                ->get(),
-        ]);
+        $data['balance'] = LeaveBook::balance($user);
+        $data['pending'] = LeaveRequest::with(['decider', 'user', 'creator'])->where('user_id', $user->id)->where('status', LeaveStatus::Pending)->orderBy('starts_on')->get();
+
+        if ($view === 'requests') {
+            $data['list'] = LeaveRequest::with(['decider', 'user', 'creator'])->where('user_id', $user->id)
+                ->where('status', '!=', LeaveStatus::Pending)->orderByDesc('starts_on')->paginate(15)->withQueryString();
+        } else {
+            $history = collect(LeaveBook::history($user));
+            $page = LengthAwarePaginator::resolveCurrentPage();
+            $data['list'] = (new LengthAwarePaginator($history->forPage($page, 15)->values(), $history->count(), 15, $page, ['path' => $request->url()]))->withQueryString();
+        }
+
+        return view('modules.schedule.leave.mine', $data);
     }
 
     /**

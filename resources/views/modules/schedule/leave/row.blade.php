@@ -26,11 +26,14 @@
         </small>
     </span>
     <span @class(['badge', $leave->status->badge()])>{{ $leave->status->label() }}</span>
-    <span class="line-tools">
-        @if ($approver && $pending)
+    @php($canDecide = $approver && $pending)
+    @php($canCancel = ($pending && $mine) || ($approver && in_array($leave->status, [\App\Modules\Schedule\LeaveStatus::Pending, \App\Modules\Schedule\LeaveStatus::Approved], true)))
+    @if ($canDecide || $canCancel)
+        <span class="line-tools">
+        @if ($canDecide)
             <button class="btn btn-sm" type="button" data-open-dialog="leave-dialog-{{ $leave->id }}">{{ __('leave.decide') }}</button>
         @endif
-        @if (($pending && $mine) || ($approver && in_array($leave->status, [\App\Modules\Schedule\LeaveStatus::Pending, \App\Modules\Schedule\LeaveStatus::Approved], true)))
+        @if ($canCancel)
             @component('partials.kebab', ['label' => __('leave.cancel')])
                 <form method="post" action="{{ route('tenant.admin.schedule.leave.cancel', $leave) }}" data-confirm-danger
                       data-confirm-title="{{ __('leave.cancel') }}?" data-confirm-ok="{{ __('leave.cancel') }}"
@@ -41,4 +44,5 @@
             @endcomponent
         @endif
     </span>
+    @endif
 </li>

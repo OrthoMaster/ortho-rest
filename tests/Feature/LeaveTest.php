@@ -57,12 +57,15 @@ class LeaveTest extends TestCase
     {
         // Nhân viên: Đơn xin nghỉ chuyển sang Nghỉ phép (phép còn lại, đơn của mình); không có tab Đơn xin nghỉ.
         $this->actingAs($this->lan)->get($this->base)->assertRedirect("$this->base/mine");
-        $this->get("$this->base/mine")->assertOk()->assertSee(__('leave.balance_value', ['days' => '10']))->assertSee(__('leave.mine_pending_none'))
+        $this->get("$this->base/mine")->assertOk()->assertSee(__('leave.balance_value', ['days' => '10']))->assertDontSee(__('leave.mine_pending'))
             ->assertDontSee('/admin/schedule/leave"', false);
         $this->get("$this->base/create")->assertOk()->assertDontSee('name="user_id"', false);
 
         $this->post($this->base, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-18', 'whole_day' => 1, 'reason' => 'Về quê'])
             ->assertRedirect("$this->base/mine")->assertSessionHas('status', __('leave.sent'));
+        // Có đơn chờ thì hiện trên cùng, trước Lịch sử phép; Các đơn đã xin là trang riêng.
+        $this->get("$this->base/mine")->assertSeeInOrder([__('leave.mine_pending'), __('leave.history'), __('leave.history_monthly', ['month' => '02/2026'])]);
+        $this->get("$this->base/mine?view=requests")->assertOk()->assertSee(__('leave.empty'));
         // Thứ năm 12/11, nghỉ ca trưa: 4 giờ / 8 giờ = 0,5 ngày.
         $this->post($this->base, ['starts_on' => '2026-11-12', 'ends_on' => '2026-11-12', 'whole_day' => 0, 'shifts' => [$this->lunch->id]]);
 
