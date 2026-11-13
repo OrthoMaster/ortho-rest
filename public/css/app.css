@@ -1617,8 +1617,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Super admin: chức năng của quán, module con lùi vào dưới module cha. */
 .module-tree { display: grid; margin: 0; padding: 0; list-style: none; }
+/* Đường kẻ giữa các dòng chạy hết bề ngang (kể cả dưới module cha); dòng con chỉ lùi phần chữ, có vạch dọc bên trái. */
 .module-row + .module-row { border-top: 1px solid var(--line); }
-.module-row.is-child { margin-left: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--line); }
 .module-switch { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem .25rem; cursor: pointer; }
+.module-row.is-child .module-switch { margin-left: 1.25rem; padding-left: 1rem; box-shadow: inset 2px 0 0 var(--line); }
 .module-name { display: grid; gap: .1rem; }
 .module-switch:has(input:disabled) { cursor: default; color: var(--ink-soft); }
