@@ -98,6 +98,20 @@ class CustomerOffer extends Model
         return $this->belongsTo(Incident::class);
     }
 
+    /**
+     * Vì sao tặng: ưu đãi sự cố ghi loại sự cố (lúc chọn) và nội dung nếu có,
+     * ưu đãi khách quen ghi "Khách quen" và ghi chú nếu có.
+     */
+    public function reasonText(): string
+    {
+        if ($this->kind === self::KIND_INCIDENT && $this->incident) {
+            return collect([$this->incident->kindLabel(), $this->incident->note])->filter()->implode(' · ');
+        }
+
+        return collect([$this->kind === self::KIND_INCIDENT ? ($this->reason ?: $this->kindLabel()) : $this->kindLabel(),
+            $this->kind === self::KIND_INCIDENT ? null : $this->reason])->filter()->implode(' · ');
+    }
+
     public function kindLabel(): string
     {
         return __('dinein.offer_kinds.'.$this->kind);

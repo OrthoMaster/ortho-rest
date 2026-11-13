@@ -6,7 +6,7 @@
 @php($incidentErrors = $errors->getBag('incident-dialog'))
 @php($giftErrors = $errors->getBag('gift-dialog'))
 @php($voucherErrors = $errors->getBag('voucher'))
-@php($given = \App\Models\CustomerOffer::where('dinein_table_id', $table->id)->latest('id')->get())
+@php($given = \App\Models\CustomerOffer::with(['customer', 'incident'])->where('dinein_table_id', $table->id)->latest('id')->get())
 @php($customer = $table->customer)
 @php($offers = $customer ? \App\Models\CustomerOffer::where('customer_id', $customer->id)->usable()->orderBy('id')->get() : collect())
 
@@ -103,7 +103,7 @@
                         <li>
                             <span class="row-name">
                                 {{ $offer->valueLabel() }} · <strong class="voucher-inline-code">{{ $offer->code }}</strong>
-                                <small>{{ $offer->kindLabel() }} · {{ $offer->customer?->name ?? __('dinein.voucher_anonymous') }}</small>
+                                <small>{{ collect([$offer->reasonText(), $offer->customer?->name])->filter()->implode(' · ') }}</small>
                             </span>
                             <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="voucher-{{ $offer->id }}">{{ __('dinein.voucher_show') }}</button>
                         </li>

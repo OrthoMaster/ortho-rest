@@ -46,8 +46,8 @@
                                     <button class="row-open" type="button" data-open-dialog="voucher-{{ $offer->id }}">
                                         {{ $offer->valueLabel() }} · <strong class="voucher-inline-code">{{ $offer->code }}</strong>
                                     </button>
-                                    <small>{{ collect([$offer->kindLabel(), $offer->customer ? $offer->customer->name.($offer->customer->phone ? ' · '.mask_phone($offer->customer->phone) : '') : __('dinein.voucher_anonymous'), $offer->reason, $offer->sourceTable ? __('dinein.voucher_from_table', ['table' => $offer->sourceTable->label]) : null])->filter()->implode(' · ') }}</small>
-                                    <small>{{ __('dinein.voucher_meta', ['time' => $offer->created_at->format('H:i d/m'), 'name' => $offer->creator?->name ?? '—']) }}{{ $offer->expires_on ? ' · '.__('dinein.voucher_until', ['date' => $offer->expires_on->format('d/m/Y')]) : '' }}</small>
+                                    <small>{{ collect([$offer->reasonText(), $offer->customer ? $offer->customer->name.($offer->customer->phone ? ' · '.mask_phone($offer->customer->phone) : '') : null, $offer->sourceTable ? __('dinein.voucher_from_table', ['table' => $offer->sourceTable->label]) : null])->filter()->implode(' · ') }}</small>
+                                    <small>{{ $offer->creator ? __('dinein.voucher_meta', ['time' => $offer->created_at->format('H:i d/m'), 'name' => $offer->creator->name]) : __('dinein.voucher_meta_time', ['time' => $offer->created_at->format('H:i d/m')]) }}{{ $offer->expires_on ? ' · '.__('dinein.voucher_until', ['date' => $offer->expires_on->format('d/m/Y')]) : '' }}</small>
                                 </span>
                                 <span class="badge {{ $offer->statusBadge() }}">{{ $offer->statusLabel() }}</span>
                                 @component('partials.kebab', ['label' => __('dinein.voucher_actions', ['code' => $offer->code])])

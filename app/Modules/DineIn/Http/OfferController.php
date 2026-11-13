@@ -50,7 +50,7 @@ class OfferController extends Controller
         $code = strtoupper(preg_replace('/\s+/', '', $search));
         $phone = Phone::normalize($search);
 
-        return CustomerOffer::with(['customer', 'creator', 'sourceTable', 'usedTable', 'usedOrder'])
+        return CustomerOffer::with(['customer', 'incident', 'creator', 'sourceTable', 'usedTable', 'usedOrder'])
             ->where(function (Builder $query) use ($code, $phone): void {
                 $query->where('code', 'like', $code.'%');
 

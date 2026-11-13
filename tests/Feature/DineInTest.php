@@ -603,13 +603,16 @@ class DineInTest extends TestCase
         $this->assertNull(CustomerOffer::withoutGlobalScopes()->first());
 
         // Ghi sự cố kèm tặng ưu đãi: ưu đãi loại Sự cố, gắn với sự cố, mở mã QR.
-        $this->post("$tables/incidents", ['kind' => 'slow', 'gift' => '1', 'type' => 'amount', 'thousands' => 30])
+        $this->post("$tables/incidents", ['kind' => 'slow', 'note' => 'Chờ 40 phút', 'gift' => '1', 'type' => 'amount', 'thousands' => 30])
             ->assertSessionHas('status', __('dinein.incident_gift_saved'))->assertSessionHas('voucher');
         $offer = CustomerOffer::withoutGlobalScopes()->sole();
         $incident = Incident::withoutGlobalScopes()->latest('id')->first();
         $this->assertSame([CustomerOffer::KIND_INCIDENT, $incident->id, 30000, __('dinein.incident_kinds.slow')], [$offer->kind, $offer->incident_id, $offer->value, $offer->reason]);
         $this->get("$this->base/tables/A1")->assertSee(__('dinein.incident_offer', ['value' => $offer->valueLabel(), 'code' => $offer->code]));
         $this->get("$this->base/incidents")->assertSee($offer->code);
+        // Ưu đãi sự cố ghi loại sự cố và nội dung, không ghi "Sự cố", không ghi tên khi không có khách.
+        $this->get("$this->base/offers?q={$offer->code}")->assertSee(__('dinein.incident_kinds.slow').' · Chờ 40 phút')
+            ->assertDontSee(__('dinein.offer_kinds.incident').' · '.__('dinein.incident_kinds.slow'))->assertDontSee('Không tên');
 
         // Ưu đãi khách quen không cần ghi chú.
         $this->post("$tables/gift", ['type' => 'percent', 'percent' => 5])->assertSessionHas('voucher');
