@@ -294,7 +294,11 @@ class PlaceOrder
                 throw ValidationException::withMessages(['status' => __('takeaway.bad_transition')]);
             }
 
-            $order->update(['status' => $status]);
+            $order->update(['status' => $status, ...match ($status) {
+                OrderStatus::Ready => ['ready_at' => now()],
+                OrderStatus::Delivered => ['delivered_at' => now(), 'ready_at' => $order->ready_at ?? now()],
+                default => [],
+            }]);
 
             // Giao khách: bật Thu ngân thì chờ thu ở quầy, không thì coi như đã thu.
             if ($status === OrderStatus::Delivered && $order->paid_at === null && $user) {

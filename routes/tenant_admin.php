@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SpecialDayController;
@@ -26,6 +27,12 @@ Route::get('customers', [CustomerController::class, 'index'])->middleware('can:c
 Route::get('customers/export', [CustomerController::class, 'export'])->middleware('can:customers.export')->name('customers.export');
 Route::post('customers/{customer}/anonymize', [CustomerController::class, 'anonymize'])->whereNumber('customer')->middleware('can:customers.anonymize')->name('customers.anonymize');
 Route::get('activity', [ActivityController::class, 'index'])->middleware('can:activity.view')->name('activity');
+
+// Thống kê cho chủ quán: những gì máy tính tiền không đo được (tốc độ ra món, sự cố, huỷ món…).
+Route::middleware('can:reports.view')->prefix('reports')->name('reports')->group(function () {
+    Route::get('{tab?}', [ReportController::class, 'show'])->where('tab', implode('|', ReportController::TABS))->name('');
+    Route::get('{tab}/export', [ReportController::class, 'export'])->where('tab', implode('|', ReportController::TABS))->name('.export');
+});
 
 Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');

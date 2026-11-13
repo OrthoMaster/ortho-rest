@@ -14,6 +14,7 @@ return [
         'customers.export' => [],
         'customers.anonymize' => [],
         'activity.view' => [],
+        'reports.view' => [],
         'settings.manage' => [],
     ],
     'dinein' => [

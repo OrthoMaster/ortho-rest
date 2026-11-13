@@ -46,6 +46,9 @@
         {!! $team !!}
         <hr class="nav-sep">
     @endif
+    @can('reports.view')
+        <a href="{{ route('tenant.admin.reports') }}" @class(['active' => request()->routeIs('tenant.admin.reports*')])>{{ __('reports.title') }}</a>
+    @endcan
     @can('activity.view')
         <a href="{{ route('tenant.admin.activity') }}" @class(['active' => request()->routeIs('tenant.admin.activity')])>{{ __('activity.title') }}</a>
     @endcan

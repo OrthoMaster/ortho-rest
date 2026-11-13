@@ -18,6 +18,7 @@ return [
         'customers.export' => 'Xuất Excel danh sách khách hàng',
         'customers.anonymize' => 'Xoá thông tin khách',
         'activity.view' => 'Xem nhật ký thay đổi',
+        'reports.view' => 'Xem thống kê (doanh thu, tốc độ phục vụ, sự cố, nhân viên)',
         'settings.manage' => 'Cài đặt chung (thông tin, giờ mở cửa, ca, ngày đặc biệt, dữ liệu khách)',
         'staff.manage' => 'Thêm, sửa, ngừng tài khoản nhân viên',
         'positions.manage' => 'Thêm, sửa chức vụ và quyền',

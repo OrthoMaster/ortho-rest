@@ -30,6 +30,8 @@ class TakeawayOrder extends Model
             'discount_amount' => 'integer',
             'total' => 'integer',
             'paid_at' => 'immutable_datetime',
+            'ready_at' => 'immutable_datetime',
+            'delivered_at' => 'immutable_datetime',
         ];
     }
 
