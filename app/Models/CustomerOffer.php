@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Modules\DineIn\Models\DiningTable;
+use App\Modules\DineIn\Models\Incident;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Tenancy\BelongsToRestaurant;
@@ -23,6 +24,12 @@ class CustomerOffer extends Model
 
     /** Chữ dùng cho mã: bỏ 0, O, 1, I, L để đọc không nhầm. */
     private const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+    /** Ưu đãi khách quen */
+    public const KIND_LOYAL = 'loyal';
+
+    /** Bù cho khách gặp sự cố (tặng lúc ghi sự cố) */
+    public const KIND_INCIDENT = 'incident';
 
     protected $guarded = ['id'];
 
@@ -84,6 +91,16 @@ class CustomerOffer extends Model
     public function sourceTable(): BelongsTo
     {
         return $this->belongsTo(DiningTable::class, 'dinein_table_id');
+    }
+
+    public function incident(): BelongsTo
+    {
+        return $this->belongsTo(Incident::class);
+    }
+
+    public function kindLabel(): string
+    {
+        return __('dinein.offer_kinds.'.$this->kind);
     }
 
     public function usedTable(): BelongsTo

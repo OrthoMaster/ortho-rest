@@ -50,7 +50,7 @@ class IncidentController extends Controller
 
     private function query(CarbonImmutable $from, CarbonImmutable $to, array $kinds): Builder
     {
-        return Incident::with(['diningTable.customer', 'creator'])
+        return Incident::with(['diningTable.customer', 'creator', 'offer.usedTable', 'offer.usedOrder'])
             ->whereBetween('created_at', [$from, $to->endOfDay()])
             ->when($kinds, fn (Builder $query) => $query->whereIn('kind', $kinds))
             ->latest('id');

@@ -11,6 +11,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
+use App\Modules\DineIn\Models\Incident;
 use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
@@ -571,6 +572,36 @@ class DineInTest extends TestCase
         $this->delete("$this->base/offers/{$spare->id}")->assertSessionHas('status');
         $this->assertNull(CustomerOffer::withoutGlobalScopes()->find($spare->id));
         $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/offers")->assertForbidden();
+    }
+
+    public function test_incident_without_note_can_gift_an_offer_for_the_guest(): void
+    {
+        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 1]]);
+        $table = DiningTable::withoutGlobalScopes()->sole();
+        $tables = "$this->base/tables/{$table->id}";
+
+        // Nội dung sự cố, ghi chú ưu đãi không bắt buộc; hạn dùng mặc định 1 tháng, lịch có nút 1 tháng, 2 tháng.
+        $this->get("$this->base/tables/A1")->assertSee('name="gift"', false)->assertSee('data-date-months="2"', false)
+            ->assertSee('value="'.today()->addMonthNoOverflow()->toDateString().'"', false)->assertDontSee('data-date-shortcut="0"', false);
+        $this->post("$tables/incidents", ['kind' => 'wrong'])->assertSessionHas('status', __('dinein.incident_saved'));
+        $this->assertNull(CustomerOffer::withoutGlobalScopes()->first());
+
+        // Ghi sự cố kèm tặng ưu đãi: ưu đãi loại Sự cố, gắn với sự cố, mở mã QR.
+        $this->post("$tables/incidents", ['kind' => 'slow', 'gift' => '1', 'type' => 'amount', 'thousands' => 30])
+            ->assertSessionHas('status', __('dinein.incident_gift_saved'))->assertSessionHas('voucher');
+        $offer = CustomerOffer::withoutGlobalScopes()->sole();
+        $incident = Incident::withoutGlobalScopes()->latest('id')->first();
+        $this->assertSame([CustomerOffer::KIND_INCIDENT, $incident->id, 30000, __('dinein.incident_kinds.slow')], [$offer->kind, $offer->incident_id, $offer->value, $offer->reason]);
+        $this->get("$this->base/tables/A1")->assertSee(__('dinein.incident_offer', ['value' => $offer->valueLabel(), 'code' => $offer->code]));
+        $this->get("$this->base/incidents")->assertSee($offer->code);
+
+        // Ưu đãi khách quen không cần ghi chú.
+        $this->post("$tables/gift", ['type' => 'percent', 'percent' => 5])->assertSessionHas('voucher');
+        $this->assertSame(CustomerOffer::KIND_LOYAL, CustomerOffer::withoutGlobalScopes()->latest('id')->first()->kind);
+
+        // Người không có quyền tặng ưu đãi: ghi sự cố được, phần tặng bị bỏ qua.
+        $this->actingAs($this->member($this->restaurant, 'staff'))->post("$tables/incidents", ['kind' => 'other', 'gift' => '1', 'type' => 'percent', 'percent' => 50]);
+        $this->assertSame(2, CustomerOffer::withoutGlobalScopes()->count());
     }
 
     public function test_items_without_station_skip_the_screens(): void

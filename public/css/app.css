@@ -1055,6 +1055,8 @@ dialog .pick .multi-options { max-height: min(16rem, 40dvh); }
 .bill-due strong { color: var(--ink); }
 .gift-form:has(input[value=percent]:checked) [data-gift=amount],
 .gift-form:has(input[value=amount]:checked) [data-gift=percent] { display: none; }
+/* Ghi sự cố: các ô tặng ưu đãi chỉ hiện khi bật "Tặng ưu đãi lần sau" (CSS, nên vẫn đúng sau khi bảng tự tải lại). */
+.incident-form:not(:has(input[name=gift]:checked)) .incident-gift { display: none; }
 .dine-actions-end { display: flex; flex-wrap: wrap; gap: .5rem; }
 .dine-actions-end form { display: contents; }
 /* Phiếu tạm tính: số lượng cột trái, giá đơn vị dưới tên, thành tiền bên phải. */

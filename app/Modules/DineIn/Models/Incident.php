@@ -2,10 +2,12 @@
 
 namespace App\Modules\DineIn\Models;
 
+use App\Models\CustomerOffer;
 use App\Models\User;
 use App\Tenancy\BelongsToRestaurant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Sự cố khi phục vụ một bàn: loại, nội dung, ai ghi, lúc nào. */
 class Incident extends Model
@@ -26,6 +28,12 @@ class Incident extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Ưu đãi tặng bù cho sự cố này (nếu có). */
+    public function offer(): HasOne
+    {
+        return $this->hasOne(CustomerOffer::class);
     }
 
     public function kindLabel(): string

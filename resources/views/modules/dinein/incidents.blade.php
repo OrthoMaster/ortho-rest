@@ -40,7 +40,10 @@
                                         <strong>{{ __('dinein.table_title', ['table' => $incident->diningTable->label]) }}</strong>
                                         <span class="badge badge-warn">{{ $incident->kindLabel() }}</span>
                                     </span>
-                                    <span class="incident-note">{{ $incident->note }}</span>
+                                    @if ($incident->note)<span class="incident-note">{{ $incident->note }}</span>@endif
+                                    @if ($incident->offer)
+                                        <small>{{ __('dinein.incident_offer', ['value' => $incident->offer->valueLabel(), 'code' => $incident->offer->code]) }} · {{ $incident->offer->statusLabel() }}</small>
+                                    @endif
                                     <small>{{ collect([$incident->creator?->name, $incident->diningTable->customer ? $incident->diningTable->customer->name.' · '.mask_phone($incident->diningTable->customer->phone) : null])->filter()->implode(' · ') }}</small>
                                 </span>
                             </li>

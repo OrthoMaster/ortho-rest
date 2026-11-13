@@ -19,6 +19,7 @@ return [
         'next_year' => 'Năm sau',
         'today' => 'Hôm nay',
         'tomorrow' => 'Ngày mai',
+        'months' => ':count tháng',
         'previous' => 'Tháng trước',
         'next' => 'Tháng sau',
         'weekdays' => [

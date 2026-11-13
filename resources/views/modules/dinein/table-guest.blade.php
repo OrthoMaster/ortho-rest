@@ -103,7 +103,7 @@
                         <li>
                             <span class="row-name">
                                 {{ $offer->valueLabel() }} · <strong class="voucher-inline-code">{{ $offer->code }}</strong>
-                                <small>{{ $offer->customer?->name ?? __('dinein.voucher_anonymous') }}</small>
+                                <small>{{ $offer->kindLabel() }} · {{ $offer->customer?->name ?? __('dinein.voucher_anonymous') }}</small>
                             </span>
                             <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="voucher-{{ $offer->id }}">{{ __('dinein.voucher_show') }}</button>
                         </li>
@@ -112,10 +112,10 @@
             </div>
         @endif
     </section>
-    @foreach ($given as $offer)
-        @include('modules.dinein.voucher-dialog', ['offer' => $offer])
-    @endforeach
 @endif
+@foreach ($given as $offer)
+    @include('modules.dinein.voucher-dialog', ['offer' => $offer])
+@endforeach
 
 <section class="panel stack incident-panel">
     <div class="panel-head">
@@ -128,9 +128,15 @@
                 <li>
                     <span class="row-name">
                         <span class="badge badge-warn">{{ $incident->kindLabel() }}</span>
-                        <span class="incident-note">{{ $incident->note }}</span>
+                        @if ($incident->note)<span class="incident-note">{{ $incident->note }}</span>@endif
                         <small>{{ __('dinein.incident_meta', ['time' => $incident->created_at->format('H:i'), 'name' => $incident->creator?->name ?? '—']) }}</small>
+                        @if ($incident->offer)
+                            <small>{{ __('dinein.incident_offer', ['value' => $incident->offer->valueLabel(), 'code' => $incident->offer->code]) }}</small>
+                        @endif
                     </span>
+                    @if ($incident->offer)
+                        <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="voucher-{{ $incident->offer->id }}">{{ __('dinein.voucher_show') }}</button>
+                    @endif
                 </li>
             @endforeach
         </ul>
@@ -160,7 +166,7 @@
 </dialog>
 
 <dialog id="incident-dialog" @if ($incidentErrors->any()) data-auto-open @endif aria-labelledby="incident-title">
-    <form method="post" action="{{ route('tenant.admin.dinein.tables.incidents', $table) }}" class="stack">
+    <form method="post" action="{{ route('tenant.admin.dinein.tables.incidents', $table) }}" class="stack gift-form incident-form">
         @csrf
         <h2 id="incident-title">{{ __('dinein.incident_add') }}</h2>
         <div class="field">
@@ -172,10 +178,19 @@
             </select>
         </div>
         <div class="field">
-            <label for="incident-note">{{ __('dinein.incident_note') }}@include('partials.required')</label>
-            <textarea id="incident-note" name="note" rows="3" maxlength="1000" required placeholder="{{ __('dinein.incident_note_example') }}">{{ old('note') }}</textarea>
+            <label for="incident-note">{{ __('dinein.incident_note') }}</label>
+            <textarea id="incident-note" name="note" rows="3" maxlength="1000" placeholder="{{ __('dinein.incident_note_example') }}">{{ old('note') }}</textarea>
             @if ($incidentErrors->has('note'))<small class="error">{{ $incidentErrors->first('note') }}</small>@endif
         </div>
+        @can('dinein.offers')
+            {{-- Tặng ưu đãi bù cho khách ngay lúc ghi sự cố; bật lên mới hiện các ô ưu đãi. --}}
+            <div class="field">
+                <label class="check"><input type="checkbox" name="gift" value="1" @checked(old('gift'))> {{ __('dinein.gift_with_incident') }}</label>
+            </div>
+            <div class="stack incident-gift">
+                @include('modules.dinein.gift-fields', ['prefix' => 'incident-', 'bag' => $incidentErrors, 'reason' => false])
+            </div>
+        @endcan
         <div class="dialog-foot">
             <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
             <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.cancel') }}</button>
@@ -191,29 +206,7 @@
                     <h2 id="gift-title">{{ __('dinein.gift') }}</h2>
                     <small class="row-note">{{ __('dinein.gift_lead') }}</small>
                 </div>
-                @if ($customer)
-                    <div class="field">
-                        <label class="check"><input type="checkbox" name="for_customer" value="1" @checked(old('for_customer', $giftErrors->any() ? null : '1'))> {{ __('dinein.gift_for_customer', ['name' => $customer->name]) }}</label>
-                        <small class="hint">{{ __('dinein.gift_for_customer_hint') }}</small>
-                    </div>
-                @endif
-                @php($giftType = old('type', 'percent'))
-                <div class="segmented" role="radiogroup" aria-label="{{ __('dinein.gift_type') }}">
-                    <label><input type="radio" name="type" value="percent" @checked($giftType === 'percent')> <span>{{ __('dinein.gift_percent') }}</span></label>
-                    <label><input type="radio" name="type" value="amount" @checked($giftType === 'amount')> <span>{{ __('dinein.gift_amount') }}</span></label>
-                </div>
-                <div data-gift="percent">
-                    @include('partials.number-stepper', ['name' => 'percent', 'label' => __('dinein.gift_percent_value'), 'value' => 10, 'min' => 1, 'max' => 100, 'suffix' => '%'])
-                </div>
-                <div data-gift="amount">
-                    @include('partials.number-stepper', ['name' => 'thousands', 'label' => __('dinein.gift_amount_value'), 'value' => 20, 'min' => 1, 'max' => 999999, 'suffix' => __('takeaway.thousands_suffix')])
-                </div>
-                <div class="field">
-                    <label for="gift-reason">{{ __('dinein.gift_reason') }}@include('partials.required')</label>
-                    <input id="gift-reason" name="reason" value="{{ old('reason', $table->incidents->first()?->kindLabel()) }}" maxlength="300" required placeholder="{{ __('dinein.gift_reason_example') }}">
-                    @if ($giftErrors->has('reason'))<small class="error">{{ $giftErrors->first('reason') }}</small>@endif
-                </div>
-                @include('partials.date-picker', ['name' => 'expires_on', 'label' => __('dinein.gift_expires'), 'value' => today()->addDays(90)->toDateString(), 'min' => today()->toDateString(), 'placeholder' => __('dinein.gift_expires_none'), 'withYear' => true])
+                @include('modules.dinein.gift-fields', ['prefix' => 'gift-', 'bag' => $giftErrors])
                 <div class="dialog-foot">
                     <button class="btn" type="submit">{{ __('dinein.gift') }}</button>
                     <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.cancel') }}</button>

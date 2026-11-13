@@ -62,51 +62,81 @@ class GuestController extends Controller
     {
         abort_unless($table->isOpen(), 404);
 
+        // Ghi sự cố kèm tặng ưu đãi bù cho khách (chỉ người có quyền tặng ưu đãi).
+        $gift = $request->boolean('gift') && $request->user()->can('dinein.offers');
         $data = $request->validateWithBag('incident-dialog', [
             'kind' => ['required', Rule::in(Incident::KINDS)],
-            'note' => ['required', 'string', 'max:1000'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            ...($gift ? $this->giftRules() : []),
         ]);
 
-        $incident = $table->incidents()->create([...$data, 'restaurant_id' => $table->restaurant_id, 'created_by' => $request->user()->id]);
-        ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_incident', ['table' => $table->label, 'kind' => $incident->kindLabel()]), [$incident->note], $table);
+        $incident = $table->incidents()->create([
+            'kind' => $data['kind'],
+            'note' => $data['note'] ?? null,
+            'restaurant_id' => $table->restaurant_id,
+            'created_by' => $request->user()->id,
+        ]);
+        ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_incident', ['table' => $table->label, 'kind' => $incident->kindLabel()]), array_filter([$incident->note]), $table);
 
-        return back()->with('status', __('dinein.incident_saved'));
+        if (! $gift) {
+            return back()->with('status', __('dinein.incident_saved'));
+        }
+
+        $offer = $this->createOffer($request, $table, [...$data, 'reason' => $incident->kindLabel()], CustomerOffer::KIND_INCIDENT, $incident);
+
+        return back()->with('status', __('dinein.incident_gift_saved'))->with('voucher', $offer->id);
     }
 
     /**
-     * Tặng ưu đãi cho lần sau khách quay lại (ví dụ bù sự cố hôm nay). Bàn có gắn khách thì mặc định
-     * tặng cho khách đó; không thì là voucher không tên, khách quét mã QR để lưu trên điện thoại.
+     * Tặng ưu đãi khách quen cho lần sau. Bàn có gắn khách thì mặc định tặng cho khách đó;
+     * không thì là voucher không tên, khách quét mã QR để lưu trên điện thoại.
      */
     public function gift(Request $request, DiningTable $table): RedirectResponse
     {
         abort_unless($table->isOpen(), 404);
 
-        $data = $request->validateWithBag('gift-dialog', [
+        $data = $request->validateWithBag('gift-dialog', $this->giftRules());
+        $offer = $this->createOffer($request, $table, $data, CustomerOffer::KIND_LOYAL);
+
+        // Mở luôn mã QR để khách quét lưu về điện thoại.
+        return back()->with('status', $offer->customer ? __('dinein.gift_saved', ['name' => $offer->customer->name]) : __('dinein.voucher_saved'))
+            ->with('voucher', $offer->id);
+    }
+
+    /** @return array<string, array<int, mixed>> */
+    private function giftRules(): array
+    {
+        return [
             'type' => ['required', Rule::enum(DiscountType::class)],
             'percent' => ['nullable', 'required_if:type,percent', 'integer', 'min:1', 'max:100'],
             'thousands' => ['nullable', 'required_if:type,amount', 'integer', 'min:1', 'max:999999'],
-            'reason' => ['required', 'string', 'max:300'],
+            'reason' => ['nullable', 'string', 'max:300'],
             'expires_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
-        ]);
+        ];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function createOffer(Request $request, DiningTable $table, array $data, string $kind, ?Incident $incident = null): CustomerOffer
+    {
         $type = DiscountType::from($data['type']);
         $customer = $table->customer_id && $request->boolean('for_customer') ? $table->customer : null;
 
         $offer = CustomerOffer::create([
             'customer_id' => $customer?->id,
+            'kind' => $kind,
             'type' => $type,
             'value' => $type === DiscountType::Percent ? (int) $data['percent'] : (int) $data['thousands'] * 1000,
-            'reason' => $data['reason'],
+            'reason' => $data['reason'] ?? null,
             'expires_on' => $data['expires_on'] ?? null,
             'dinein_table_id' => $table->id,
+            'incident_id' => $incident?->id,
             'created_by' => $request->user()->id,
         ]);
         ActivityLog::record($table->restaurant_id, 'dinein', $customer
             ? __('dinein.log_gift', ['table' => $table->label, 'name' => $customer->name])
-            : __('dinein.log_voucher', ['table' => $table->label, 'code' => $offer->code]), [$offer->summary()], $table);
+            : __('dinein.log_voucher', ['table' => $table->label, 'code' => $offer->code]), [$offer->kindLabel().' · '.$offer->summary()], $table);
 
-        // Mở luôn mã QR để khách quét lưu về điện thoại.
-        return back()->with('status', $customer ? __('dinein.gift_saved', ['name' => $customer->name]) : __('dinein.voucher_saved'))
-            ->with('voucher', $offer->id);
+        return $offer;
     }
 
     /** Áp ưu đãi của khách đang gắn vào phiếu tạm tính (mỗi bàn một mức giảm, ưu đãi dùng một lần). */

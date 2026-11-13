@@ -22,7 +22,7 @@
                             <button class="row-open" type="button" data-open-dialog="voucher-{{ $offer->id }}">
                                 {{ $offer->valueLabel() }} · <strong class="voucher-inline-code">{{ $offer->code }}</strong>
                             </button>
-                            <small>{{ collect([$offer->customer?->name ?? __('dinein.voucher_anonymous'), $offer->reason, $offer->sourceTable ? __('dinein.voucher_from_table', ['table' => $offer->sourceTable->label]) : null])->filter()->implode(' · ') }}</small>
+                            <small>{{ collect([$offer->kindLabel(), $offer->customer?->name ?? __('dinein.voucher_anonymous'), $offer->reason, $offer->sourceTable ? __('dinein.voucher_from_table', ['table' => $offer->sourceTable->label]) : null])->filter()->implode(' · ') }}</small>
                             <small>{{ __('dinein.voucher_meta', ['time' => $offer->created_at->format('H:i d/m'), 'name' => $offer->creator?->name ?? '—']) }}{{ $offer->expires_on ? ' · '.__('customers.offer_until', ['date' => $offer->expires_on->format('d/m/Y')]) : '' }}</small>
                         </span>
                         <span class="badge {{ $offer->statusBadge() }}">{{ $offer->statusLabel() }}</span>

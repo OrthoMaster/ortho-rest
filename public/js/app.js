@@ -502,6 +502,8 @@
 
                 known = ids;
                 board.replaceChildren.apply(board, Array.prototype.slice.call(fresh.childNodes));
+                // Phần mới tải về (ví dụ hộp thoại tặng ưu đãi) cần gắn lại lịch chọn ngày.
+                board.querySelectorAll('[data-date-picker]').forEach(initDatePicker);
             }).catch(function () {});
         }, 5000);
     }
@@ -1721,7 +1723,14 @@
         return new Date(parts[0], parts[1] - 1, parts[2]);
     };
 
-    document.querySelectorAll('[data-date-picker]').forEach(function (picker) {
+    // Lịch chọn ngày. Ô nằm trong bảng tự tải lại (data-board) thì gọi lại sau mỗi lần tải.
+    var initDatePicker = function (picker) {
+        if (picker.dataset.ready) {
+            return;
+        }
+
+        picker.dataset.ready = '1';
+
         var value = picker.querySelector('[data-date-value]');
         var text = picker.querySelector('[data-date-text]');
         var dialog = picker.querySelector('[data-date-dialog]');
@@ -1810,6 +1819,7 @@
             var step = event.target.closest('[data-month-step]');
             var day = event.target.closest('[data-date]');
             var shortcut = event.target.closest('[data-date-shortcut]');
+            var months = event.target.closest('[data-date-months]');
 
             if (step) {
                 shown = new Date(shown.getFullYear(), shown.getMonth() + Number(step.dataset.monthStep), 1);
@@ -1818,6 +1828,12 @@
                 choose(day.dataset.date);
             } else if (shortcut) {
                 choose(toIso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(shortcut.dataset.dateShortcut))));
+            } else if (months) {
+                // Cộng tháng, ngày 31 sang tháng ít ngày hơn thì lấy ngày cuối tháng (như addMonthNoOverflow).
+                var target = today.getMonth() + Number(months.dataset.dateMonths);
+                var last = new Date(today.getFullYear(), target + 1, 0).getDate();
+
+                choose(toIso(new Date(today.getFullYear(), target, Math.min(today.getDate(), last))));
             } else if (event.target.closest('[data-date-clear]')) {
                 value.value = '';
                 text.textContent = picker.dataset.placeholder;
@@ -1837,7 +1853,9 @@
         } else {
             text.textContent = picker.dataset.placeholder;
         }
-    });
+    };
+
+    document.querySelectorAll('[data-date-picker]').forEach(initDatePicker);
 
     // Chọn khoảng ngày: bấm ngày đầu rồi ngày cuối, không dài quá data-max-days.
     document.querySelectorAll('[data-date-range]').forEach(function (picker) {
