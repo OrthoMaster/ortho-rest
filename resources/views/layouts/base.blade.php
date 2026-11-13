@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ versioned_asset('css/app.css') }}">
     <script src="{{ versioned_asset('js/app.js') }}" defer></script>
+    @stack('head')
     @if ($themeCss = tenant()?->themeCss())
         <style>:root { {{ $themeCss }} }</style>
     @endif

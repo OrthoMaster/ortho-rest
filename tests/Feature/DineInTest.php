@@ -6,6 +6,7 @@ use App\Enums\ShiftType;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\CustomerOffer;
+use App\Models\PushSubscription;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -28,9 +29,11 @@ use App\Modules\Schedule\Models\Week;
 use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\OrderStatus;
+use App\Push\WebPush;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class DineInTest extends TestCase
@@ -314,6 +317,70 @@ class DineInTest extends TestCase
         $this->post("$this->base/lines/{$line->id}/cancel")->assertForbidden();
         $this->actingAs($this->member($this->restaurant, 'manager'))->post("$this->base/lines/{$line->id}/cancel")->assertSessionHas('status');
         $this->assertSame(LineStatus::Cancelled, $line->fresh()->status);
+    }
+
+    /** Thông báo đẩy đi đúng người như chuông báo: món mới cho người đang ở khu, món xong cho người gọi món. */
+    public function test_push_notifications_reach_the_same_people_as_the_alerts(): void
+    {
+        $sent = $this->fakePush();
+        $cook = $this->member($this->restaurant, 'staff');
+        $waiter = $this->member($this->restaurant, 'staff');
+        $shift = Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Work, 'weekday' => 1, 'name' => 'Ca trưa', 'start_time' => '10:00', 'end_time' => '14:00']);
+        $this->postJson("/{$this->restaurant->slug}/admin/schedule/assignments", ['user' => $cook->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 's'.$this->kitchen->id])->assertOk();
+        $this->post("/{$this->restaurant->slug}/admin/schedule/week/publish", ['date' => '2026-11-09']);
+
+        foreach ([$cook, $waiter, $this->owner] as $user) {
+            PushSubscription::create(['user_id' => $user->id, 'endpoint' => "https://push.test/{$user->id}", 'endpoint_hash' => hash('sha256', (string) $user->id), 'public_key' => 'k', 'auth_token' => 'a']);
+        }
+
+        // Gọi cơm tấm (bếp, có người làm) và trà đá (quầy nước, không ai được phân công).
+        $this->actingAs($waiter)->order('A1', [$this->comTamLine(), ['item' => $this->tra->id, 'quantity' => 1]]);
+        $this->assertCount(1, $sent);
+        $this->assertSame([$cook->id], $sent[0]['users']);
+        $this->assertSame(__('push.fresh_title', ['station' => 'Bếp']), $sent[0]['title']);
+        $this->assertSame('Bàn A1 · 2 × Cơm tấm (Sườn cọng, Không ớt, Nhiều tỏi)', $sent[0]['body']);
+        $this->assertStringEndsWith("/admin/kitchen/{$this->kitchen->id}", $sent[0]['url']);
+
+        // Bếp báo xong: khu vực bàn chưa ai được phân công thì báo người đã gọi món.
+        $line = OrderLine::withoutGlobalScopes()->where('dinein_station_id', $this->kitchen->id)->sole();
+        $this->actingAs($cook)->post("$this->kitchenBase/{$this->kitchen->id}/done", ['lines' => [$line->id]]);
+        $this->assertCount(2, $sent);
+        $this->assertSame([$waiter->id], $sent[1]['users']);
+        $this->assertSame(__('push.ready_title', ['table' => 'A1']), $sent[1]['title']);
+        $this->assertStringEndsWith('/admin/dinein/tables/A1', $sent[1]['url']);
+
+        // Đơn mang đi nhận hôm nay: bếp nhận món của đơn (quầy nước không ai làm thì không gửi).
+        $order = $this->actingAs($this->owner)->takeawayOrder();
+        // (Trong test gửi ngay từng món; thật thì gom lại gửi một lần sau khi trả trang.)
+        $this->assertCount(4, $sent);
+        $this->assertSame([[$cook->id], [$cook->id]], [$sent[2]['users'], $sent[3]['users']]);
+        $this->assertSame(__('push.order', ['code' => $order->code()]).' · 1 × Cơm tấm (Sườn, Không ớt)', $sent[2]['body']);
+
+        // Không có khoá VAPID thì không gửi gì.
+        config(['liresto.push.public_key' => null]);
+        $this->actingAs($waiter)->order('A2', [$this->comTamLine()]);
+        $this->assertCount(4, $sent);
+    }
+
+    /** Thay WebPush bằng bản ghi lại, gửi ngay thay vì sau khi trả trang. */
+    private function fakePush(): \ArrayObject
+    {
+        config(['liresto.push.public_key' => 'public', 'liresto.push.private_key' => 'private']);
+        $this->withoutDefer();
+        $sent = new \ArrayObject;
+        $this->app->instance(WebPush::class, new class($sent) extends WebPush
+        {
+            public function __construct(private \ArrayObject $log) {}
+
+            public function send(Collection $subscriptions, array $message): void
+            {
+                if ($subscriptions->isNotEmpty()) {
+                    $this->log[] = ['users' => $subscriptions->pluck('user_id')->sort()->values()->all(), ...$message];
+                }
+            }
+        });
+
+        return $sent;
     }
 
     public function test_station_screen_follows_assignment_and_shift(): void

@@ -51,7 +51,10 @@ mysql -u root -p -e "CREATE DATABASE liresto_test CHARACTER SET utf8mb4 COLLATE 
 php artisan test                        # chạy test trên database liresto_test của MySQL
 php artisan migrate:fresh --seed        # xoá sạch DB, tạo lại dữ liệu thử
 php artisan liresto:super-admin a@b.vn  # tạo super admin khi không chạy seed (production)
+php artisan liresto:vapid               # tạo khoá thông báo đẩy, chép VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY vào .env (một lần)
 ```
+
+Thông báo đẩy và cài ứng dụng (PWA) cần HTTPS (ở local thì `127.0.0.1`/`localhost` được). Chưa có khoá VAPID thì không hiện lời mời bật thông báo và không gửi gì; nút Cài ứng dụng vẫn có.
 
 ## Cấu trúc
 

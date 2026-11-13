@@ -58,6 +58,33 @@
     <a href="{{ route('tenant.admin.profile.edit') }}" @class(['active' => request()->routeIs('tenant.admin.profile.*')])>{{ __('ui.nav.profile') }}</a>
 @endsection
 
+{{-- Ứng dụng cài được của quán, và lời mời bật thông báo đẩy trên máy này (khi có Màn hình khu vực). --}}
+@push('head')
+    @include('partials.app-head')
+@endpush
+@if (has_module('kitchen') && \App\Push\WebPush::enabled())
+    @push('content_top')
+        <section class="panel push-banner w-lg" data-push data-key="{{ config('liresto.push.public_key') }}" data-url="{{ route('tenant.admin.push.subscribe') }}" data-token="{{ substr(hash('sha256', session()->getId().auth()->id()), 0, 16) }}" hidden>
+            <div class="push-banner-text" data-push-enable hidden>
+                <strong>{{ __('push.enable_title') }}</strong>
+                <small>{{ __('push.enable_body') }}</small>
+            </div>
+            <div class="push-banner-text" data-push-install hidden>
+                <strong>{{ __('push.install_title') }}</strong>
+                <small>{{ __('push.install_body') }}</small>
+            </div>
+            <div class="push-banner-actions">
+                <button class="btn btn-sm" type="button" data-push-enable hidden>{{ __('push.enable') }}</button>
+                <button class="btn btn-sm" type="button" data-push-install data-open-dialog="app-install-ios" hidden>{{ __('push.install_how') }}</button>
+                <button class="btn btn-quiet btn-sm" type="button" data-push-dismiss>{{ __('push.dismiss') }}</button>
+            </div>
+        </section>
+    @endpush
+    @push('overlays')
+        @include('partials.app-install-dialog')
+    @endpush
+@endif
+
 {{-- Tiếng chuông báo món quán đã chọn (Cài đặt chung). --}}
 @if (has_module('kitchen'))
     @push('overlays')

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Auth\DeviceGuard;
 use App\Http\Controllers\Controller;
+use App\Models\PushSubscription;
 use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,6 +59,11 @@ class LoginController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         $loginUrl = $request->user()->loginUrl();
+
+        // Máy này thôi nhận thông báo của người vừa đăng xuất.
+        if ($subscription = $request->session()->get('push_subscription')) {
+            PushSubscription::whereKey($subscription)->where('user_id', $request->user()->id)->delete();
+        }
 
         Auth::logout();
 

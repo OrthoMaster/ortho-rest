@@ -36,6 +36,7 @@
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m14 10 2 2-2 2"/></svg>
     </button>
     <main class="content @yield('content_class')">
+        @stack('content_top')
         @include('partials.flash')
         @yield('content')
     </main>

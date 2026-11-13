@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\User;
 use App\Modules\ModuleManager;
 use App\Modules\Schedule\Duty;
+use App\Push\KitchenAlerts;
 use App\Support\Permissions;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -22,10 +23,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(TenantContext::class);
         $this->app->scoped(ModuleManager::class);
+        $this->app->scoped(KitchenAlerts::class);
     }
 
     public function boot(): void
     {
+        KitchenAlerts::listen();
+
         // Quyền trong config/permissions.php: chủ quán luôn có, người khác theo chức vụ.
         Gate::before(fn (User $user, string $ability) => Permissions::exists($ability) ? Permissions::allows($user, $ability) : null);
 

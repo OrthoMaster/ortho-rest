@@ -1623,3 +1623,18 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .module-row.is-child .module-switch { margin-left: 1.25rem; padding-left: 1rem; box-shadow: inset 2px 0 0 var(--line); }
 .module-name { display: grid; gap: .1rem; }
 .module-switch:has(input:disabled) { cursor: default; color: var(--ink-soft); }
+
+/* Cài ứng dụng (PWA) và mời bật thông báo đẩy. */
+.app-install { display: grid; justify-items: center; gap: .4rem; margin-top: .5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); text-align: center; }
+.app-install .btn { display: inline-flex; align-items: center; gap: .45rem; }
+.app-install .btn svg { width: 1.15rem; height: 1.15rem; }
+.app-install small { color: var(--ink-soft); }
+.install-steps { display: grid; gap: .85rem; margin: 0; padding: 0; list-style: none; }
+.install-steps li { display: flex; align-items: center; gap: .75rem; }
+.install-step-icon { display: grid; flex: none; place-items: center; width: 2.6rem; height: 2.6rem; overflow: hidden; color: var(--primary-ink); background: var(--ground); border-radius: 10px; }
+.install-step-icon svg { width: 1.4rem; height: 1.4rem; }
+.install-step-logo img { width: 100%; height: 100%; object-fit: cover; }
+.push-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1rem; }
+.push-banner-text { display: grid; gap: .15rem; }
+.push-banner-text small { color: var(--ink-soft); }
+.push-banner-actions { display: flex; flex-wrap: wrap; gap: .5rem; }

@@ -3443,4 +3443,152 @@
         });
     });
 
+
+    // Ứng dụng cài được của quán (PWA) và thông báo đẩy.
+    (function () {
+        var scope = document.querySelector('meta[name=app-scope]');
+
+        if (!scope || !('serviceWorker' in navigator)) {
+            return;
+        }
+
+        var ready = navigator.serviceWorker.register(scope.dataset.sw, { scope: scope.content });
+        var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var store = function (kind, key, value) {
+            try {
+                if (value === undefined) {
+                    return window[kind].getItem(key);
+                }
+                window[kind].setItem(key, value);
+            } catch (error) {
+                return null;
+            }
+        };
+
+        // Trang đăng nhập: nút Cài ứng dụng. Android, Chrome/Edge máy tính bấm là hiện hộp cài của hệ thống;
+        // iPhone, iPad mở hướng dẫn Thêm vào màn hình chính. Đã mở từ icon thì không hiện.
+        var install = document.querySelector('[data-app-install]');
+        var prompt = null;
+
+        if (install && !standalone) {
+            install.hidden = !ios;
+            window.addEventListener('beforeinstallprompt', function (event) {
+                event.preventDefault();
+                prompt = event;
+                install.hidden = false;
+            });
+            window.addEventListener('appinstalled', function () {
+                install.hidden = true;
+            });
+            install.querySelector('button').addEventListener('click', function () {
+                if (prompt) {
+                    prompt.prompt();
+                    prompt.userChoice.then(function () {
+                        prompt = null;
+                        install.hidden = true;
+                    });
+                } else {
+                    document.getElementById('app-install-ios').showModal();
+                }
+            });
+        }
+
+        // Trang quản lý: mặc định luôn bật thông báo. Máy đã cho phép thì tự đăng ký lại khi cần;
+        // chưa hỏi thì mời bật (trình duyệt chỉ cho hỏi khi người dùng bấm); iPhone chưa cài thì mời cài.
+        var banner = document.querySelector('[data-push]');
+
+        if (!banner || store('sessionStorage', 'push-dismissed')) {
+            return;
+        }
+
+        var supported = 'PushManager' in window && 'Notification' in window;
+        var show = function (part) {
+            banner.querySelectorAll('[data-push-enable], [data-push-install]').forEach(function (element) {
+                element.hidden = !element.matches('[data-push-' + part + ']');
+            });
+            banner.hidden = false;
+        };
+        var keyBytes = function (base64) {
+            var raw = atob((base64 + '==='.slice((base64.length + 3) % 4)).replace(/-/g, '+').replace(/_/g, '/'));
+
+            return Uint8Array.from(raw, function (character) {
+                return character.charCodeAt(0);
+            });
+        };
+        var sameKey = function (subscription) {
+            var current = subscription.options && subscription.options.applicationServerKey;
+
+            if (!current) {
+                return true;
+            }
+
+            var a = new Uint8Array(current);
+            var b = keyBytes(banner.dataset.key);
+
+            return a.length === b.length && a.every(function (value, index) {
+                return value === b[index];
+            });
+        };
+        var subscribe = function () {
+            return ready.then(function () {
+                return navigator.serviceWorker.ready;
+            }).then(function (registration) {
+                return registration.pushManager.getSubscription().then(function (existing) {
+                    // Đổi khoá VAPID thì đăng ký cũ không dùng được nữa.
+                    if (existing && !sameKey(existing)) {
+                        return existing.unsubscribe().then(function () {
+                            return null;
+                        });
+                    }
+
+                    return existing;
+                }).then(function (existing) {
+                    return existing || registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(banner.dataset.key) });
+                });
+            }).then(function (subscription) {
+                var sent = banner.dataset.token + '|' + subscription.endpoint;
+
+                if (store('localStorage', 'push-sent') === sent) {
+                    return;
+                }
+
+                return fetch(banner.dataset.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+                    body: JSON.stringify(subscription.toJSON()),
+                }).then(function (response) {
+                    if (response.ok) {
+                        store('localStorage', 'push-sent', sent);
+                    }
+                });
+            }).catch(function () {});
+        };
+
+        if (!supported) {
+            if (ios && !standalone) {
+                show('install');
+            }
+        } else if (Notification.permission === 'granted') {
+            subscribe();
+        } else if (Notification.permission === 'default') {
+            show('enable');
+        }
+
+        banner.addEventListener('click', function (event) {
+            if (event.target.closest('button[data-push-enable]')) {
+                Notification.requestPermission().then(function (permission) {
+                    banner.hidden = true;
+
+                    if (permission === 'granted') {
+                        subscribe();
+                    }
+                });
+            } else if (event.target.closest('[data-push-dismiss]')) {
+                banner.hidden = true;
+                store('sessionStorage', 'push-dismissed', '1');
+            }
+        });
+    })();
+
 })();

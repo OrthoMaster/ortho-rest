@@ -16,6 +16,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="VAPID_PUBLIC_KEY" value=""/>
+        <env name="VAPID_PRIVATE_KEY" value=""/>
         <env name="APP_URL" value="http://localhost"/>
         <env name="MAIN_DOMAINS" value="localhost,127.0.0.1"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

@@ -28,4 +28,11 @@ return [
     // Đĩa lưu file quán tải lên. Đổi sang s3 khi có Bizfly Simple Storage.
     'uploads_disk' => env('UPLOADS_DISK', 'public'),
 
+    // Thông báo đẩy (Web Push). Tạo khoá một lần bằng `php artisan liresto:vapid`.
+    'push' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:'.env('MAIL_FROM_ADDRESS', 'hello@liresto.vn')),
+    ],
+
 ];

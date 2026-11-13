@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Super\ImpersonationController;
@@ -93,6 +94,10 @@ Route::middleware('main.domain')->group(function () {
                     ->middleware('throttle:5,1')
                     ->name('password.update');
             });
+
+            // Ứng dụng cài được (PWA) của quán: thông tin cài đặt và icon.
+            Route::get('app.webmanifest', [AppController::class, 'manifest'])->name('tenant.manifest');
+            Route::get('app-icon-{size}.png', [AppController::class, 'icon'])->whereNumber('size')->name('tenant.app-icon');
 
             // Trang ưu đãi khách mở bằng mã QR: không cần đăng nhập, không cần bật Website.
             Route::get('uu-dai/{token}', VoucherController::class)->where('token', '[A-Za-z0-9]{32}')

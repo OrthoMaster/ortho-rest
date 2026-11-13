@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SpecialDayController;
+use App\Http\Controllers\AppController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', DashboardController::class)->name('dashboard');
@@ -21,6 +22,9 @@ Route::put('profile', [ProfileController::class, 'update'])->name('profile.updat
 Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 Route::put('profile/devices/lock', [DeviceController::class, 'lock'])->name('profile.devices.lock');
 Route::delete('profile/devices/{device}', [DeviceController::class, 'destroy'])->whereNumber('device')->name('profile.devices.destroy');
+
+// Máy này bật thông báo đẩy.
+Route::post('push', [AppController::class, 'subscribe'])->middleware('throttle:30,1')->name('push.subscribe');
 
 // Khách hàng dùng chung cho đặt bàn và đặt mang đi.
 Route::get('customers', [CustomerController::class, 'index'])->middleware('can:customers.view')->name('customers.index');
