@@ -8,7 +8,8 @@
                 @php($ready = $table?->lines->where('status', \App\Modules\DineIn\LineStatus::Done)->sum('quantity') ?? 0)
                 @php($cooking = $table?->lines->where('status', \App\Modules\DineIn\LineStatus::New)->sum('quantity') ?? 0)
                 <li>
-                    <a href="{{ route('tenant.admin.dinein.tables.show', $area->tableLabel($number)) }}" @class(['table-tile', 'is-open' => $table, 'has-ready' => $ready > 0])>
+                    {{-- Ngoài giờ làm thì ô bàn chỉ để xem, không bấm vào được. --}}
+                    <{{ $locked ? 'span' : 'a' }} @unless ($locked) href="{{ route('tenant.admin.dinein.tables.show', $area->tableLabel($number)) }}" @else aria-disabled="true" @endunless @class(['table-tile', 'is-open' => $table, 'has-ready' => $ready > 0, 'is-locked' => $locked])>
                         <strong>{{ $area->tableLabel($number) }}</strong>
                     @if ($ready > 0)
                         <span class="tile-alert" title="{{ __('dinein.ready_count', ['count' => $ready]) }}">
@@ -25,7 +26,7 @@
                         @else
                             <small>{{ __('dinein.free') }}</small>
                         @endif
-                    </a>
+                    </{{ $locked ? 'span' : 'a' }}>
                 </li>
             @endfor
         </ul>

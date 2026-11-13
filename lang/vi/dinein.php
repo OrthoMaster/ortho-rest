@@ -269,6 +269,19 @@ return [
     'voucher_share' => 'Chia sẻ',
     'voucher_share_text' => 'Ưu đãi :value tại :name, mã :code',
 
+    // Giờ lấy đơn (Cài đặt chung).
+    'window_title' => 'Giờ lấy đơn',
+    'window_lead' => 'Hạn chế nhân viên mở bàn, gọi món ngoài giờ làm của mình.',
+    'window_enable' => 'Chỉ cho phép nhân viên lấy đơn trong ca làm của mình',
+    'window_label' => 'Mở trước giờ vào ca',
+    'window_option' => ':minutes phút',
+    'window_hint' => 'Theo Lịch làm việc đã công bố. Chủ quán và người có quyền "Lấy đơn ngoài giờ làm" không bị giới hạn.',
+    'window_saved' => 'Đã lưu giờ lấy đơn.',
+    'window_log_on' => 'Bật giờ lấy đơn: nhân viên lấy đơn trong ca làm, mở trước :minutes phút',
+    'window_log_off' => 'Tắt giờ lấy đơn',
+    'window_later' => 'Chưa đến giờ làm của bạn. Bạn lấy đơn được từ :time (mở trước giờ làm :minutes phút).',
+    'window_none' => 'Bạn không có ca làm lúc này nên chưa lấy đơn được. Chỉ mở trước giờ làm :minutes phút.',
+
     // Thu ngân, đối soát.
     'log_bill_number' => 'Số hoá đơn :number',
     'bill_subtotal' => 'Tạm tính',

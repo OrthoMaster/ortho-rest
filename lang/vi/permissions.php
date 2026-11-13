@@ -36,6 +36,7 @@ return [
         'takeaway.direct-discount' => 'Giảm giá trực tiếp trên đơn (theo % hoặc số tiền)',
         'takeaway.settings' => 'Cài đặt đặt mang đi',
         'dinein.order' => 'Lấy đơn, gọi thêm món, báo đã mang ra',
+        'dinein.anytime' => 'Lấy đơn ngoài giờ làm (không bị giới hạn Giờ lấy đơn)',
         'dinein.close' => 'Xem tạm tính và đóng bàn',
         'dinein.cancel' => 'Huỷ món khu đã làm xong',
         'dinein.offers' => 'Tặng ưu đãi lần sau cho khách',

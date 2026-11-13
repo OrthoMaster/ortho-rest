@@ -15,8 +15,11 @@
             <p><a class="btn btn-quiet" href="{{ route('tenant.admin.restaurant.capacity.index') }}">{{ __('dinein.manage_areas') }}</a></p>
         @endcan
     @else
+        @if ($locked && ! session('warning'))
+            <p class="flash flash-warn" role="status">{{ $locked }}</p>
+        @endif
         {{-- Gõ nhanh số bàn, ví dụ A12. --}}
-        <form method="post" action="{{ route('tenant.admin.dinein.tables.go') }}" class="table-go">
+        <form @if ($locked) hidden @endif method="post" action="{{ route('tenant.admin.dinein.tables.go') }}" class="table-go">
             @csrf
             <label class="visually-hidden" for="table-go">{{ __('dinein.table_label') }}</label>
             <input id="table-go" name="label" value="{{ old('label') }}" placeholder="{{ __('dinein.table_example') }}" maxlength="5" autocomplete="off" autocapitalize="characters" required @error('label') aria-invalid="true" @enderror>

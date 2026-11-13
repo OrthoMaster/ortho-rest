@@ -95,6 +95,51 @@ class Duty
         return self::current()->whereNotNull('area_id')->pluck('area_id')->unique()->values()->all();
     }
 
+    /**
+     * Giờ làm của người này hôm nay (tuần đã công bố), mở sớm $early phút trước giờ vào ca.
+     * Ca kéo qua nửa đêm của hôm qua vẫn tính. Phân công cả ngày thì mở cả ngày.
+     *
+     * @return array{open: bool, next: ?CarbonImmutable} đang trong giờ làm không, và giờ mở tiếp theo trong hôm nay
+     */
+    public static function window(User $user, int $early, ?CarbonImmutable $now = null): array
+    {
+        $now ??= CarbonImmutable::now();
+        $next = null;
+
+        foreach ([$now->startOfDay(), $now->subDay()->startOfDay()] as $day) {
+            if (! Week::isPublishedOn($day)) {
+                continue;
+            }
+
+            $assignments = Assignment::with('shift')->where('user_id', $user->id)->whereDate('work_date', $day->toDateString())->get();
+
+            foreach ($assignments as $assignment) {
+                $shift = $assignment->shift;
+
+                if ($shift === null) {
+                    if ($day->isSameDay($now)) {
+                        return ['open' => true, 'next' => null];
+                    }
+
+                    continue;
+                }
+
+                $opens = $day->setTimeFromTimeString($shift->start_time)->subMinutes($early);
+                $ends = $day->setTimeFromTimeString($shift->end_time)->addDays($shift->crossesMidnight() ? 1 : 0);
+
+                if ($now->gte($opens) && $now->lt($ends)) {
+                    return ['open' => true, 'next' => null];
+                }
+
+                if ($opens->gt($now) && $opens->isSameDay($now) && ($next === null || $opens->lt($next))) {
+                    $next = $opens;
+                }
+            }
+        }
+
+        return ['open' => false, 'next' => $next];
+    }
+
     /** Có được mở màn hình của khu này không. */
     public static function canOpenStation(User $user, int $stationId): bool
     {

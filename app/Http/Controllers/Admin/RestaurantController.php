@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Modules\DineIn\OrderWindow;
 use App\Modules\Kitchen\Kitchen;
 use App\Modules\ModuleManager;
 use App\Support\CustomerRetention;
@@ -39,6 +40,23 @@ class RestaurantController extends Controller
         ActivityLog::record(tenant()->getKey(), 'settings', __('kitchen.log_sound', ['sound' => __('kitchen.sounds.'.$sound)]));
 
         return back()->with('status', __('kitchen.sound_saved'));
+    }
+
+    /** Giờ lấy đơn: nhân viên chỉ lấy đơn trong ca làm của mình, mở sớm 15 / 30 / 60 phút. */
+    public function updateOrderWindow(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['boolean'],
+            'minutes' => ['required_if_accepted:enabled', 'nullable', 'integer', Rule::in(OrderWindow::MINUTES)],
+        ]);
+        $minutes = $request->boolean('enabled') ? (int) $data['minutes'] : null;
+
+        app(ModuleManager::class)->updateSettings(tenant(), 'dinein', ['staff_window' => $minutes]);
+        ActivityLog::record(tenant()->getKey(), 'settings', $minutes
+            ? __('dinein.window_log_on', ['minutes' => $minutes])
+            : __('dinein.window_log_off'));
+
+        return back()->with('status', __('dinein.window_saved'));
     }
 
     public function updateLogo(Request $request): RedirectResponse

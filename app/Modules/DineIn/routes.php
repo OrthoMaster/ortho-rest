@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\DineIn\Http\EnsureOrderWindow;
 use App\Modules\DineIn\Http\GuestController;
 use App\Modules\DineIn\Http\IncidentController;
 use App\Modules\DineIn\Http\OfferController;
@@ -14,9 +15,10 @@ Route::middleware('module:dinein')
     ->group(function () {
         Route::get('/', [TableController::class, 'home'])->name('index');
 
-        // Bàn: số bàn là mã khu vực + số, ví dụ A12.
-        Route::middleware('can:dinein.order')->group(function () {
-            Route::get('tables', [TableController::class, 'index'])->name('tables.index');
+        // Bàn: số bàn là mã khu vực + số, ví dụ A12. Trang Bàn luôn mở được; các thao tác
+        // thì có thể bị giới hạn theo giờ làm (Cài đặt chung → Giờ lấy đơn).
+        Route::get('tables', [TableController::class, 'index'])->middleware('can:dinein.order')->name('tables.index');
+        Route::middleware(['can:dinein.order', EnsureOrderWindow::class])->group(function () {
             Route::post('tables/go', [TableController::class, 'go'])->name('tables.go');
             Route::get('tables/{label}', [TableController::class, 'show'])->where('label', '[A-Za-z]{1,2}[0-9]{1,3}')->name('tables.show');
             Route::get('tables/{label}/order', [TableController::class, 'create'])->where('label', '[A-Za-z]{1,2}[0-9]{1,3}')->name('tables.order');
@@ -30,7 +32,7 @@ Route::middleware('module:dinein')
             Route::post('tables/{table}/incidents', [GuestController::class, 'incident'])->whereNumber('table')->name('tables.incidents');
             Route::post('tables/{table}/gift', [GuestController::class, 'gift'])->whereNumber('table')->middleware('can:dinein.offers')->name('tables.gift');
         });
-        Route::middleware('can:dinein.close')->group(function () {
+        Route::middleware(['can:dinein.close', EnsureOrderWindow::class])->group(function () {
             Route::post('tables/{table}/offers/{offer}', [GuestController::class, 'apply'])->whereNumber(['table', 'offer'])->name('tables.offer');
             Route::post('tables/{table}/voucher', [GuestController::class, 'applyCode'])->whereNumber('table')->name('tables.voucher');
             Route::delete('tables/{table}/discount', [GuestController::class, 'removeDiscount'])->whereNumber('table')->name('tables.discount.remove');
@@ -42,7 +44,7 @@ Route::middleware('module:dinein')
             Route::get('incidents', [IncidentController::class, 'index'])->name('incidents');
             Route::get('incidents/export', [IncidentController::class, 'export'])->name('incidents.export');
         });
-        Route::post('tables/{table}/close', [TableController::class, 'close'])->whereNumber('table')->middleware('can:dinein.close')->name('tables.close');
+        Route::post('tables/{table}/close', [TableController::class, 'close'])->whereNumber('table')->middleware(['can:dinein.close', EnsureOrderWindow::class])->name('tables.close');
     });
 
 // Báo món trên mọi trang: chỉ có khi bật Màn hình khu vực (không bật thì món ra luôn, không có bước làm xong).

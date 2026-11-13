@@ -19,6 +19,8 @@ return [
     ],
     'dinein' => [
         'dinein.order' => ['manager', 'staff'],
+        // Không bị giới hạn Giờ lấy đơn (Cài đặt chung). Mặc định chỉ chủ quán.
+        'dinein.anytime' => [],
         'dinein.close' => ['manager', 'staff'],
         'dinein.cancel' => ['manager'],
         'dinein.offers' => ['manager'],

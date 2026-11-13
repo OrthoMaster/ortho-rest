@@ -7,6 +7,7 @@ use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\OrderLine;
+use App\Modules\DineIn\OrderWindow;
 use App\Modules\DineIn\Tables;
 use App\Modules\Kitchen\Kitchen;
 use App\Modules\Menu\ChosenOptions;
@@ -42,7 +43,8 @@ class TableController extends Controller
             ->get()
             ->keyBy(fn (DiningTable $table) => $table->area_id.'-'.$table->table_number);
 
-        $data = ['areas' => Tables::areas(), 'open' => $open];
+        // Ngoài giờ làm (Giờ lấy đơn ở Cài đặt chung): vẫn xem được lưới bàn nhưng không bấm vào được.
+        $data = ['areas' => Tables::areas(), 'open' => $open, 'locked' => OrderWindow::blocked(request()->user())];
 
         // Trang tự tải lại phần lưới bàn mỗi vài giây.
         return view(request()->hasHeader('X-Board') ? 'modules.dinein.tables-board' : 'modules.dinein.tables', $data);

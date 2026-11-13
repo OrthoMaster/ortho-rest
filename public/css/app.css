@@ -1638,3 +1638,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .push-banner-text { display: grid; gap: .15rem; }
 .push-banner-text small { color: var(--ink-soft); }
 .push-banner-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+/* Ngoài giờ lấy đơn: ô bàn chỉ để xem. */
+.table-tile.is-locked { cursor: not-allowed; opacity: .55; }
+.table-tile.is-locked:hover { border-color: var(--line); }

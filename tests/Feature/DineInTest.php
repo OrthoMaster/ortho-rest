@@ -383,6 +383,63 @@ class DineInTest extends TestCase
         return $sent;
     }
 
+    /** Giờ lấy đơn: nhân viên chỉ lấy đơn trong ca làm của mình, mở sớm theo cài đặt; chủ quán không bị giới hạn. */
+    public function test_staff_order_only_within_their_shift_when_enabled(): void
+    {
+        $waiter = $this->member($this->restaurant, 'staff');
+        $settings = "/{$this->restaurant->slug}/admin/restaurant";
+
+        // Chưa bật: lấy đơn lúc nào cũng được.
+        $this->actingAs($waiter)->order('A1', [['item' => $this->tra->id, 'quantity' => 1]])->assertSessionHas('status');
+
+        $this->actingAs($this->owner)->get($settings)->assertSee(__('dinein.window_title'));
+        $this->put("$settings/order-window", ['enabled' => 1, 'minutes' => 30])->assertSessionHasNoErrors();
+        $this->put("$settings/order-window", ['enabled' => 1, 'minutes' => 45])->assertSessionHasErrors('minutes');
+
+        // Không có ca: lưới bàn chỉ để xem, thao tác bị chặn.
+        $this->actingAs($waiter)->get("$this->base/tables")->assertOk()
+            ->assertSee(__('dinein.window_none', ['minutes' => 30]))
+            ->assertSee('is-locked', false)
+            ->assertDontSee("$this->base/tables/A2\"", false);
+        $this->get("$this->base/tables/A2")->assertRedirect("$this->base/tables");
+        $this->order('A2', [['item' => $this->tra->id, 'quantity' => 1]])->assertRedirect("$this->base/tables")->assertSessionHas('warning');
+        $this->assertSame(0, DiningTable::withoutGlobalScopes()->where('label', 'A2')->count());
+        $table = DiningTable::withoutGlobalScopes()->sole();
+        $this->post("$this->base/tables/{$table->id}/close")->assertSessionHas('warning');
+
+        // Ca 12:40–16:00 (bây giờ 12:00 thứ Hai): mở từ 12:10. Tuần chưa công bố thì chưa tính.
+        $shift = Shift::create(['restaurant_id' => $this->restaurant->id, 'type' => ShiftType::Work, 'weekday' => 1, 'name' => 'Ca chiều', 'start_time' => '12:40', 'end_time' => '16:00']);
+        $this->actingAs($this->owner)->postJson("/{$this->restaurant->slug}/admin/schedule/assignments", ['user' => $waiter->id, 'date' => '2026-11-09', 'slot' => (string) $shift->id, 'lane' => 'a'.$this->area->id])->assertOk();
+        $this->actingAs($waiter)->get("$this->base/tables")->assertSee(__('dinein.window_none', ['minutes' => 30]));
+        $this->actingAs($this->owner)->post("/{$this->restaurant->slug}/admin/schedule/week/publish", ['date' => '2026-11-09']);
+        $this->actingAs($waiter)->get("$this->base/tables")->assertSee(__('dinein.window_later', ['time' => '12:10', 'minutes' => 30]));
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 12:10'));
+        $this->get("$this->base/tables")->assertDontSee('is-locked', false)->assertSee("$this->base/tables/A2", false);
+        $this->order('A2', [['item' => $this->tra->id, 'quantity' => 1]])->assertSessionHas('status');
+
+        // Hết ca thì chặn lại.
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 16:00'));
+        $this->get("$this->base/tables/A2")->assertRedirect("$this->base/tables");
+
+        // Chủ quán, người được cấp quyền: không bị giới hạn. Tắt cài đặt thì mở lại cho mọi người.
+        $this->actingAs($this->owner)->get("$this->base/tables/A2")->assertOk();
+        $waiter->forceFill(['permissions' => ['dinein.order', 'dinein.anytime']])->save();
+        $this->actingAs($waiter->fresh())->get("$this->base/tables/A2")->assertOk();
+        $other = $this->member($this->restaurant, 'staff');
+        $this->actingAs($other)->get("$this->base/tables/A2")->assertRedirect();
+        $this->actingAs($this->owner)->put("$settings/order-window", ['enabled' => 0]);
+        $this->actingAs($other)->get("$this->base/tables/A2")->assertOk();
+    }
+
+    public function test_order_window_setting_needs_the_schedule_module(): void
+    {
+        $this->enableModules($this->restaurant, 'schedule');
+        app(ModuleManager::class)->disable($this->restaurant, 'schedule');
+        $this->get("/{$this->restaurant->slug}/admin/restaurant")->assertOk()->assertDontSee(__('dinein.window_title'));
+        $this->put("/{$this->restaurant->slug}/admin/restaurant/order-window", ['enabled' => 1, 'minutes' => 30])->assertNotFound();
+    }
+
     public function test_station_screen_follows_assignment_and_shift(): void
     {
         $cook = $this->member($this->restaurant, 'staff');
