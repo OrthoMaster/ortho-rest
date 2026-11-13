@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\DineIn\Http\BillController;
 use App\Modules\DineIn\Http\GuestController;
 use App\Modules\DineIn\Http\IncidentController;
 use App\Modules\DineIn\Http\OfferController;
@@ -38,12 +37,6 @@ Route::middleware('module:dinein')
             Route::delete('tables/{table}/discount', [GuestController::class, 'removeDiscount'])->whereNumber('table')->name('tables.discount.remove');
         });
         // Ưu đãi lần sau đã tặng (có tên và không tên).
-        // Phiếu đã đóng: đối soát với máy tính tiền.
-        Route::middleware('can:dinein.bills')->group(function () {
-            Route::get('bills', [BillController::class, 'index'])->name('bills');
-            Route::get('bills/export', [BillController::class, 'export'])->name('bills.export');
-            Route::put('bills/{table}', [BillController::class, 'update'])->whereNumber('table')->name('bills.update');
-        });
         Route::get('offers', [OfferController::class, 'index'])->middleware('can:dinein.vouchers')->name('offers');
         Route::delete('offers/{offer}', [OfferController::class, 'destroy'])->middleware('can:dinein.offers')->whereNumber('offer')->name('offers.destroy');
         Route::middleware('can:dinein.incidents')->group(function () {

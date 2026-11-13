@@ -21,6 +21,7 @@ return [
         'customers' => 'Khách hàng',
         'staff' => 'Nội bộ',
         'dinein' => 'Lấy đơn tại bàn',
+        'cashier' => 'Thu ngân',
         'schedule' => 'Lịch làm việc',
     ],
 

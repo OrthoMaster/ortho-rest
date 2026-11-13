@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Modules\Cashier\Cashier;
 use App\Modules\Kitchen\Kitchen;
 use App\Modules\Menu\ChosenOptions;
 use App\Modules\Menu\Models\MenuItem;
@@ -284,9 +285,9 @@ class PlaceOrder
         return (int) TakeawayOrder::where('pickup_date', $pickup->toDateString())->max('number') + 1;
     }
 
-    public function changeStatus(TakeawayOrder $order, OrderStatus $status): TakeawayOrder
+    public function changeStatus(TakeawayOrder $order, OrderStatus $status, ?User $user = null): TakeawayOrder
     {
-        return DB::transaction(function () use ($order, $status): TakeawayOrder {
+        return DB::transaction(function () use ($order, $status, $user): TakeawayOrder {
             $order = TakeawayOrder::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             if (! $order->status->canBecome($status)) {
@@ -294,6 +295,11 @@ class PlaceOrder
             }
 
             $order->update(['status' => $status]);
+
+            // Giao khách: bật Thu ngân thì chờ thu ở quầy, không thì coi như đã thu.
+            if ($status === OrderStatus::Delivered && $order->paid_at === null && $user) {
+                Cashier::settleWithoutCashier($order, $user, $order->total);
+            }
 
             // Huỷ đơn thì ưu đãi khách đã dùng được trả lại.
             if ($status === OrderStatus::Cancelled && $order->customer_offer_id) {

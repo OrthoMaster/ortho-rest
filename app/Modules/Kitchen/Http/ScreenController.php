@@ -13,6 +13,7 @@ use App\Modules\Schedule\Duty;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
+use App\Modules\Takeaway\PlaceOrder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -137,7 +138,8 @@ class ScreenController extends Controller
             return back()->with('error', __('takeaway.bad_transition'));
         }
 
-        $order->update(['status' => $status]);
+        // Đi qua PlaceOrder: huỷ thì trả lại mã ưu đãi, giao khách thì chờ thu ở quầy (Thu ngân).
+        app(PlaceOrder::class)->changeStatus($order, $status, $request->user());
 
         $message = match ($status) {
             OrderStatus::Ready => 'kitchen.packed',

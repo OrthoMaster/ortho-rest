@@ -17,7 +17,7 @@
         return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') && ! ($except && request()->routeIs($except)) ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
     })
     {{-- Các mục phục vụ khách hằng ngày đứng riêng một nhóm, có đường kẻ trên dưới. --}}
-    @php($service = implode('', array_map($moduleLink, ['dinein', 'reservation', 'takeaway', 'menu'])))
+    @php($service = implode('', array_map($moduleLink, ['dinein', 'reservation', 'takeaway', 'cashier', 'menu'])))
 
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard')])>{{ __('ui.nav.dashboard') }}</a>
     {!! $moduleLink('website') !!}

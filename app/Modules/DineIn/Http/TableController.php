@@ -3,6 +3,7 @@
 namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Cashier\Cashier;
 use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
@@ -16,7 +17,6 @@ use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\ReservationBooking;
 use App\Modules\Reservation\ReservationStatus;
-use App\Support\BillNumber;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -194,12 +194,10 @@ class TableController extends Controller
             return back()->with('error', __('dinein.close_pending'));
         }
 
-        // Số hoá đơn máy tính tiền (không bắt buộc) để sau này đối soát doanh thu.
-        $number = $request->validate(['bill_number' => BillNumber::RULES])['bill_number'] ?? null;
-
-        // Giảm giá tính theo tạm tính lúc đóng bàn và lưu lại.
+        // Giảm giá tính theo tạm tính lúc đóng bàn và lưu lại. Bật Thu ngân thì phiếu chuyển sang quầy chờ thu.
         $discount = $table->discount();
-        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount, 'bill_number' => BillNumber::clean($number)]);
+        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount]);
+        Cashier::settleWithoutCashier($table, $request->user(), $table->subtotal() - $discount);
         LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
         // Khách đặt trước về rồi thì đặt bàn chuyển sang Hoàn tất luôn.
@@ -207,7 +205,8 @@ class TableController extends Controller
             app(ReservationBooking::class)->changeStatus($table->reservation, ReservationStatus::Completed, $request->user());
         }
 
-        return redirect()->route('tenant.admin.dinein.tables.index')->with('status', __('dinein.closed', ['table' => $table->label]));
+        return redirect()->route('tenant.admin.dinein.tables.index')
+            ->with('status', __($table->paid_at ? 'dinein.closed' : 'dinein.closed_to_cashier', ['table' => $table->label]));
     }
 
     private function openTable(Area $area, int $number): ?DiningTable

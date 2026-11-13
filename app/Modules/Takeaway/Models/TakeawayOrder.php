@@ -29,6 +29,7 @@ class TakeawayOrder extends Model
             'discount_value' => 'integer',
             'discount_amount' => 'integer',
             'total' => 'integer',
+            'paid_at' => 'immutable_datetime',
         ];
     }
 
@@ -81,5 +82,11 @@ class TakeawayOrder extends Model
     public function activityFields(): array
     {
         return ['status' => 'plain'];
+    }
+
+    /** Thu ngân đã thu tiền phiếu này. */
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by');
     }
 }

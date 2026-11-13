@@ -22,9 +22,12 @@ return [
         'dinein.cancel' => ['manager'],
         'dinein.offers' => ['manager'],
         'dinein.vouchers' => ['manager'],
-        'dinein.bills' => ['manager'],
         'dinein.incidents' => ['manager'],
         'dinein.settings' => ['manager'],
+    ],
+    'cashier' => [
+        'cashier.collect' => ['manager'],
+        'cashier.reconcile' => ['manager'],
     ],
     'kitchen' => [
         'kitchen.stations' => ['manager'],

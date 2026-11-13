@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Cashier\Installer as CashierInstaller;
 use App\Modules\DineIn\Installer as DineInInstaller;
 use App\Modules\Kitchen\Installer as KitchenInstaller;
 use App\Modules\Menu\Installer as MenuInstaller;
@@ -75,6 +76,15 @@ return [
         'routes' => 'Kitchen/routes.php',
         // kitchen.screen: có quyền mở mọi khu, đang được phân công ở một khu, hoặc lo đơn mang đi.
         'menu' => ['route' => 'kitchen.index', 'permission' => ['kitchen.screen']],
+    ],
+    // Thu ngân: phiếu bàn đã đóng và đơn mang đi chờ thu tiền ở quầy; đối soát với máy tính tiền.
+    'cashier' => [
+        'name' => 'modules.cashier',
+        'depends' => ['menu'],
+        'phase' => 1,
+        'installer' => CashierInstaller::class,
+        'routes' => 'Cashier/routes.php',
+        'menu' => ['route' => 'cashier.index', 'permission' => ['cashier.collect', 'cashier.reconcile']],
     ],
     'staff' => [
         'name' => 'modules.staff',

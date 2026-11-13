@@ -111,10 +111,4 @@ return [
     'pickup_opens' => 'Nhận hàng từ',
     'pickup_closes' => 'Nhận hàng đến',
     'settings_saved' => 'Đã lưu cài đặt.',
-
-    // Giao khách: số hoá đơn máy tính tiền (không bắt buộc) để đối soát.
-    'deliver_title' => 'Giao đơn :code?',
-    'deliver_confirm' => 'Khách :name nhận hàng, phải trả :total.',
-    'bill_number_saved' => 'Đã lưu số hoá đơn.',
-    'log_bill_number' => 'Đơn :code: sửa số hoá đơn',
 ];

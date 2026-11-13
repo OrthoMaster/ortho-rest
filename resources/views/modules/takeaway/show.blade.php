@@ -31,16 +31,13 @@
             <dt>{{ __('takeaway.pickup_at') }}</dt>
             <dd>{{ $order->pickup_at->format('H:i d/m/Y') }}</dd>
             <dt>{{ __('takeaway.payment') }}</dt>
-            <dd>{{ __('takeaway.pay_on_pickup') }}</dd>
-            @if ($order->status === \App\Modules\Takeaway\OrderStatus::Delivered)
-                <dt>{{ __('dinein.bill_number') }}</dt>
-                <dd class="bill-number-cell">
-                    {{ $order->bill_number ?? __('dinein.bills_no_number') }}
-                    @can('takeaway.status')
-                        <button class="btn btn-quiet btn-sm" type="button" data-open-dialog="bill-number-dialog">{{ $order->bill_number ? __('dinein.bills_edit') : __('dinein.bills_add') }}</button>
-                    @endcan
-                </dd>
-            @endif
+            <dd>
+                @if ($order->paid_at)
+                    {{ __('cashier.paid_at', ['time' => $order->paid_at->format('H:i d/m'), 'name' => $order->payer?->name ?? '—']) }}{{ $order->bill_number ? ' · '.__('cashier.number', ['number' => $order->bill_number]) : '' }}
+                @else
+                    {{ __('takeaway.pay_on_pickup') }}
+                @endif
+            </dd>
             <dt>{{ __('reservation.created_by') }}</dt>
             <dd>{{ $order->creator?->name ?? __('reservation.created_by_customer') }}</dd>
             @if ($order->notes)
@@ -92,26 +89,5 @@
                 @endforeach
             </ul>
         </section>
-    @endif
-    @if ($order->status === \App\Modules\Takeaway\OrderStatus::Delivered)
-        @can('takeaway.status')
-            @php($billErrors = $errors->getBag('bill-number'))
-            <dialog id="bill-number-dialog" class="confirm-dialog" aria-labelledby="bill-number-title" @if ($billErrors->any()) data-auto-open @endif>
-                <form method="post" action="{{ route('tenant.admin.takeaway.bill-number', $order) }}" class="stack" data-guard>
-                    @csrf
-                    @method('put')
-                    <h2 id="bill-number-title">{{ $order->bill_number ? __('dinein.bills_edit') : __('dinein.bills_add') }}</h2>
-                    <div class="field">
-                        <label for="bill-number-input">{{ __('dinein.bill_number') }}</label>
-                        <input id="bill-number-input" name="bill_number" value="{{ $order->bill_number }}" maxlength="40" autocomplete="off" placeholder="{{ __('dinein.bill_number_example') }}">
-                        @if ($billErrors->has('bill_number'))<small class="error">{{ $billErrors->first('bill_number') }}</small>@endif
-                    </div>
-                    <div class="dialog-foot">
-                        <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
-                        <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.cancel') }}</button>
-                    </div>
-                </form>
-            </dialog>
-        @endcan
     @endif
 @endsection

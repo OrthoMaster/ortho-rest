@@ -30,6 +30,7 @@ class DiningTable extends Model
         return [
             'table_number' => 'integer',
             'closed_at' => 'immutable_datetime',
+            'paid_at' => 'immutable_datetime',
             'discount_type' => DiscountType::class,
             'discount_value' => 'integer',
             'discount_amount' => 'integer',
@@ -137,5 +138,11 @@ class DiningTable extends Model
     public function hasPendingLines(): bool
     {
         return $this->lines()->whereIn('status', [LineStatus::New, LineStatus::Done])->exists();
+    }
+
+    /** Thu ngân đã thu tiền phiếu này. */
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by');
     }
 }

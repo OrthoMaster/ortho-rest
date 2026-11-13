@@ -623,42 +623,6 @@ class DineInTest extends TestCase
         $this->assertSame(2, CustomerOffer::withoutGlobalScopes()->count());
     }
 
-    public function test_closed_tables_with_cash_register_bill_numbers_for_reconciliation(): void
-    {
-        $this->tra->newQuery()->withoutGlobalScopes()->whereKey($this->tra->id)->update(['dinein_station_id' => null]);
-
-        // Đóng bàn: hộp thoại có ô số hoá đơn (không bắt buộc).
-        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 2]]);
-        $first = DiningTable::withoutGlobalScopes()->whereNull('closed_at')->sole();
-        $this->get("$this->base/tables/A1")->assertSee('id="close-dialog"', false)->assertSee('name="bill_number"', false);
-        $this->post("$this->base/tables/{$first->id}/close", ['bill_number' => ' HD-0042 ']);
-        $this->assertSame('HD-0042', $first->fresh()->bill_number);
-        $this->assertStringContainsString('HD-0042', implode(' ', ActivityLog::withoutGlobalScopes()->latest('id')->first()->changes));
-
-        $this->order('A2', [['item' => $this->tra->id, 'quantity' => 1]]);
-        $second = DiningTable::withoutGlobalScopes()->whereNull('closed_at')->sole();
-        $this->post("$this->base/tables/{$second->id}/close", ['bill_number' => '']);
-        $this->assertNull($second->fresh()->bill_number);
-
-        // Phiếu đã đóng hôm nay: tổng số phiếu, doanh thu, số phiếu chưa có số hoá đơn.
-        $price = $this->tra->price_dine_in;
-        $this->get("$this->base/bills")->assertOk()->assertSee(vnd(3 * $price))->assertSee(__('dinein.bills_number', ['number' => 'HD-0042']))
-            ->assertSee(__('dinein.bills_no_number'));
-        $this->get("$this->base/bills?number[]=missing")->assertDontSee(__('dinein.bills_number', ['number' => 'HD-0042']))->assertSee(vnd($price));
-        $this->get("$this->base/bills?q=0042")->assertSee('HD-0042')->assertDontSee(__('dinein.bills_no_number').'</span>', false);
-        $this->get("$this->base/bills/export")->assertOk();
-
-        // Nhập số hoá đơn sau khi đã đóng.
-        $this->put("$this->base/bills/{$second->id}", ['bill_number' => 'HD-0043'])->assertSessionHas('status');
-        $this->assertSame('HD-0043', $second->fresh()->bill_number);
-        $this->order('A3', [['item' => $this->tra->id, 'quantity' => 1]]);
-        $open = DiningTable::withoutGlobalScopes()->whereNull('closed_at')->sole();
-        $this->put("$this->base/bills/{$open->id}", ['bill_number' => '1'])->assertNotFound();
-
-        // Nhân viên thường không xem được.
-        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/bills")->assertForbidden();
-    }
-
     public function test_items_without_station_skip_the_screens(): void
     {
         // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.

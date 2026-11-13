@@ -3,7 +3,6 @@
 namespace App\Modules\Takeaway\Http;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOptionGroup;
@@ -12,7 +11,6 @@ use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
 use App\Modules\Takeaway\PlaceOrder;
-use App\Support\BillNumber;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -216,29 +214,10 @@ class OrderController extends Controller
 
     public function changeStatus(Request $request, TakeawayOrder $order): RedirectResponse
     {
-        $data = $request->validate(['status' => ['required', Rule::enum(OrderStatus::class)], 'bill_number' => BillNumber::RULES]);
-        $status = OrderStatus::from($data['status']);
+        $status = OrderStatus::from($request->validate(['status' => ['required', Rule::enum(OrderStatus::class)]])['status']);
 
-        $order = $this->orders->changeStatus($order, $status);
-
-        // Giao đơn: số hoá đơn của máy tính tiền (không bắt buộc) để đối soát doanh thu.
-        if ($status === OrderStatus::Delivered && ($number = BillNumber::clean($data['bill_number'] ?? null))) {
-            $order->update(['bill_number' => $number]);
-        }
+        $this->orders->changeStatus($order, $status, $request->user());
 
         return back()->with('status', __('takeaway.status_changed', ['code' => $order->code(), 'status' => $status->label()]));
-    }
-
-    /** Nhập hoặc sửa số hoá đơn máy tính tiền sau khi đã giao đơn. */
-    public function billNumber(Request $request, TakeawayOrder $order): RedirectResponse
-    {
-        abort_unless($order->status === OrderStatus::Delivered, 404);
-
-        $number = BillNumber::clean($request->validateWithBag('bill-number', ['bill_number' => BillNumber::RULES])['bill_number'] ?? null);
-        $old = $order->bill_number;
-        $order->update(['bill_number' => $number]);
-        ActivityLog::record($order->restaurant_id, 'takeaway', __('takeaway.log_bill_number', ['code' => $order->code()]), [($old ?? '—').' → '.($number ?? '—')], $order);
-
-        return back()->with('status', __('takeaway.bill_number_saved'));
     }
 }

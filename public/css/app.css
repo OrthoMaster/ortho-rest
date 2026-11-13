@@ -191,7 +191,7 @@ input[type=checkbox]:checked::after { transform: translateX(1.05rem); }
 .area-table tbody tr { position: relative; }
 .row-open { padding: 0; font: inherit; font-weight: 600; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
 .row-link .row-open::after { content: ""; position: absolute; inset: 0; }
-.row-link .drag-handle, .row-link .kebab { position: relative; z-index: 1; }
+.row-link .drag-handle, .row-link .kebab, .row-link > .btn { position: relative; z-index: 1; }
 .field-label { font-weight: 500; font-size: .9375rem; }
 .req { margin-left: .2rem; font-weight: 700; color: var(--bad-ink); }
 
@@ -1520,16 +1520,21 @@ dialog.voucher-dialog { width: min(23rem, calc(100vw - 2rem)); max-height: calc(
 .offer-search label { flex: 1; }
 .offer-search input { width: 100%; }
 
-/* Phiếu đã đóng: tổng của khoảng lọc và số tiền mỗi phiếu. */
-.bill-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.bill-totals > div { display: grid; gap: .2rem; }
-.bill-totals small { color: var(--ink-soft); }
-.bill-totals strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-.bill-totals .is-warn strong { color: var(--warn-ink); }
-.bill-amount { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bill-amount small { color: var(--ink-soft); }
+
+/* Thu ngân: tổng của khoảng đối soát, số tiền mỗi phiếu, phiếu trong hộp thoại thu tiền. */
+.cash-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.cash-totals > div { display: grid; gap: .2rem; align-content: start; }
+.cash-totals small { color: var(--ink-soft); }
+.cash-totals strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.cash-totals .is-warn strong { color: var(--warn-ink); }
+.cash-amount { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cash-amount small { color: var(--ink-soft); }
+.cash-lines { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.cash-lines li { display: flex; justify-content: space-between; gap: 1rem; }
+.cash-lines li small { display: block; color: var(--ink-soft); }
+.cash-lines .cash-sum { padding-top: .35rem; border-top: 1px solid var(--line); }
+.cash-lines .cash-due { font-weight: 700; font-size: 1.125rem; }
+dialog.cash-dialog { width: min(28rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
 @media (max-width: 640px) {
-    .bill-totals { grid-template-columns: 1fr 1fr; }
-    .bill-totals > div:first-child { grid-column: 1 / -1; }
+    .cash-totals { grid-template-columns: 1fr 1fr; }
 }
-.bill-number-cell { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
