@@ -623,6 +623,20 @@ class DineInTest extends TestCase
         $this->assertSame(2, CustomerOffer::withoutGlobalScopes()->count());
     }
 
+    public function test_guest_without_phone(): void
+    {
+        $this->order('A1', [['item' => $this->tra->id, 'quantity' => 1]]);
+        $table = DiningTable::withoutGlobalScopes()->sole();
+
+        // Không có số điện thoại vẫn gắn được; sửa tên không tạo khách mới.
+        $this->post("$this->base/tables/{$table->id}/guest", ['name' => 'Anh áo xanh', 'phone' => ''])->assertSessionHasNoErrors();
+        $customer = $table->fresh()->customer;
+        $this->assertSame(['Anh áo xanh', null], [$customer->name, $customer->phone]);
+        $this->post("$this->base/tables/{$table->id}/guest", ['name' => 'Anh Tùng'])->assertSessionHasNoErrors();
+        $this->assertSame([$customer->id, 'Anh Tùng'], [$table->fresh()->customer_id, $table->fresh()->customer->name]);
+        $this->get("$this->base/tables/A1")->assertSee('Anh Tùng')->assertSee(__('dinein.guest_phone_hint'));
+    }
+
     public function test_items_without_station_skip_the_screens(): void
     {
         // Trà đá chưa chọn khu: gọi xong là đã mang ra, không hiện ở khu nào, không có nhãn trạng thái, đóng bàn được ngay.

@@ -127,6 +127,8 @@ return [
 
     // Nhật ký khách, sự cố, ưu đãi
     'log_guest' => 'Bàn :table: gắn khách :name (:phone)',
+    'log_guest_no_phone' => 'Bàn :table: gắn khách :name (không có số điện thoại)',
+    'guest_phone_hint' => 'Không bắt buộc. Có số thì lần sau khách quay lại tra được ngay, thấy ưu đãi đã tặng.',
     'log_guest_removed' => 'Bàn :table: bỏ gắn khách :name',
     'log_incident' => 'Bàn :table: sự cố :kind',
     'log_gift' => 'Bàn :table: tặng ưu đãi lần sau cho :name',

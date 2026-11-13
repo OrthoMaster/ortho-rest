@@ -28,18 +28,25 @@ class GuestController extends Controller
 
         $data = $request->validateWithBag('guest-dialog', [
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', Phone::RULE],
+            // Số điện thoại không bắt buộc (khách không muốn cho), nhưng nhập thì phải đúng.
+            'phone' => ['nullable', 'string', Phone::RULE],
         ]);
 
         DB::transaction(function () use ($table, $data): void {
             // Đổi sang khách khác thì ưu đãi của khách cũ đang áp được trả lại (voucher không tên thì giữ).
-            $customer = Customer::remember($data['name'], Phone::normalize($data['phone']));
+            // Bàn đang gắn đúng khách không có số điện thoại thì chỉ sửa tên, không tạo khách mới.
+            $phone = filled($data['phone'] ?? null) ? Phone::normalize($data['phone']) : null;
+            $customer = $phone === null && $table->customer && $table->customer->phone === null
+                ? tap($table->customer)->update(['name' => $data['name']])
+                : Customer::remember($data['name'], $phone);
             $this->releaseCustomerOffer($table, $customer->id);
             $table->update(['customer_id' => $customer->id]);
         });
 
         $table->load('customer');
-        ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_guest', ['table' => $table->label, 'name' => $table->customer->name, 'phone' => mask_phone($table->customer->phone)]), [], $table);
+        ActivityLog::record($table->restaurant_id, 'dinein', $table->customer->phone
+            ? __('dinein.log_guest', ['table' => $table->label, 'name' => $table->customer->name, 'phone' => mask_phone($table->customer->phone)])
+            : __('dinein.log_guest_no_phone', ['table' => $table->label, 'name' => $table->customer->name]), [], $table);
 
         return back()->with('status', __('dinein.guest_saved', ['name' => $table->customer->name]));
     }

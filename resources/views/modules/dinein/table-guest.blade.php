@@ -143,15 +143,19 @@
     @endif
 </section>
 
-{{-- Gắn khách: số điện thoại bắt buộc vì lần sau tra theo số này. --}}
+{{-- Gắn khách: số điện thoại không bắt buộc; có số thì lần sau tra theo số này. --}}
 <dialog id="guest-dialog" @if ($guestErrors->any()) data-auto-open @endif aria-labelledby="guest-title">
     <form method="post" action="{{ route('tenant.admin.dinein.tables.guest', $table) }}" class="stack">
         @csrf
         <h2 id="guest-title">{{ $customer ? __('dinein.guest_change') : __('dinein.guest_add') }}</h2>
         <div class="field">
-            <label for="guest-phone">{{ __('reservation.customer_phone') }}@include('partials.required')</label>
-            <input id="guest-phone" name="phone" type="tel" value="{{ old('phone') }}" required autocomplete="off">
-            @if ($guestErrors->has('phone'))<small class="error">{{ $guestErrors->first('phone') }}</small>@endif
+            <label for="guest-phone">{{ __('reservation.customer_phone') }}</label>
+            <input id="guest-phone" name="phone" type="tel" value="{{ old('phone') }}" autocomplete="off">
+            @if ($guestErrors->has('phone'))
+                <small class="error">{{ $guestErrors->first('phone') }}</small>
+            @else
+                <small class="hint">{{ __('dinein.guest_phone_hint') }}</small>
+            @endif
         </div>
         <div class="field">
             <label for="guest-name">{{ __('reservation.customer_name') }}@include('partials.required')</label>
