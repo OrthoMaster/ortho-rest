@@ -16,8 +16,8 @@ return [
     'state_open' => 'Đang phục vụ từ :time',
     'state_order' => ':status · nhận :time',
 
-    'collect' => 'Đã thu tiền',
-    'collect_title' => 'Thu tiền :bill',
+    'collect' => 'Thanh toán',
+    'collect_title' => 'Thanh toán :bill',
     'collect_open_note' => 'Bàn vẫn đang mở. Thu tiền xong, phục vụ đóng bàn như bình thường.',
     'subtotal' => 'Tạm tính',
     'discount' => 'Giảm giá',
