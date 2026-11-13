@@ -58,7 +58,7 @@ class DashboardController extends Controller
             $tiles[] = ['route' => 'takeaway.index', 'label' => __('ui.dashboard.takeaway'), 'count' => $count, 'note' => trans_choice('ui.dashboard.takeaway_count', $count)];
         }
 
-        if (has_module('cashier') && (has_module('dinein') || has_module('takeaway')) && $user->can('cashier.collect')) {
+        if (has_module('cashier') && (has_module('dinein') || has_module('takeaway')) && $user->canAny(['cashier.collect', 'cashier.reconcile'])) {
             $count = Cashier::pending()->count();
             $tiles[] = ['route' => 'cashier.index', 'label' => __('ui.dashboard.cashier'), 'count' => $count, 'note' => trans_choice('ui.dashboard.cashier_count', $count)];
         }

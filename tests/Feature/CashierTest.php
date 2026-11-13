@@ -153,6 +153,11 @@ class CashierTest extends TestCase
             __('ui.dashboard.cashier'), trans_choice('ui.dashboard.cashier_count', 1),
         ])->assertDontSee(__('ui.dashboard.reservation'));
 
+        // Logo, tên quán về Tổng quan; các màn hình phục vụ không còn mục riêng ở menu trái, đang ở đó thì Tổng quan sáng.
+        $this->get("$this->admin/cashier")->assertSee('class="sidebar-brand" href="'.url("$this->admin").'"', false)
+            ->assertSee('href="'.url("$this->admin").'" class="active"', false)
+            ->assertDontSee('">'.__('modules.cashier').'</a>', false)->assertDontSee('">'.__('modules.dinein').'</a>', false);
+
         // Nhân viên không có quyền thu tiền: không thấy ô Thu ngân.
         $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->admin")
             ->assertSee(__('ui.dashboard.dinein'))->assertDontSee('/admin/cashier"', false);

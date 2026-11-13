@@ -1,8 +1,11 @@
 @extends('layouts.shell')
 
 @section('sidebar_head')
-    @include('partials.restaurant-logo', ['restaurant' => tenant()])
-    <strong class="sidebar-name">{{ tenant()->name }}</strong>
+    {{-- Bấm logo, tên quán là về Tổng quan. --}}
+    <a class="sidebar-brand" href="{{ route('tenant.admin.dashboard') }}">
+        @include('partials.restaurant-logo', ['restaurant' => tenant()])
+        <strong class="sidebar-name">{{ tenant()->name }}</strong>
+    </a>
 @endsection
 
 @section('nav')
@@ -16,10 +19,15 @@
 
         return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') && ! ($except && request()->routeIs($except)) ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
     })
-    {{-- Các mục phục vụ khách hằng ngày đứng riêng một nhóm, có đường kẻ trên dưới. --}}
-    @php($service = implode('', array_map($moduleLink, ['dinein', 'reservation', 'takeaway', 'cashier', 'menu'])))
+    {{--
+        Lấy đơn, Đặt bàn trước, Đặt mang đi, Thu ngân vào từ nhóm Phục vụ ở Tổng quan, không có mục riêng;
+        đang ở các màn hình đó thì Tổng quan sáng. Menu đứng riêng một nhóm, có đường kẻ trên dưới.
+    --}}
+    @php($service = $moduleLink('menu'))
+    @php($serviceScreen = request()->routeIs('tenant.admin.dinein.*', 'tenant.admin.reservation.*', 'tenant.admin.takeaway.*', 'tenant.admin.cashier.*')
+        && ! request()->routeIs('tenant.admin.dinein.stations.*'))
 
-    <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard')])>{{ __('ui.nav.dashboard') }}</a>
+    <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard') || $serviceScreen])>{{ __('ui.nav.dashboard') }}</a>
     {!! $moduleLink('website') !!}
     @if ($service !== '')
         <hr class="nav-sep">
