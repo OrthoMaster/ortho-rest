@@ -1162,6 +1162,34 @@
         dialog.showModal();
     });
 
+    // Máy tính: thu gọn / hiện lại menu trái, nhớ trong trình duyệt này.
+    document.addEventListener('click', function (event) {
+        var collapse = event.target.closest('[data-sidebar-collapse]');
+        var expand = event.target.closest('[data-sidebar-expand]');
+
+        if (!collapse && !expand) {
+            return;
+        }
+
+        document.documentElement.classList.toggle('sidebar-collapsed', !!collapse);
+
+        try {
+            if (collapse) {
+                window.localStorage.setItem('sidebar', 'collapsed');
+            } else {
+                window.localStorage.removeItem('sidebar');
+            }
+        } catch (error) {
+            // Không lưu được (chế độ riêng tư): vẫn thu gọn trong trang này.
+        }
+
+        var focus = document.querySelector(collapse ? '[data-sidebar-expand]' : '[data-sidebar-collapse]');
+
+        if (focus) {
+            focus.focus();
+        }
+    });
+
     // Khung tải ảnh: xem trước, kéo thả, xoá.
     document.querySelectorAll('[data-image-upload]').forEach(function (box) {
         var field = box.parentElement;

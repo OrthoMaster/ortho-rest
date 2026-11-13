@@ -90,6 +90,8 @@ return [
         'logout' => 'Đăng xuất',
         'open_menu' => 'Mở menu',
         'close_menu' => 'Đóng menu',
+        'hide_menu' => 'Thu gọn menu',
+        'show_menu' => 'Hiện menu',
         'restaurants' => 'Nhà hàng',
         'view_site' => 'Xem website',
     ],

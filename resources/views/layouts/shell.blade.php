@@ -12,6 +12,10 @@
     <aside class="sidebar">
         <div class="sidebar-top">
             <div class="sidebar-head">@yield('sidebar_head')</div>
+            {{-- Máy tính: thu gọn menu trái để có thêm chỗ, bấm nút ở góc trái để hiện lại. --}}
+            <button class="row-btn sidebar-collapse" type="button" data-sidebar-collapse aria-label="{{ __('ui.nav.hide_menu') }}" title="{{ __('ui.nav.hide_menu') }}">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m16 10-2 2 2 2"/></svg>
+            </button>
             <button class="nav-toggle" type="button" aria-controls="sidebar-panel" aria-expanded="false"
                     aria-label="{{ __('ui.nav.open_menu') }}"
                     data-open-label="{{ __('ui.nav.open_menu') }}" data-close-label="{{ __('ui.nav.close_menu') }}">
@@ -28,6 +32,9 @@
         </div>
     </aside>
     <div class="nav-backdrop"></div>
+    <button class="row-btn sidebar-expand" type="button" data-sidebar-expand aria-label="{{ __('ui.nav.show_menu') }}" title="{{ __('ui.nav.show_menu') }}">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m14 10 2 2-2 2"/></svg>
+    </button>
     <main class="content @yield('content_class')">
         @include('partials.flash')
         @yield('content')

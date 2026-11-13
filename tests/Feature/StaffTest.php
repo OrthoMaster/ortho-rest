@@ -302,15 +302,16 @@ class StaffTest extends TestCase
     {
         $this->enableModules($this->restaurant, 'menu', 'takeaway', 'schedule');
 
-        // Menu và nhóm nội bộ (Nội bộ, Lịch làm việc, Nghỉ phép) có đường kẻ; Nhật ký ngay trên Cài đặt chung.
+        // Menu ngay dưới Website (không kẻ trên), nhóm nội bộ (Nội bộ, Lịch làm việc, Nghỉ phép) có đường kẻ; Nhật ký ngay trên Cài đặt chung.
         // Đặt bàn trước, Đặt mang đi vào từ Tổng quan, không có mục riêng.
         $this->get($this->admin)->assertSeeInOrder([
             __('ui.nav.dashboard'),
-            'nav-sep', __('modules.menu'), 'nav-sep',
+            __('modules.menu'), 'nav-sep',
             __('ui.nav.customers'),
             'nav-sep', __('modules.staff'), __('modules.schedule'), __('leave.nav'), 'nav-sep',
             __('activity.title'), __('ui.restaurant.title'), __('ui.nav.profile'),
-        ], false)->assertDontSee('">'.__('modules.takeaway').'</a>', false);
+        ], false)->assertDontSee('">'.__('modules.takeaway').'</a>', false)
+            ->assertSee('data-sidebar-collapse', false)->assertSee('data-sidebar-expand', false);
 
         // Ở trang nghỉ phép thì mục Nghỉ phép sáng, Lịch làm việc không sáng.
         $this->get("$this->admin/schedule/leave")->assertOk()

@@ -21,7 +21,7 @@
     })
     {{--
         Lấy đơn, Đặt bàn trước, Đặt mang đi, Thu ngân vào từ nhóm Phục vụ ở Tổng quan, không có mục riêng;
-        đang ở các màn hình đó thì Tổng quan sáng. Menu đứng riêng một nhóm, có đường kẻ trên dưới.
+        đang ở các màn hình đó thì Tổng quan sáng. Menu ngay dưới Website, có đường kẻ bên dưới.
     --}}
     @php($service = $moduleLink('menu'))
     @php($serviceScreen = request()->routeIs('tenant.admin.dinein.*', 'tenant.admin.reservation.*', 'tenant.admin.takeaway.*', 'tenant.admin.cashier.*')
@@ -30,7 +30,6 @@
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard') || $serviceScreen])>{{ __('ui.nav.dashboard') }}</a>
     {!! $moduleLink('website') !!}
     @if ($service !== '')
-        <hr class="nav-sep">
         {!! $service !!}
         <hr class="nav-sep">
     @endif

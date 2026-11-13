@@ -7,7 +7,8 @@
     {{-- yieldContent đã escape sẵn, tên quán thì escape tại đây. --}}
     @php($pageTitle = $__env->yieldContent('title', tenant()?->name ?? __('ui.app')))
     <title>{!! tenant() && $pageTitle !== e(tenant()->name) ? e(tenant()->name).' - '.$pageTitle : $pageTitle !!}</title>
-    <script>document.documentElement.classList.add('js')</script>
+    {{-- Menu trái đã thu gọn (máy tính) thì thu ngay từ đầu, không bị giật khi tải trang. --}}
+    <script>document.documentElement.classList.add('js');try{if(localStorage.getItem('sidebar')==='collapsed'){document.documentElement.classList.add('sidebar-collapsed')}}catch(e){}</script>
     <link rel="icon" href="{{ tenant() ? (tenant()->logoUrl() ?? asset('images/restaurant-icon.svg')) : asset('images/liresto-mark.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

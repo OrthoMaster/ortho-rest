@@ -427,6 +427,16 @@ tr.is-muted td { color: var(--ink-soft); }
 .sidebar-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .sidebar-panel { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
 .nav-toggle, .nav-backdrop { display: none; }
+/* Máy tính: thu gọn menu trái (nhớ trong trình duyệt), nút ở góc trái để hiện lại. */
+.shell { transition: grid-template-columns .2s ease; }
+.sidebar { min-width: 0; overflow: hidden; }
+.sidebar-collapse { flex: none; color: inherit; background: rgb(255 255 255 / .25); border-color: rgb(255 255 255 / .5); }
+.sidebar-collapse:hover { background: rgb(255 255 255 / .4); }
+.sidebar-expand { display: none; }
+.sidebar-collapsed .shell { grid-template-columns: 0 minmax(0, 1fr); }
+.sidebar-collapsed .sidebar { visibility: hidden; padding-inline: 0; }
+.sidebar-collapsed .sidebar-expand { display: inline-flex; align-items: center; justify-content: center; position: fixed; top: 1rem; left: 1rem; z-index: 30; color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
+.sidebar-collapsed .content { padding-left: max(4.5rem, clamp(1rem, 3vw, 3rem)); }
 .sidebar-head { display: flex; align-items: center; gap: .65rem; padding: 0 .6rem; min-width: 0; }
 .sidebar-brand { display: flex; align-items: center; gap: .65rem; min-width: 0; color: inherit; text-decoration: none; border-radius: var(--radius); }
 .sidebar-brand:hover .sidebar-name { text-decoration: underline; }
@@ -833,6 +843,11 @@ dialog .pick .multi-options { max-height: min(16rem, 40dvh); }
     .filter-fields .multi-panel { position: static; width: auto; margin-top: .35rem; box-shadow: none; }
     .filter-fields .multi-options { max-height: 15rem; }
 
+    .sidebar-collapse, .sidebar-collapsed .sidebar-expand { display: none; }
+    .sidebar-collapsed .shell { grid-template-columns: minmax(0, 1fr); }
+    .sidebar-collapsed .sidebar { visibility: visible; }
+    .sidebar-collapsed .content { padding-left: 1rem; }
+    .sidebar { overflow: visible; }
     .shell { position: relative; flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
 
     .sidebar { position: sticky; top: 0; z-index: 20; display: block; padding: 0; }
