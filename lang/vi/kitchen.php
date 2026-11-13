@@ -41,9 +41,9 @@ return [
     'sound_saved' => 'Đã lưu chuông báo món.',
     'log_sound' => 'Đổi chuông báo món: :sound',
     'sounds' => [
-        'chime' => 'Chuông nhẹ (3 nốt lên)',
-        'bell' => 'Chuông cửa (ding dong)',
-        'alarm' => 'Còi bếp (to, dồn dập, cho bếp ồn)',
+        'chime' => 'Chuông 1',
+        'bell' => 'Chuông 2',
+        'alarm' => 'Chuông 3',
     ],
     'switch_station' => 'Đổi khu',
     'prep' => 'Đơn mang đi',
