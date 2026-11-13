@@ -1513,6 +1513,9 @@ dialog.voucher-dialog { width: min(23rem, calc(100vw - 2rem)); max-height: calc(
 .voucher-panel .inline-form input:not(:placeholder-shown) { text-transform: uppercase; }
 .voucher-page { min-height: 100dvh; background: var(--ground); }
 .voucher-main { width: min(24rem, 100%); margin: 0 auto; padding: 2rem 1rem; }
-.voucher-hint { margin: 0; color: var(--ink-soft); font-size: .9375rem; text-align: center; }
 .voucher-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
 .voucher-actions .btn { flex: 1 1 8rem; }
+/* Tra cứu ưu đãi: ô tìm luôn hiện ở đầu bộ lọc (cả trên điện thoại). */
+.list-search.offer-search { flex: 1 1 auto; justify-content: stretch; margin: 0; }
+.offer-search label { flex: 1; }
+.offer-search input { width: 100%; }

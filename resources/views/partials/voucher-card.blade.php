@@ -20,7 +20,7 @@
         <small class="voucher-scan">{{ __('dinein.voucher_scan') }}</small>
     @endif
     <small class="voucher-note">
-        {{ $offer->expires_on ? __('customers.offer_until', ['date' => $offer->expires_on->format('d/m/Y')]) : __('dinein.gift_expires_none') }}
-        · {{ __('dinein.voucher_where') }}
+        {{ $offer->expires_on ? __('dinein.voucher_until', ['date' => $offer->expires_on->format('d/m/Y')]) : __('dinein.voucher_no_expiry') }}
+        · {{ __('dinein.voucher_once') }}
     </small>
 </div>

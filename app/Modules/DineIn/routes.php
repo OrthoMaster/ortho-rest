@@ -37,10 +37,8 @@ Route::middleware('module:dinein')
             Route::delete('tables/{table}/discount', [GuestController::class, 'removeDiscount'])->whereNumber('table')->name('tables.discount.remove');
         });
         // Ưu đãi lần sau đã tặng (có tên và không tên).
-        Route::middleware('can:dinein.offers')->group(function () {
-            Route::get('offers', [OfferController::class, 'index'])->name('offers');
-            Route::delete('offers/{offer}', [OfferController::class, 'destroy'])->whereNumber('offer')->name('offers.destroy');
-        });
+        Route::get('offers', [OfferController::class, 'index'])->middleware('can:dinein.vouchers')->name('offers');
+        Route::delete('offers/{offer}', [OfferController::class, 'destroy'])->middleware('can:dinein.offers')->whereNumber('offer')->name('offers.destroy');
         Route::middleware('can:dinein.incidents')->group(function () {
             Route::get('incidents', [IncidentController::class, 'index'])->name('incidents');
             Route::get('incidents/export', [IncidentController::class, 'export'])->name('incidents.export');

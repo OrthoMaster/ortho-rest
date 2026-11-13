@@ -21,6 +21,7 @@ return [
         'dinein.close' => ['manager', 'staff'],
         'dinein.cancel' => ['manager'],
         'dinein.offers' => ['manager'],
+        'dinein.vouchers' => ['manager'],
         'dinein.incidents' => ['manager'],
         'dinein.settings' => ['manager'],
     ],

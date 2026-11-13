@@ -9,7 +9,6 @@
     <main class="voucher-main stack">
         @include('partials.voucher-card', ['offer' => $offer, 'qr' => false])
         @if ($offer->isUsable())
-            <p class="voucher-hint">{{ __('dinein.voucher_page_hint') }}</p>
             <div class="voucher-actions">
                 <button class="btn" type="button" data-voucher-save data-filename="uu-dai-{{ $offer->code }}.png">{{ __('dinein.voucher_save_photo') }}</button>
                 <button class="btn btn-quiet" type="button" data-voucher-share hidden

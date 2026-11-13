@@ -25,6 +25,7 @@ use App\Modules\Reservation\ReservationStatus;
 use App\Modules\Schedule\Duty;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\Week;
+use App\Modules\Takeaway\DiscountType;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\OrderStatus;
 use App\Tenancy\TenantContext;
@@ -565,13 +566,28 @@ class DineInTest extends TestCase
         $this->assertSame($voucher->id, $next->fresh()->customer_offer_id);
 
         // Trang Ưu đãi (quản lý): thấy mã đã dùng ở bàn nào; mã đã dùng không huỷ được, mã chưa dùng thì huỷ được.
-        $this->get("$this->base/offers")->assertOk()->assertSee($voucher->code)->assertSee(__('dinein.voucher_used_table', ['table' => 'A3']));
+        // Tra cứu: không tìm thì không liệt kê; tìm theo mã (một phần, chữ thường được) hoặc số điện thoại, lọc trạng thái.
+        $this->get("$this->base/offers")->assertOk()->assertSee(__('dinein.offers_search_hint'))->assertDontSee($voucher->code);
+        $this->get("$this->base/offers?q=".strtolower(substr($voucher->code, 0, 4)))->assertSee($voucher->code)->assertSee(__('dinein.voucher_used_table', ['table' => 'A3']));
+        $this->get("$this->base/offers?q={$voucher->code}&status[]=unused")->assertSee(__('dinein.offers_none'));
+        $this->get("$this->base/offers?q={$voucher->code}&status[]=used")->assertSee($voucher->code);
         $this->delete("$this->base/offers/{$voucher->id}")->assertStatus(422);
         $this->post("$this->base/tables/{$next->id}/gift", ['type' => 'percent', 'percent' => 5, 'reason' => 'Khách quen'])->assertSessionHas('voucher');
         $spare = CustomerOffer::withoutGlobalScopes()->latest('id')->first();
         $this->delete("$this->base/offers/{$spare->id}")->assertSessionHas('status');
         $this->assertNull(CustomerOffer::withoutGlobalScopes()->find($spare->id));
-        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->base/offers")->assertForbidden();
+        $staff = $this->member($this->restaurant, 'staff');
+        $this->actingAs($staff)->get("$this->base/offers")->assertForbidden();
+
+        // Nhân viên được giao quyền Tra cứu ưu đãi: tìm được nhưng không huỷ mã được.
+        $named = CustomerOffer::create(['restaurant_id' => $this->restaurant->id, 'customer_id' => Customer::withoutGlobalScopes()->where('phone', '0911000111')->value('id'),
+            'type' => DiscountType::Percent, 'value' => 15, 'expires_on' => '2026-11-01']);
+        $staff->forceFill(['permissions' => ['dinein.vouchers']])->save();
+        $this->actingAs($staff->fresh())->get("$this->base/offers?q=0911 000")->assertOk()->assertSee($named->code)
+            ->assertSee(mask_phone('0911000111'))->assertDontSee('0911000111')->assertSee(__('dinein.voucher_expired'))
+            ->assertDontSee(__('dinein.voucher_delete'));
+        $this->get("$this->base/offers?q=111&status[]=expired")->assertSee($named->code);
+        $this->delete("$this->base/offers/{$named->id}")->assertForbidden();
     }
 
     public function test_incident_without_note_can_gift_an_offer_for_the_guest(): void
