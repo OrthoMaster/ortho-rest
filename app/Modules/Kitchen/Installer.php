@@ -12,7 +12,7 @@ class Installer extends ModuleInstaller
 {
     public function defaultSettings(): array
     {
-        return [];
+        return ['sound' => Kitchen::SOUNDS[0]];
     }
 
     public function install(Restaurant $restaurant, RestaurantModule $state): void

@@ -38,7 +38,7 @@ class ReportController extends Controller
 
     public function show(Request $request, string $tab = 'overview'): View
     {
-        $tabs = $this->tabs();
+        $tabs = self::tabs();
         abort_unless(in_array($tab, $tabs, true), 404);
 
         [$from, $to, $options] = $this->period($request, $tab);
@@ -56,7 +56,7 @@ class ReportController extends Controller
 
     public function export(Request $request, string $tab): BinaryFileResponse
     {
-        abort_unless(in_array($tab, $this->tabs(), true), 404);
+        abort_unless(in_array($tab, self::tabs(), true), 404);
 
         [$from, $to, $options] = $this->period($request, $tab);
         $options['export'] = true;
@@ -91,18 +91,25 @@ class ReportController extends Controller
         };
     }
 
-    /** Tab nào có tuỳ module đang bật. @return list<string> */
-    private function tabs(): array
+    /**
+     * Tab nào có tuỳ module đang bật. Không bật module nào có số liệu (tại bàn, mang đi,
+     * đặt bàn, lịch làm việc) thì không có tab nào, kể cả Tổng quan, và ẩn luôn mục Thống kê.
+     *
+     * @return list<string>
+     */
+    public static function tabs(): array
     {
         $on = fn (string ...$modules) => collect($modules)->contains(fn ($module) => has_module($module));
 
-        return array_values(array_filter(self::TABS, fn (string $tab) => match ($tab) {
+        $tabs = array_values(array_filter(self::TABS, fn (string $tab) => match ($tab) {
             'revenue', 'sales' => $on('dinein', 'takeaway'),
             'service', 'quality' => $on('dinein'),
             'bookings' => $on('reservation', 'takeaway'),
             'staff' => $on('dinein', 'schedule'),
             default => true,
         }));
+
+        return count($tabs) > 1 ? $tabs : [];
     }
 
     private function report(string $tab, CarbonImmutable $from, CarbonImmutable $to, array $options): Report

@@ -26,7 +26,7 @@ class PollController extends Controller
         $user = $request->user();
         $ready = [];
 
-        if ($user->can('dinein.order')) {
+        if (has_module('dinein') && $user->can('dinein.order')) {
             $areas = Duty::areaIds($user);
             $staffed = Duty::staffedAreaIds();
 

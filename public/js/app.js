@@ -380,29 +380,50 @@
 
         return sound.ctx.state === 'suspended' ? sound.ctx.resume() : Promise.resolve();
     };
-    var beep = function () {
+    // Ba tiếng chuông (chọn ở Cài đặt chung): [tần số, lúc bắt đầu, độ dài, dạng sóng, âm lượng].
+    var tones = {
+        chime: [[880, 0, 0.3, 'sine', 0.35], [1175, 0.18, 0.3, 'sine', 0.35], [1568, 0.36, 0.3, 'sine', 0.35]],
+        bell: [[988, 0, 0.9, 'triangle', 0.45], [1976, 0, 0.5, 'sine', 0.12], [784, 0.45, 1.1, 'triangle', 0.45], [1568, 0.45, 0.6, 'sine', 0.12]],
+        alarm: [[1320, 0, 0.12, 'square', 0.18], [1320, 0.18, 0.12, 'square', 0.18], [1320, 0.36, 0.12, 'square', 0.18],
+            [1320, 0.7, 0.12, 'square', 0.18], [1320, 0.88, 0.12, 'square', 0.18], [1320, 1.06, 0.12, 'square', 0.18]],
+    };
+    var beep = function (name) {
         if (!sound.ctx || sound.ctx.state !== 'running') {
             return;
         }
 
+        var setting = document.querySelector('[data-alert-sound]');
+        var notes = tones[name] || tones[setting ? setting.dataset.alertSound : 'chime'] || tones.chime;
         var start = sound.ctx.currentTime;
 
-        [[880, 0], [1175, 0.18], [1568, 0.36]].forEach(function (note) {
+        notes.forEach(function (note) {
             var oscillator = sound.ctx.createOscillator();
             var gain = sound.ctx.createGain();
             var at = start + note[1];
 
-            oscillator.type = 'sine';
+            oscillator.type = note[3];
             oscillator.frequency.value = note[0];
             gain.gain.setValueAtTime(0.0001, at);
-            gain.gain.exponentialRampToValueAtTime(0.35, at + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.3);
+            gain.gain.exponentialRampToValueAtTime(note[4], at + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, at + note[2]);
             oscillator.connect(gain);
             gain.connect(sound.ctx.destination);
             oscillator.start(at);
-            oscillator.stop(at + 0.32);
+            oscillator.stop(at + note[2] + 0.02);
         });
     };
+
+    // Cài đặt chung: Nghe thử từng tiếng chuông.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-sound-preview]');
+        var waiting = button ? unlockSound() : null;
+
+        if (waiting) {
+            waiting.then(function () {
+                beep(button.dataset.soundPreview);
+            });
+        }
+    });
     ['pointerdown', 'keydown'].forEach(function (name) {
         document.addEventListener(name, function () {
             if (document.querySelector('[data-dine-alerts], [data-board]')) {

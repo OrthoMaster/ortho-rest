@@ -46,9 +46,9 @@
         {!! $team !!}
         <hr class="nav-sep">
     @endif
-    @can('reports.view')
+    @if (Gate::allows('reports.view') && \App\Http\Controllers\Admin\ReportController::tabs())
         <a href="{{ route('tenant.admin.reports') }}" @class(['active' => request()->routeIs('tenant.admin.reports*')])>{{ __('reports.title') }}</a>
-    @endcan
+    @endif
     @can('activity.view')
         <a href="{{ route('tenant.admin.activity') }}" @class(['active' => request()->routeIs('tenant.admin.activity')])>{{ __('activity.title') }}</a>
     @endcan
@@ -58,8 +58,15 @@
     <a href="{{ route('tenant.admin.profile.edit') }}" @class(['active' => request()->routeIs('tenant.admin.profile.*')])>{{ __('ui.nav.profile') }}</a>
 @endsection
 
+{{-- Tiếng chuông báo món quán đã chọn (Cài đặt chung). --}}
+@if (has_module('kitchen'))
+    @push('overlays')
+        <span hidden data-alert-sound="{{ \App\Modules\Kitchen\Kitchen::sound() }}"></span>
+    @endpush
+@endif
+
 {{-- Báo món trên mọi trang: món đã xong cho người phục vụ, món mới cho người ở bếp, bar. --}}
-@if (has_module('dinein') && \Illuminate\Support\Facades\Gate::any(['dinein.order', 'kitchen.screen']))
+@if (has_module('kitchen') && \Illuminate\Support\Facades\Gate::any(['dinein.order', 'kitchen.screen']))
     @push('overlays')
         @include('modules.dinein.alerts')
     @endpush

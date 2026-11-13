@@ -13,7 +13,6 @@ Route::middleware('module:dinein')
     ->name('dinein.')
     ->group(function () {
         Route::get('/', [TableController::class, 'home'])->name('index');
-        Route::get('poll', PollController::class)->middleware('can_any:dinein.order,kitchen.screen')->name('poll');
 
         // Bàn: số bàn là mã khu vực + số, ví dụ A12.
         Route::middleware('can:dinein.order')->group(function () {
@@ -45,6 +44,10 @@ Route::middleware('module:dinein')
         });
         Route::post('tables/{table}/close', [TableController::class, 'close'])->whereNumber('table')->middleware('can:dinein.close')->name('tables.close');
     });
+
+// Báo món trên mọi trang: chỉ có khi bật Màn hình khu vực (không bật thì món ra luôn, không có bước làm xong).
+// Bật được cả khi chỉ có Đặt mang đi (báo món mới cho người ở khu).
+Route::get('dinein/poll', PollController::class)->middleware(['module:kitchen', 'can_any:dinein.order,kitchen.screen'])->name('dinein.poll');
 
 // Khu phục vụ (Bếp, Bar...) ở Cài đặt chung → Khu vực: dùng cho Lấy đơn tại bàn, Màn hình khu và Lịch làm việc.
 Route::middleware(['module:dinein,kitchen', 'can_any:dinein.settings,settings.manage'])->prefix('dinein/stations')->name('dinein.stations.')->group(function () {

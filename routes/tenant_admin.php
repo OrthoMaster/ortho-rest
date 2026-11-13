@@ -53,6 +53,7 @@ Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant
     Route::put('special-days/{specialDay}', [SpecialDayController::class, 'update'])->whereNumber('specialDay')->name('special-days.update');
     Route::delete('special-days/{specialDay}', [SpecialDayController::class, 'destroy'])->whereNumber('specialDay')->name('special-days.destroy');
     Route::put('customer-data', [RestaurantController::class, 'updateCustomerData'])->name('customer-data');
+    Route::put('sound', [RestaurantController::class, 'updateSound'])->middleware('module:kitchen')->name('sound');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
 

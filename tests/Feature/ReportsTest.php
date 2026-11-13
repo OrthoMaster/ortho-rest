@@ -142,4 +142,14 @@ class ReportsTest extends TestCase
         $this->actingAs($staff->fresh())->get($this->base)->assertOk();
         $this->actingAs($this->owner)->get("/{$this->restaurant->slug}/admin")->assertSee('href="'.url($this->base).'"', false);
     }
+
+    public function test_hidden_when_no_module_has_figures(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $this->enableModules($restaurant, 'menu', 'kitchen', 'cashier');
+        $owner = User::factory()->owner($restaurant)->create();
+
+        $this->actingAs($owner)->get("/{$restaurant->slug}/admin/reports")->assertNotFound();
+        $this->get("/{$restaurant->slug}/admin")->assertOk()->assertDontSee(__('reports.title'));
+    }
 }

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CustomerOffer;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\ModuleManager;
@@ -13,6 +14,7 @@ use App\Modules\Takeaway\Models\DiscountCode;
 use App\Modules\Takeaway\Models\TakeawayOrder;
 use App\Modules\Takeaway\Models\TakeawayOrderItem;
 use App\Modules\Takeaway\OrderStatus;
+use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -606,6 +608,49 @@ class TakeawayTest extends TestCase
         $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
 
         $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
+    }
+
+    /** Có Màn hình khu: sửa món bếp đã làm xong thì phần thêm thành món mới cho bếp, đơn đã xong quay lại Đang làm. */
+    public function test_editing_items_sends_new_work_to_the_station(): void
+    {
+        $this->enableModules($this->restaurant, 'kitchen');
+        app(TenantContext::class)->set($this->restaurant);
+        $station = Station::orderBy('sort_order')->value('id');
+        $this->pho->update(['dinein_station_id' => $station]);
+        $order = $this->order();
+        $order->items()->update(['done_at' => now()]);
+        $this->post("$this->base/{$order->id}/status", ['status' => 'preparing']);
+        $this->post("$this->base/{$order->id}/status", ['status' => 'ready']);
+        $this->assertSame(OrderStatus::Ready, $order->fresh()->status);
+
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 3]))->assertSessionHasNoErrors();
+
+        $items = TakeawayOrderItem::withoutGlobalScopes()->where('takeaway_order_id', $order->id)->orderBy('id')->get();
+        $this->assertSame([2, 1], $items->pluck('quantity')->all());
+        $this->assertNotNull($items[0]->done_at);
+        $this->assertNull($items[1]->done_at);
+        $this->assertSame(OrderStatus::Preparing, $order->fresh()->status);
+        $this->assertNull($order->fresh()->ready_at);
+
+        // Quán chỉ có mang đi + Màn hình khu (không bật tại bàn) vẫn nhận báo món.
+        $this->getJson("/{$this->restaurant->slug}/admin/dinein/poll")->assertOk()->assertJsonCount(0, 'ready');
+        $this->get("/{$this->restaurant->slug}/admin")->assertSee('data-alerts', false);
+    }
+
+    /** Món chưa làm mà đổi số lượng, ghi chú thì gửi lại bếp như món mới (bếp thấy chuông lại). */
+    public function test_changing_a_pending_item_resends_it_to_the_station(): void
+    {
+        $this->enableModules($this->restaurant, 'kitchen');
+        app(TenantContext::class)->set($this->restaurant);
+        $this->pho->update(['dinein_station_id' => Station::orderBy('sort_order')->value('id')]);
+        $order = $this->order();
+        $before = $order->items()->value('id');
+
+        $this->put("$this->base/{$order->id}", $this->editForm($order, [$this->pho->id => 4]))->assertSessionHasNoErrors();
+
+        $item = TakeawayOrderItem::withoutGlobalScopes()->where('takeaway_order_id', $order->id)->sole();
+        $this->assertSame(4, $item->quantity);
+        $this->assertNotSame($before, $item->id);
     }
 
     public function test_delivered_and_cancelled_orders_cannot_be_edited(): void

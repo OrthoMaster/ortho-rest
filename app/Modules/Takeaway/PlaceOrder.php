@@ -106,6 +106,7 @@ class PlaceOrder
 
             // Dòng nào còn là món cũ (cùng món, cùng tuỳ chọn) thì giữ, còn lại là món mới.
             $kept = [];
+            $kitchenWork = false;
             $fresh = [];
 
             foreach ($lines as $row) {
@@ -142,10 +143,22 @@ class PlaceOrder
                     $changes[] = __('takeaway.change_line_note', ['name' => $line->label()]);
                 }
 
-                $line->update(['quantity' => $quantity, 'note' => $note]);
+                // Báo khu bếp, bar: món đã làm xong mà thêm phần thì phần thêm thành món mới cần làm;
+                // món chưa làm mà đổi số lượng hoặc ghi chú thì thay bằng dòng mới để màn hình khu kêu và thấy món mới.
+                if ($line->dinein_station_id && $line->done_at && $quantity > $line->quantity) {
+                    $line->replicate()->fill(['quantity' => $quantity - $line->quantity, 'note' => $note, 'done_at' => null, 'done_by' => null])->save();
+                    $kitchenWork = true;
+                } elseif ($line->dinein_station_id && ! $line->done_at && ($quantity !== $line->quantity || $note !== $line->note)) {
+                    $line->replicate()->fill(['quantity' => $quantity, 'note' => $note])->save();
+                    $line->delete();
+                    $kitchenWork = true;
+                } else {
+                    $line->update(['quantity' => $quantity, 'note' => $note]);
+                }
             }
 
             foreach ($built as $line) {
+                $kitchenWork = $kitchenWork || $line['done_at'] === null;
                 $created = $order->items()->create(['restaurant_id' => $order->restaurant_id, ...$line]);
                 $changes[] = __('takeaway.change_added', ['quantity' => $created->quantity, 'name' => $created->label()]);
             }
@@ -188,6 +201,8 @@ class PlaceOrder
                 ...$discount,
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
+                // Đơn đã đóng gói mà có món mới cần làm thì quay lại Đang làm, để hiện lại ở màn hình khu.
+                ...($kitchenWork && $order->status === OrderStatus::Ready ? ['status' => OrderStatus::Preparing, 'ready_at' => null] : []),
             ]);
 
             $this->syncVoucher($order, $oldVoucher);

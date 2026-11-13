@@ -37,5 +37,32 @@
             </div>
         </form>
     </section>
+
+    @if (has_module('kitchen'))
+        {{-- Chuông báo món: chọn một trong ba tiếng, bấm Nghe thử để nghe trước. --}}
+        @php($sound = \App\Modules\Kitchen\Kitchen::sound())
+        <section class="panel">
+            <form method="post" action="{{ route('tenant.admin.restaurant.sound') }}" class="stack" data-guard>
+                @csrf
+                @method('put')
+                <div>
+                    <h2>{{ __('kitchen.sound_title') }}</h2>
+                    <small class="row-note">{{ __('kitchen.sound_lead') }}</small>
+                </div>
+                <div class="choice-list" role="radiogroup" aria-label="{{ __('kitchen.sound_title') }}">
+                    @foreach (\App\Modules\Kitchen\Kitchen::SOUNDS as $option)
+                        <label class="choice">
+                            <input type="radio" name="sound" value="{{ $option }}" @checked(old('sound', $sound) === $option)>
+                            <span>{{ __('kitchen.sounds.'.$option) }}</span>
+                            <button class="btn btn-quiet btn-sm" type="button" data-sound-preview="{{ $option }}">{{ __('kitchen.sound_test') }}</button>
+                        </label>
+                    @endforeach
+                </div>
+                <div>
+                    <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
+                </div>
+            </form>
+        </section>
+    @endif
     </div>
 @endsection
