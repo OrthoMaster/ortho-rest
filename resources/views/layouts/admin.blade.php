@@ -20,11 +20,11 @@
         return '<a href="'.e(route('tenant.admin.'.$module['menu']['route'])).'"'.(request()->routeIs('tenant.admin.'.$key.'.*') && ! ($except && request()->routeIs($except)) ? ' class="active"' : '').'>'.e(__($module['name'])).'</a>';
     })
     {{--
-        Lấy đơn, Đặt bàn trước, Đặt mang đi, Thu ngân vào từ nhóm Phục vụ ở Tổng quan, không có mục riêng;
+        Lấy đơn, Đặt bàn trước, Đặt mang đi, Thu ngân và Màn hình khu vực vào từ Tổng quan, không có mục riêng;
         đang ở các màn hình đó thì Tổng quan sáng. Menu ngay dưới Website, có đường kẻ bên dưới.
     --}}
     @php($service = $moduleLink('menu'))
-    @php($serviceScreen = request()->routeIs('tenant.admin.dinein.*', 'tenant.admin.reservation.*', 'tenant.admin.takeaway.*', 'tenant.admin.cashier.*')
+    @php($serviceScreen = request()->routeIs('tenant.admin.dinein.*', 'tenant.admin.reservation.*', 'tenant.admin.takeaway.*', 'tenant.admin.cashier.*', 'tenant.admin.kitchen.*')
         && ! request()->routeIs('tenant.admin.dinein.stations.*'))
 
     <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard') || $serviceScreen])>{{ __('ui.nav.dashboard') }}</a>
@@ -49,7 +49,6 @@
     @can('activity.view')
         <a href="{{ route('tenant.admin.activity') }}" @class(['active' => request()->routeIs('tenant.admin.activity')])>{{ __('activity.title') }}</a>
     @endcan
-    {!! $moduleLink('kitchen') !!}
     @can('settings.manage')
         <a href="{{ route('tenant.admin.restaurant.edit') }}" @class(['active' => request()->routeIs('tenant.admin.restaurant.*')])>{{ __('ui.restaurant.title') }}</a>
     @endcan

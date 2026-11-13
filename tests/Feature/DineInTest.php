@@ -142,8 +142,8 @@ class DineInTest extends TestCase
         $this->get("$this->kitchenBase")->assertOk()->assertSeeInOrder([__('kitchen.prep'), $this->kitchen->name]);
         $this->get("/{$this->restaurant->slug}/admin")->assertOk()->assertSeeInOrder([__('kitchen.screens'), __('kitchen.prep'), $this->kitchen->name, $this->bar->name])
             ->assertSee("$this->kitchenBase/{$this->bar->id}", false)
-            // Menu trái: Màn hình khu vực ngay dưới Nhật ký thay đổi.
-            ->assertSeeInOrder([__('activity.title').'</a>', __('modules.kitchen').'</a>', __('ui.restaurant.title').'</a>'], false);
+            // Menu trái không còn mục Màn hình khu vực: vào từ Tổng quan.
+            ->assertDontSee('">'.__('modules.kitchen').'</a>', false);
         $this->get("$this->kitchenBase/takeaway")->assertOk()->assertSee($order->code())->assertSee('Chị Mai')
             ->assertSee(__('kitchen.items_done', ['done' => 0, 'total' => 3]))->assertDontSee('data-line-id="d', false);
 
