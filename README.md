@@ -23,19 +23,19 @@ Mở <http://127.0.0.1:8000>. Luôn dùng một địa chỉ (`127.0.0.1` hoặc
 
 ## Tài khoản chạy thử
 
-Mật khẩu đều là `password`.
+Seed tạo một nhà hàng **Sài Gòn** (`/saigon`) như đã hoạt động 3 tháng tính tới lúc chạy: menu có tuỳ chọn, 2 khu (Trong quán T1–T10, Ngoài sân S1–S10), một Bếp, mở trưa và tối, nghỉ thứ Hai; có đơn tại bàn, đặt bàn, đơn mang đi, thu ngân, sự cố, ưu đãi, đơn nghỉ phép, lịch làm đã công bố tới hết tháng. Chạy mất khoảng 1 phút. Tạo lại từ đầu: `php artisan migrate:fresh --seed`.
+
+Mật khẩu đều là `password` (đặt `SEED_PASSWORD` trong `.env` để đổi; production bắt buộc đặt mới seed được).
 
 | Email | Vai trò | Sau khi đăng nhập |
 | --- | --- | --- |
-| `super@liresto.test` | Super admin | `/super/restaurants` |
-| `owner@quan-demo.test` | Chủ quán | `/quan-demo/admin` |
-| `manager@quan-demo.test` | Quản lý | `/quan-demo/admin` |
-| `staff@quan-demo.test` | Nhân viên, không thấy Website và Menu | `/quan-demo/admin` |
-| `owner@bun-cha.test` | Chủ quán có domain riêng | `/bun-cha-ha-noi/admin` |
+| `fx.tiennguyen92@gmail.com` | Super admin (đăng nhập ở `/login`) | `/super/restaurants` |
+| `chunhahang@saigon.restaurant` | Chủ quán | `/saigon/admin` |
+| `quanly@saigon.restaurant` | Quản lý | `/saigon/admin` |
+| `bep1@saigon.restaurant`, `bep2@…` | Đầu bếp | `/saigon/admin` |
+| `nhanvien1@saigon.restaurant` … `nhanvien5@…` | Nhân viên phục vụ | `/saigon/admin` |
 
-Web công khai: <http://127.0.0.1:8000/quan-demo>.
-
-Domain riêng: <http://bun-cha.localhost:8000>. Link cũ <http://127.0.0.1:8000/bun-cha-ha-noi> chuyển 301 sang đó. Chrome, Edge và Firefox tự trỏ `*.localhost` về máy mình. Safari thì thêm `127.0.0.1 bun-cha.localhost` vào file hosts.
+Người của quán đăng nhập ở <http://127.0.0.1:8000/saigon/login>. Web công khai: <http://127.0.0.1:8000/saigon>.
 
 Email quên mật khẩu không gửi thật ở local, link nằm trong `storage/logs/laravel.log`.
 

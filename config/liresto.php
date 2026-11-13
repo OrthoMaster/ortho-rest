@@ -28,6 +28,9 @@ return [
     // Đĩa lưu file quán tải lên. Đổi sang s3 khi có Bizfly Simple Storage.
     'uploads_disk' => env('UPLOADS_DISK', 'public'),
 
+    // Mật khẩu tài khoản của dữ liệu mẫu (php artisan db:seed). Production phải đặt mới seed được.
+    'seed_password' => env('SEED_PASSWORD'),
+
     // Thông báo đẩy (Web Push). Tạo khoá một lần bằng `php artisan liresto:vapid`.
     'push' => [
         'public_key' => env('VAPID_PUBLIC_KEY'),

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <!-- Hơi nóng -->
+  <g fill="none" stroke="#a8d0f0" stroke-width="14" stroke-linecap="round">
+    <path d="M196 196c-18-22 18-36 0-62"/>
+    <path d="M256 186c-18-22 18-36 0-62"/>
+    <path d="M316 196c-18-22 18-36 0-62"/>
+  </g>
+  <!-- Đôi đũa -->
+  <g stroke="#2b6a9e" stroke-width="16" stroke-linecap="round">
+    <path d="M300 250 L432 92"/>
+    <path d="M330 254 L452 116"/>
+  </g>
+  <!-- Tô -->
+  <path d="M84 246 H428 C428 342 352 404 256 404 C160 404 84 342 84 246 Z" fill="#2b6a9e"/>
+  <rect x="70" y="232" width="372" height="26" rx="13" fill="#2b6a9e"/>
+  <path d="M120 286 C170 300 342 300 392 286" fill="none" stroke="#a8d0f0" stroke-width="12" stroke-linecap="round"/>
+  <!-- Chân tô -->
+  <path d="M196 404 H316 L304 432 H208 Z" fill="#2b6a9e"/>
+</svg>
