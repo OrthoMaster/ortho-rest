@@ -5,9 +5,14 @@ namespace App\Reports;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
-/** Bán chạy: theo món, theo tuỳ chọn, theo giờ và thứ trong tuần (tại bàn và mang đi). */
+/**
+ * Bán chạy: theo món và theo tuỳ chọn (tại bàn và mang đi).
+ * Mặc định 5 món đầu; lọc chọn món, hoặc Xem tất cả; xuất Excel thì đủ cả.
+ */
 class Sales extends Report
 {
+    public const TOP = 5;
+
     /** @return Collection<int, object{name: string, quantity: int, amount: int, options: array, at: CarbonImmutable, source: string}> */
     public function items(): Collection
     {
@@ -35,11 +40,18 @@ class Sales extends Report
     {
         $items = $this->items();
 
+        // Tỷ trọng tính trên tổng tiền mọi món, kể cả khi đang lọc vài món.
+        $total = max(1, $items->sum('amount'));
+
+        // Lọc món đã chọn: biểu đồ, bảng và tuỳ chọn chỉ còn các món đó.
+        if ($picked = $this->picked('items')) {
+            $items = $items->filter(fn ($item) => in_array($item->name, $picked, true))->values();
+        }
+
         if ($items->isEmpty()) {
             return [['type' => 'note', 'text' => __('reports.no_data'), 'wide' => true]];
         }
 
-        $total = max(1, $items->sum('amount'));
         $top = $items->groupBy('name')->map(fn (Collection $rows, string $name) => [
             'name' => $name, 'quantity' => $rows->sum('quantity'), 'amount' => $rows->sum('amount'),
             'dinein' => $rows->where('source', 'dinein')->sum('quantity'), 'takeaway' => $rows->where('source', 'takeaway')->sum('quantity'),
@@ -57,27 +69,22 @@ class Sales extends Report
             }
         }
 
-        // Thứ trong tuần × giờ: số phần bán ra.
-        $grid = [];
-        foreach ($items as $item) {
-            $grid[$item->at->dayOfWeekIso][$item->at->hour] = ($grid[$item->at->dayOfWeekIso][$item->at->hour] ?? 0) + $item->quantity;
-        }
-        $hours = self::hourSpan(collect(range(0, 23))->mapWithKeys(fn ($hour) => [$hour => collect($grid)->sum(fn ($day) => $day[$hour] ?? 0)])->all());
+        $limit = $picked || $this->showAll() ? null : self::TOP;
+        $shown = $limit ? $top->take($limit) : $top;
+        $cut = $limit && $top->count() > $limit ? __('reports.top_items_cut', ['count' => $limit, 'total' => $top->count()]) : null;
 
         return [
             ['type' => 'bars', 'title' => __('reports.top_items'), 'wide' => true,
-                'items' => $top->take(15)->map(fn ($row) => ['label' => $row['name'], 'value' => $row['quantity'],
+                'cut' => $cut,
+                'items' => $shown->map(fn ($row) => ['label' => $row['name'], 'value' => $row['quantity'],
                     'text' => __('reports.portions', ['count' => self::number($row['quantity'])]).' · '.vnd($row['amount'])])->all()],
             ['type' => 'table', 'title' => __('reports.items_table'), 'wide' => true, 'numeric' => $both ? [1, 2, 3, 4, 5] : [1, 2, 3],
                 'headers' => array_values(array_filter([__('reports.item'), __('reports.portions_label'), $both ? __('reports.source.dinein') : null, $both ? __('reports.source.takeaway') : null, __('reports.amount'), __('reports.share')])),
-                'rows' => $top->map(fn ($row) => array_values(array_filter([$row['name'], self::number($row['quantity']),
+                'rows' => $shown->map(fn ($row) => array_values(array_filter([$row['name'], self::number($row['quantity']),
                     $both ? self::number($row['dinein']) : null, $both ? self::number($row['takeaway']) : null, vnd($row['amount']), self::percent($row['amount'] / $total)], fn ($cell) => $cell !== null)))->all()],
-            ['type' => 'bars', 'title' => __('reports.top_options'), 'note' => __('reports.top_options_note'),
-                'items' => $options->sortDesc()->take(15)->map(fn ($count, $label) => ['label' => $label, 'value' => $count, 'text' => __('reports.portions', ['count' => self::number($count)])])->values()->all(),
+            ['type' => 'bars', 'title' => __('reports.top_options'), 'wide' => true, 'note' => __('reports.top_options_note'),
+                'items' => $options->sortDesc()->take($limit ?? PHP_INT_MAX)->map(fn ($count, $label) => ['label' => $label, 'value' => $count, 'text' => __('reports.portions', ['count' => self::number($count)])])->values()->all(),
                 'empty' => __('reports.no_options')],
-            ['type' => 'heatmap', 'title' => __('reports.heatmap'), 'note' => __('reports.heatmap_note'),
-                'cols' => array_map(fn ($hour) => sprintf('%02dh', $hour), $hours),
-                'rows' => collect(range(1, 7))->map(fn ($day) => ['label' => __('reports.weekdays.'.$day), 'cells' => array_map(fn ($hour) => $grid[$day][$hour] ?? 0, $hours)])->all()],
         ];
     }
 }

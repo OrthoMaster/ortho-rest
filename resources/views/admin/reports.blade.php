@@ -18,6 +18,18 @@
     <div class="report-filters">
         @if ($tab === 'revenue')
             @include('admin.reports.period', ['period' => $options['period'], 'date' => $options['date'], 'from' => $from, 'to' => $to])
+        @elseif ($filters !== [])
+            {{-- Nhân viên, Bán chạy: khoảng ngày và lọc chọn nhiều (người / món). --}}
+            @php($keep = array_filter(['from' => $from->toDateString(), 'to' => $to->toDateString()]))
+            @php($pills = collect($filters)->flatMap(fn ($choices, $name) => filter_pills($name, $choices, $options[$name] ?? []))->all())
+            @component('partials.filter-bar', ['id' => 'reports', 'keep' => $keep, 'pills' => $pills, 'clearUrl' => url()->current().'?'.http_build_query($keep)])
+                @slot('date')
+                    @include('partials.date-range-nav', ['from' => $from, 'to' => $to, 'max' => today()->toDateString(), 'maxDays' => \App\Http\Controllers\Admin\ReportController::MAX_DAYS])
+                @endslot
+                @foreach ($filters as $name => $choices)
+                    @include('partials.filter-multi', ['name' => $name, 'label' => __('reports.filter_'.$name), 'all' => __('reports.all_'.$name), 'options' => $choices, 'values' => $options[$name] ?? []])
+                @endforeach
+            @endcomponent
         @else
             @include('partials.date-range-nav', ['from' => $from, 'to' => $to, 'max' => today()->toDateString(), 'maxDays' => \App\Http\Controllers\Admin\ReportController::MAX_DAYS])
             @if (in_array($tab, ['overview', 'service'], true))

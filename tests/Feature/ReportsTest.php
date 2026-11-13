@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\DineIn\Models\DiningTable;
+use App\Modules\DineIn\Models\OrderLine;
 use App\Modules\DineIn\Models\Station;
 use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
@@ -93,12 +94,43 @@ class ReportsTest extends TestCase
         // Mang đi: làm xong trễ 10 phút.
         $this->get("$this->base/bookings")->assertOk()->assertSee(__('reports.takeaway_late_rate'))->assertSee('100%')->assertSee(__('reports.minutes', ['count' => '10,0']));
         $this->get("$this->base/staff")->assertOk()->assertSee($this->owner->name)->assertSee(__('reports.station_parts'));
-        $this->get("$this->base/sales")->assertOk()->assertSee('Phở bò')->assertSee(__('reports.portions', ['count' => 5]));
+        $this->get("$this->base/sales")->assertOk()->assertSee('Phở bò')->assertSee(__('reports.portions', ['count' => 5]))->assertSee(__('reports.all_items'));
 
         $this->get("$this->base/service/export")->assertOk()->assertHeader('content-disposition');
 
         // Khoảng ngày khác: không có dữ liệu.
         $this->get("$this->base/service?from=2026-10-01&to=2026-10-07")->assertSee(__('reports.no_data'));
+    }
+
+    public function test_staff_and_sales_show_top_rows_with_filters(): void
+    {
+        $category = MenuCategory::create(['restaurant_id' => $this->restaurant->id, 'name' => 'Nước']);
+        $names = [];
+
+        // 7 món, món thứ i bán i phần; 12 nhân viên, mỗi người gọi 1 món (chủ quán bưng ra: 13 người).
+        foreach (range(1, 7) as $i) {
+            $item = MenuItem::create(['restaurant_id' => $this->restaurant->id, 'menu_category_id' => $category->id, 'name' => "Món $i", 'price_dine_in' => 10000]);
+            $names[] = $item->name;
+            $this->post("/{$this->restaurant->slug}/admin/dinein/tables/A$i/order", ['lines' => [['item' => $item->id, 'quantity' => $i]]]);
+        }
+        $people = collect(range(1, 12))->map(fn ($i) => $this->member($this->restaurant, 'staff', ['name' => sprintf('Người %02d', $i)]));
+        $lines = OrderLine::withoutGlobalScopes()->get();
+        $people->each(fn ($person, $index) => $index < $lines->count()
+            ? $lines[$index]->update(['ordered_by' => $person->id])
+            : $lines[0]->replicate()->fill(['ordered_by' => $person->id, 'quantity' => 0, 'status' => 'cancelled'])->save());
+        $this->actingAs($this->owner);
+
+        // Bán chạy: mặc định 5 món đầu, có Xem tất cả; lọc chọn món; không còn bảng giờ đông.
+        $this->get("$this->base/sales")->assertSee('Món 7')->assertSee('Món 3')->assertDontSee('Món 2</td>', false)
+            ->assertSee(__('reports.top_items_cut', ['count' => 5, 'total' => 7]))->assertDontSee('heatmap');
+        $this->get("$this->base/sales?all=1")->assertSee('Món 1</td>', false)->assertSee(__('reports.show_less'));
+        $this->get("$this->base/sales?items[]=Món 1&items[]=Món 2")->assertSee('Món 1</td>', false)->assertDontSee('Món 7</td>', false)
+            ->assertDontSee(__('reports.show_all'));
+
+        // Nhân viên: mặc định 10 người, lọc chọn người; xuất Excel đủ cả.
+        $this->get("$this->base/staff")->assertSee(__('reports.top_people', ['count' => 10, 'total' => 13]))->assertSee(__('reports.filter_staff'));
+        $this->get("$this->base/staff?staff[]={$people[0]->id}")->assertSee('Người 01')->assertDontSee('Người 02</td>', false);
+        $this->get("$this->base/staff/export")->assertOk();
     }
 
     public function test_only_people_with_permission(): void

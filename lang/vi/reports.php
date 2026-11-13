@@ -164,7 +164,15 @@ return [
 
     // Bán chạy
     'top_items' => 'Món bán chạy',
-    'items_table' => 'Mọi món',
+    'items_table' => 'Chi tiết món',
+    'top_items_cut' => 'Đang hiện :count món bán chạy nhất trong :total món.',
+    'top_people' => 'Đang hiện :count người làm nhiều nhất trong :total người.',
+    'show_all' => 'Xem tất cả',
+    'show_less' => 'Thu gọn',
+    'filter_staff' => 'Nhân viên',
+    'filter_items' => 'Món',
+    'all_staff' => 'Mọi người',
+    'all_items' => 'Món bán chạy',
     'portions' => ':count phần',
     'portions_label' => 'Số phần',
     'amount' => 'Thành tiền',
@@ -172,8 +180,6 @@ return [
     'top_options' => 'Tuỳ chọn được chọn nhiều',
     'top_options_note' => 'Số phần đã bán có chọn tuỳ chọn đó.',
     'no_options' => 'Chưa có món nào chọn tuỳ chọn.',
-    'heatmap' => 'Giờ đông theo thứ',
-    'heatmap_note' => 'Số phần bán ra theo thứ trong tuần và giờ; ô càng đậm càng đông.',
 
     // Cảnh báo
     'alert_unpaid' => ':count phiếu chưa thu tiền (:total).',

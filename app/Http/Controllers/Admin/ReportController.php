@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Menu\Models\MenuItem;
 use App\Reports\Bookings;
 use App\Reports\Overview;
 use App\Reports\Quality;
@@ -49,6 +50,7 @@ class ReportController extends Controller
             'to' => $to,
             'options' => $options,
             'blocks' => $this->report($tab, $from, $to, $options)->blocks(),
+            'filters' => $this->filters($tab),
         ]);
     }
 
@@ -57,6 +59,7 @@ class ReportController extends Controller
         abort_unless(in_array($tab, $this->tabs(), true), 404);
 
         [$from, $to, $options] = $this->period($request, $tab);
+        $options['export'] = true;
         $rows = [[__('reports.export_range', ['from' => $from->format('d/m/Y'), 'to' => $to->format('d/m/Y')])]];
 
         // Mỗi khối một đoạn: tiêu đề, rồi các dòng; con số và biểu đồ xuất thành hai cột.
@@ -66,13 +69,26 @@ class ReportController extends Controller
                 'kpis' => array_push($rows, ...array_map(fn ($item) => [$item['label'], $item['value'], $item['note'] ?? '', $item['trend']['text'] ?? ''], $block['items'])),
                 'columns', 'bars' => array_push($rows, [$block['title']], ...array_map(fn ($item) => [$item['label'], $item['text']], $block['items'])),
                 'table' => array_push($rows, [$block['title']], $block['headers'], ...$block['rows']),
-                'heatmap' => array_push($rows, [$block['title']], ['', ...$block['cols']], ...array_map(fn ($row) => [$row['label'], ...$row['cells']], $block['rows'])),
                 'alerts' => array_push($rows, ...array_map(fn ($text) => [$text], $block['items'])),
                 default => array_push($rows, [$block['text'] ?? '']),
             };
         }
 
         return SimpleXlsx::download('thong-ke-'.$tab.'-'.$from->format('Ymd').'-'.$to->format('Ymd').'.xlsx', [__('reports.tabs.'.$tab)], $rows);
+    }
+
+    /**
+     * Lựa chọn của bộ lọc chọn nhiều: Nhân viên (người của quán), Bán chạy (món trong menu).
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function filters(string $tab): array
+    {
+        return match ($tab) {
+            'staff' => ['staff' => tenant()->users()->orderBy('name')->pluck('name', 'users.id')->mapWithKeys(fn ($name, $id) => [(string) $id => $name])->all()],
+            'sales' => ['items' => MenuItem::orderBy('name')->pluck('name')->unique()->mapWithKeys(fn ($name) => [$name => $name])->all()],
+            default => [],
+        };
     }
 
     /** Tab nào có tuỳ module đang bật. @return list<string> */
@@ -107,6 +123,11 @@ class ReportController extends Controller
             }
         };
         $limit = in_array((int) $request->query('limit'), self::LIMITS, true) ? (int) $request->query('limit') : 15;
+        $picked = [
+            'staff' => $tab === 'staff' ? filter_values('staff', array_keys($this->filters('staff')['staff'])) : [],
+            'items' => $tab === 'sales' ? filter_values('items', array_keys($this->filters('sales')['items'])) : [],
+            'all' => $request->boolean('all'),
+        ];
 
         if ($tab === 'revenue') {
             $period = in_array($request->query('period'), ['day', 'week', 'month'], true) ? $request->query('period') : 'week';
@@ -118,7 +139,7 @@ class ReportController extends Controller
                 default => [$date->startOfWeek(), $date->endOfWeek()->startOfDay()],
             };
 
-            return [$from, $to, ['period' => $period, 'date' => $date, 'limit' => $limit]];
+            return [$from, $to, ['period' => $period, 'date' => $date, 'limit' => $limit, ...$picked]];
         }
 
         $to = min($parse('to') ?? CarbonImmutable::today(), CarbonImmutable::today());
@@ -132,6 +153,6 @@ class ReportController extends Controller
             $from = $to->subDays(self::MAX_DAYS - 1);
         }
 
-        return [$from, $to, ['limit' => $limit]];
+        return [$from, $to, ['limit' => $limit, ...$picked]];
     }
 }

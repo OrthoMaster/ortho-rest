@@ -1557,6 +1557,7 @@ dialog.cash-dialog { width: min(34rem, calc(100vw - 2rem)); max-height: calc(100
 }
 
 /* Thống kê: bộ lọc, con số chính, biểu đồ cột, thanh ngang, bảng nhiệt. Màu biểu đồ lấy từ màu quán. */
+.report-filters > .filter-bar { flex: 1 1 100%; }
 .report-filters { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
 .report-period { display: inline-flex; }
 .report-period a { display: grid; place-items: center; min-height: 2.4rem; padding: 0 .9rem; color: inherit; text-decoration: none; border-radius: 6px; }
@@ -1612,3 +1613,4 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     .kpi-grid { grid-template-columns: 1fr 1fr; }
     .kpi-value { font-size: 1.25rem; }
 }
+.report-cut { margin: 0; font-size: .875rem; color: var(--ink-soft); }

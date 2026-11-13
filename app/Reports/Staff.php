@@ -5,9 +5,37 @@ namespace App\Reports;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
-/** Nội bộ: việc từng người làm ở bàn, từng khu theo buổi, lịch làm việc và ngày nghỉ. */
+/**
+ * Nội bộ: việc từng người làm ở bàn, từng khu theo buổi, lịch làm việc và ngày nghỉ.
+ * Quán đông người: mặc định hiện 10 người làm nhiều nhất, lọc chọn người để xem; xuất Excel thì đủ cả.
+ */
 class Staff extends Report
 {
+    public const TOP = 10;
+
+    /**
+     * Lọc theo người đã chọn, hoặc lấy TOP người đầu (trừ khi xem tất cả).
+     *
+     * @param  Collection<int, array<string, mixed>>  $rows  có khoá 'id'
+     */
+    private function limitPeople(Collection $rows): Collection
+    {
+        $picked = array_map('intval', $this->picked('staff'));
+
+        if ($picked !== []) {
+            return $rows->filter(fn ($row) => in_array((int) $row['id'], $picked, true))->values();
+        }
+
+        return $this->showAll() ? $rows : $rows->take(self::TOP);
+    }
+
+    /** Ghi chú khi đang cắt bớt người. */
+    private function cutNote(Collection $all, Collection $shown): ?string
+    {
+        return $shown->count() < $all->count() && $this->picked('staff') === []
+            ? __('reports.top_people', ['count' => $shown->count(), 'total' => $all->count()]) : null;
+    }
+
     public function blocks(): array
     {
         $blocks = [];
@@ -29,14 +57,17 @@ class Staff extends Report
             $ids = collect([$ordered, $served, $done, $cancelled, $closed, $incidents])->flatMap(fn (Collection $values) => $values->keys())->unique();
             $names = $this->restaurant->users()->whereIn('users.id', $ids)->pluck('name', 'users.id');
             $rows = $ids->map(fn ($id) => [
+                'id' => $id,
                 'name' => $names[$id] ?? '—',
                 'served' => (int) ($served[$id] ?? 0),
                 'cells' => [self::number($ordered[$id] ?? 0), self::number($served[$id] ?? 0), self::number($done[$id] ?? 0), self::number($closed[$id] ?? 0), self::number($cancelled[$id] ?? 0), self::number($incidents[$id] ?? 0)],
             ])->sortByDesc('served')->values();
 
+            $shown = $this->limitPeople($rows);
             $blocks[] = ['type' => 'table', 'title' => __('reports.by_person'), 'wide' => true, 'numeric' => [1, 2, 3, 4, 5, 6], 'note' => __('reports.by_person_note'),
+                'cut' => $this->cutNote($rows, $shown),
                 'headers' => [__('reports.person'), __('reports.ordered'), __('reports.served'), __('reports.made'), __('reports.tables_closed'), __('reports.cancelled_qty'), __('reports.incident_tables')],
-                'rows' => $rows->map(fn ($row) => [$row['name'], ...$row['cells']])->all(), 'empty' => __('reports.no_data')];
+                'rows' => $shown->map(fn ($row) => [$row['name'], ...$row['cells']])->all(), 'empty' => __('reports.no_data')];
 
             // Khu bếp, bar theo buổi: số món làm xong và thời gian làm trung bình.
             $lines = $this->table('dinein_lines')->join('dinein_stations', 'dinein_stations.id', '=', 'dinein_lines.dinein_station_id')
@@ -49,7 +80,7 @@ class Staff extends Report
             $blocks[] = ['type' => 'table', 'title' => __('reports.station_parts'), 'numeric' => [2, 3],
                 'headers' => [__('reports.station'), __('reports.part'), __('reports.items'), __('reports.prep_time')],
                 'rows' => $lines->groupBy(fn ($line) => $line->station.'|'.$line->part)
-                    ->sortBy(fn (Collection $rows, string $key) => $rows->first()->station.'|'.array_search($rows->first()->part, __('reports.parts'), true))
+                    ->sortBy(fn (Collection $rows, string $key) => $rows->first()->station.'|'.array_search($rows->first()->part, array_values(__('reports.parts')), true))
                     ->map(fn (Collection $rows, string $key) => [
                         ...explode('|', $key), self::number($rows->sum('quantity')), self::minutes($rows->avg('prep')),
                     ])->values()->all(), 'empty' => __('reports.no_data')];
@@ -70,14 +101,19 @@ class Staff extends Report
             $ids = $assignments->pluck('user_id')->merge($leave->keys())->unique();
             $names = $this->restaurant->users()->whereIn('users.id', $ids)->pluck('name', 'users.id');
 
+            $people = $ids->map(fn ($id) => [
+                'id' => $id,
+                'name' => $names[$id] ?? '—',
+                'count' => $assignments->where('user_id', $id)->count(),
+                'hours' => $assignments->where('user_id', $id)->sum(fn ($row) => $shifts[$row->shift_id] ?? 0) / 3600,
+                'leave' => (float) ($leave[$id] ?? 0),
+            ])->sortByDesc('hours')->values();
+            $shownPeople = $this->limitPeople($people);
+
             $blocks[] = ['type' => 'table', 'title' => __('reports.schedule'), 'numeric' => [1, 2, 3], 'note' => __('reports.schedule_note'),
                 'headers' => [__('reports.person'), __('reports.shifts'), __('reports.planned_hours'), __('reports.leave_days')],
-                'rows' => $ids->map(fn ($id) => [
-                    'name' => $names[$id] ?? '—',
-                    'count' => $assignments->where('user_id', $id)->count(),
-                    'hours' => $assignments->where('user_id', $id)->sum(fn ($row) => $shifts[$row->shift_id] ?? 0) / 3600,
-                    'leave' => (float) ($leave[$id] ?? 0),
-                ])->sortByDesc('hours')->map(fn ($row) => [$row['name'], self::number($row['count']), number_format($row['hours'], 1, ',', '.'), number_format($row['leave'], 1, ',', '.')])
+                'cut' => $this->cutNote($people, $shownPeople),
+                'rows' => $shownPeople->map(fn ($row) => [$row['name'], self::number($row['count']), number_format($row['hours'], 1, ',', '.'), number_format($row['leave'], 1, ',', '.')])
                     ->values()->all(), 'empty' => __('reports.no_data')];
         }
 

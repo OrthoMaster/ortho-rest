@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  * Một tab thống kê: nhận khoảng ngày, trả về các khối (con số, biểu đồ, bảng) để màn hình vẽ và xuất Excel.
  * Truy vấn thẳng bằng DB::table nên luôn lọc restaurant_id của quán đang xem.
  *
- * Khối: kpis, columns (cột theo thời gian), bars (xếp hạng), table, heatmap, note.
+ * Khối: kpis, columns (cột theo thời gian), bars (xếp hạng), table, alerts, note.
  */
 abstract class Report
 {
@@ -56,6 +56,18 @@ abstract class Report
     protected function on(string $module): bool
     {
         return $this->restaurant->hasModule($module);
+    }
+
+    /** Bộ lọc người (id) và món (tên); rỗng là không lọc. @return list<string> */
+    protected function picked(string $name): array
+    {
+        return $this->options[$name] ?? [];
+    }
+
+    /** Hiện hết: đang xuất Excel, hoặc bấm "Xem tất cả". */
+    protected function showAll(): bool
+    {
+        return (bool) ($this->options['export'] ?? false) || (bool) ($this->options['all'] ?? false);
     }
 
     /** Ngưỡng món chờ lâu (phút), chọn ở bộ lọc. */

@@ -28,4 +28,9 @@
             </table>
         </div>
     @endif
+    @if ($block['cut'] ?? null)
+        <p class="report-cut">{{ $block['cut'] }} <a href="{{ request()->fullUrlWithQuery(['all' => 1]) }}">{{ __('reports.show_all') }}</a></p>
+    @elseif (request()->boolean('all') && array_key_exists('cut', $block))
+        <p class="report-cut"><a href="{{ request()->fullUrlWithQuery(['all' => null]) }}">{{ __('reports.show_less') }}</a></p>
+    @endif
 </section>
