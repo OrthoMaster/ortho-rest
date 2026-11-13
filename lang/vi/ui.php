@@ -276,6 +276,13 @@ return [
         'module_disable_confirm_with' => 'Tắt :module? Các module sau cũng sẽ tắt: :modules.',
         'module_enabled' => 'Đã bật :module.',
         'module_needs' => 'Chưa bật được :module: cần bật :modules trước.',
+        'modules_save' => 'Cập nhật',
+        'modules_hint' => 'Module lùi vào trong cần module ở trên nó. Tắt module chỉ ẩn đi, không xoá dữ liệu.',
+        'modules_saved' => 'Đã cập nhật chức năng. Bật: :on. Tắt: :off.',
+        'modules_unchanged' => 'Không có thay đổi nào.',
+        'modules_skipped' => 'Chưa bật được :modules vì module cần có chưa bật.',
+        'modules_confirm' => 'Các module sau sẽ tắt: :modules. Dữ liệu vẫn giữ, bật lại là thấy.',
+        'modules_confirm_title' => 'Tắt module?',
         'modules_disabled' => 'Đã tắt: :modules. Dữ liệu vẫn được giữ.',
     ],
 

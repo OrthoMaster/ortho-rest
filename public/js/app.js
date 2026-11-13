@@ -1162,6 +1162,41 @@
         dialog.showModal();
     });
 
+    // Super admin, chức năng của quán: module con chỉ bật được khi module cha bật; tắt cha thì tắt con.
+    // Có module sắp tắt thì hỏi lại trước khi cập nhật.
+    document.querySelectorAll('[data-module-form]').forEach(function (form) {
+        var boxes = Array.prototype.slice.call(form.querySelectorAll('[data-module]'));
+        var sync = function () {
+            boxes.forEach(function (box) {
+                var parent = box.dataset.moduleParent ? form.querySelector('[data-module="' + box.dataset.moduleParent + '"]') : null;
+
+                if (parent) {
+                    box.disabled = !parent.checked;
+                    if (!parent.checked) {
+                        box.checked = false;
+                    }
+                }
+            });
+
+            var off = boxes.filter(function (box) {
+                return box.dataset.moduleWas === '1' && !box.checked;
+            }).map(function (box) {
+                return box.dataset.moduleLabel;
+            });
+
+            if (off.length) {
+                form.dataset.confirm = form.dataset.confirmText.replace(':modules', off.join(', '));
+                form.dataset.confirmDanger = '';
+            } else {
+                delete form.dataset.confirm;
+                delete form.dataset.confirmDanger;
+            }
+        };
+
+        form.addEventListener('change', sync);
+        sync();
+    });
+
     // Máy tính: thu gọn / hiện lại menu trái, nhớ trong trình duyệt này.
     document.addEventListener('click', function (event) {
         var collapse = event.target.closest('[data-sidebar-collapse]');

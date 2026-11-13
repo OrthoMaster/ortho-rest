@@ -160,6 +160,28 @@ class SuperAdminTest extends TestCase
         $this->assertFalse($restaurant->hasModule('takeaway'));
     }
 
+    public function test_modules_saved_at_once_with_children_under_parents(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $url = "/super/restaurants/{$restaurant->id}/modules";
+
+        // Trang: toggle từng module, module con có data-module-parent, nút Cập nhật.
+        $this->actingAs($this->admin)->get("/super/restaurants/{$restaurant->id}")
+            ->assertSee('data-module-parent="menu"', false)->assertSee('data-module-parent="staff"', false)->assertSee(__('ui.super.modules_save'));
+
+        // Bật nhiều module một lần (cha trước con); module con thiếu cha thì bỏ qua và báo.
+        $this->actingAs($this->admin)->put($url, ['modules' => ['menu', 'takeaway', 'dinein', 'schedule', 'core']])
+            ->assertSessionHas('status')->assertSessionHas('error', __('ui.super.modules_skipped', ['modules' => __('modules.schedule')]));
+        $this->assertTrue($restaurant->hasModule('takeaway') && $restaurant->hasModule('dinein'));
+        $this->assertFalse($restaurant->hasModule('schedule'));
+
+        // Bỏ chọn module cha: các module con tắt theo.
+        $this->actingAs($this->admin)->put($url, ['modules' => ['reservation']])->assertSessionHas('status');
+        $this->assertFalse($restaurant->hasModule('menu') || $restaurant->hasModule('takeaway'));
+        $this->assertTrue($restaurant->hasModule('reservation'));
+        $this->actingAs($this->admin)->put($url, ['modules' => ['reservation']])->assertSessionHas('status', __('ui.super.modules_unchanged'));
+    }
+
     public function test_core_phase2_and_unknown_modules_cannot_be_toggled(): void
     {
         $restaurant = Restaurant::factory()->create();

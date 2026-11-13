@@ -1614,3 +1614,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     .kpi-value { font-size: 1.25rem; }
 }
 .report-cut { margin: 0; font-size: .875rem; color: var(--ink-soft); }
+
+/* Super admin: chức năng của quán, module con lùi vào dưới module cha. */
+.module-tree { display: grid; margin: 0; padding: 0; list-style: none; }
+.module-row + .module-row { border-top: 1px solid var(--line); }
+.module-row.is-child { margin-left: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--line); }
+.module-switch { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem .25rem; cursor: pointer; }
+.module-name { display: grid; gap: .1rem; }
+.module-switch:has(input:disabled) { cursor: default; color: var(--ink-soft); }

@@ -76,43 +76,34 @@
         @endif
     </section>
 
-    <section class="panel">
-        <h2>{{ __('ui.super.modules') }}</h2>
-        <ul class="rows">
-            @foreach ($modules->definitions() as $key => $definition)
-                @php($on = $modules->isEnabled($restaurant, $key))
-                @php($missing = $modules->missingDependencies($restaurant, $key))
-                @php($dependents = array_values(array_filter($modules->dependentsOf($key), fn ($dependent) => $modules->isEnabled($restaurant, $dependent))))
-                <li>
-                    <span class="row-name">{{ __($definition['name']) }}</span>
-                    @if ($modules->isCore($key))
-                        <span class="row-note">{{ __('ui.super.module_always_on') }}</span>
-                    @elseif (! $modules->isAvailable($key))
-                        <span class="row-note">{{ __('ui.super.module_phase2') }}</span>
-                    @else
-                        @if ($on)
-                            <span class="badge badge-ok">{{ __('ui.super.module_on') }}</span>
-                        @endif
-                        @if ($missing)
-                            <span class="row-note">{{ __('ui.super.module_needs_label', ['modules' => implode(', ', array_map(fn ($dependency) => __($modules->definition($dependency)['name']), $missing))]) }}</span>
-                        @endif
-                        @php($confirm = $dependents
-                            ? __('ui.super.module_disable_confirm_with', ['module' => __($definition['name']), 'modules' => implode(', ', array_map(fn ($dependent) => __($modules->definition($dependent)['name']), $dependents))])
-                            : __('ui.super.module_disable_confirm', ['module' => __($definition['name'])]))
-                        <form method="post" action="{{ route('super.modules.update', [$restaurant, $key]) }}"
-                              @if ($on) data-confirm-danger data-confirm="{{ $confirm }}" @endif>
-                            @csrf
-                            @method('put')
-                            <input type="hidden" name="enabled" value="{{ $on ? 0 : 1 }}">
-                            <button type="submit" role="switch" aria-checked="{{ $on ? 'true' : 'false' }}" aria-label="{{ __($definition['name']) }}"
-                                    @class(['switch', 'is-on' => $on]) @disabled(! $on && $missing)>
-                                <span>{{ $on ? __('ui.super.module_disable') : __('ui.super.module_enable') }}</span>
-                            </button>
-                        </form>
-                    @endif
-                </li>
-            @endforeach
-        </ul>
+    {{--
+        Chức năng: mỗi module một toggle, module phụ thuộc lùi vào dưới module cần có.
+        Bấm Cập nhật mới lưu một lần; tắt module cha thì module con cũng tắt theo.
+    --}}
+    @php($definitions = $modules->definitions())
+    <section class="panel stack w-lg">
+        <div>
+            <h2>{{ __('ui.super.modules') }}</h2>
+            <small class="row-note">{{ __('ui.super.modules_hint') }}</small>
+        </div>
+        <form method="post" action="{{ route('super.modules.sync', $restaurant) }}" class="stack module-form" data-module-form data-guard
+              data-confirm-title="{{ __('ui.super.modules_confirm_title') }}" data-confirm-text="{{ __('ui.super.modules_confirm', ['modules' => ':modules']) }}">
+            @csrf
+            @method('put')
+            <ul class="module-tree">
+                @php($parents = array_map(fn (array $definition) => $definition['depends'][0] ?? null, $definitions))
+                @foreach ($definitions as $key => $definition)
+                    @continue($parents[$key] !== null)
+                    @include('super.restaurants.module-toggle', ['key' => $key, 'definition' => $definition, 'depth' => 0])
+                    @foreach (array_keys($parents, $key, true) as $childKey)
+                        @include('super.restaurants.module-toggle', ['key' => $childKey, 'definition' => $definitions[$childKey], 'depth' => 1, 'parent' => $key])
+                    @endforeach
+                @endforeach
+            </ul>
+            <div class="form-actions">
+                <button class="btn" type="submit">{{ __('ui.super.modules_save') }}</button>
+            </div>
+        </form>
     </section>
 
     <section class="panel">

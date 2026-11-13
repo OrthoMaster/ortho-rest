@@ -69,6 +69,7 @@ Route::middleware('main.domain')->group(function () {
             ->scopeBindings()
             ->name('domains.destroy');
 
+        Route::put('restaurants/{restaurant}/modules', [RestaurantModuleController::class, 'sync'])->name('modules.sync');
         Route::put('restaurants/{restaurant}/modules/{module}', [RestaurantModuleController::class, 'update'])->name('modules.update');
 
         Route::post('restaurants/{restaurant}/impersonate', [ImpersonationController::class, 'start'])->name('impersonate.start');
