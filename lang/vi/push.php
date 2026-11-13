@@ -10,7 +10,7 @@ return [
 
     // Cài ứng dụng.
     'install' => 'Cài ứng dụng',
-    'install_hint' => 'Cài lên điện thoại để mở nhanh và nhận thông báo món.',
+    'install_hint' => 'Cài lên điện thoại để nhận thông báo.',
     'ios_title' => 'Cài :name lên iPhone',
     'ios_step_share' => 'Bấm nút <strong>Chia sẻ</strong> (thanh dưới của Safari, hoặc góc trên bên phải của Chrome).',
     'ios_step_add' => 'Kéo xuống, chọn <strong>Thêm vào MH chính</strong> rồi bấm <strong>Thêm</strong>.',
@@ -23,7 +23,7 @@ return [
     'enable_body' => 'Nhận báo món mới, món đã xong ngay cả khi tắt màn hình.',
     'enable' => 'Bật thông báo',
     'install_title' => 'Cài ứng dụng để nhận thông báo',
-    'install_body' => 'Trên iPhone, thêm quán vào màn hình chính thì mới nhận được thông báo món.',
+    'install_body' => 'Trên iPhone, thêm quán vào màn hình chính thì mới nhận được thông báo.',
     'install_how' => 'Xem cách cài',
     'dismiss' => 'Để sau',
 ];
