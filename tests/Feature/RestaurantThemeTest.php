@@ -34,6 +34,30 @@ class RestaurantThemeTest extends TestCase
         $this->actingAs($owner)->get("/{$restaurant->slug}/admin")->assertSee('--secondary: #f2c14e;', false);
     }
 
+    /** Chủ quán tự đổi màu ở Cài đặt chung (khung Logo và màu), có nút về màu mặc định; logo giữ nguyên. */
+    public function test_owner_changes_colors_and_resets_to_default(): void
+    {
+        $restaurant = Restaurant::factory()->create(['theme' => ['logo' => 'logos/a.png']]);
+        $owner = User::factory()->owner($restaurant)->create();
+        $settings = "/{$restaurant->slug}/admin/restaurant";
+
+        $this->actingAs($owner)->get($settings)->assertOk()
+            ->assertSee(__('ui.logo.panel'))
+            ->assertSee('value="'.RestaurantTheme::PRIMARY.'"', false)
+            ->assertDontSee(__('ui.super.theme_reset_action'))
+            ->assertDontSee('Liresto');
+
+        $this->put("$settings/theme", ['primary' => '#8C2F1B', 'secondary' => '#f2c14e'])->assertSessionHasNoErrors();
+        $this->assertSame(['logo' => 'logos/a.png', 'primary' => '#8c2f1b', 'secondary' => '#f2c14e'], $restaurant->fresh()->theme);
+        $this->get($settings)->assertSee('--primary: #8c2f1b;', false)->assertSee(__('ui.super.theme_reset_action'));
+        $this->put("$settings/theme", ['primary' => 'red', 'secondary' => '#f2c14e'])->assertSessionHasErrors('primary');
+
+        $this->delete("$settings/theme")->assertSessionHas('status', __('ui.super.theme_reset'));
+        $this->assertSame(['logo' => 'logos/a.png'], $restaurant->fresh()->theme);
+
+        $this->actingAs($this->member($restaurant))->put("$settings/theme", ['primary' => '#000000', 'secondary' => '#ffffff'])->assertForbidden();
+    }
+
     public function test_custom_domain_uses_the_restaurant_colors(): void
     {
         $restaurant = $this->themed();

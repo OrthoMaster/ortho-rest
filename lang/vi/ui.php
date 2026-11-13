@@ -186,6 +186,8 @@ return [
 
     'logo' => [
         'title' => 'Logo',
+        'panel' => 'Logo và màu',
+        'theme_reset_confirm' => 'Bỏ màu riêng của quán, website và phần quản lý về màu mặc định?',
         'alt' => 'Logo :name',
         'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB. Nên dùng ảnh vuông.',
         'save' => 'Lưu logo',
@@ -262,8 +264,8 @@ return [
         'theme_secondary' => 'Màu phụ',
         'theme_save' => 'Lưu màu',
         'theme_saved' => 'Đã lưu màu của quán.',
-        'theme_reset_action' => 'Dùng lại màu Liresto',
-        'theme_reset' => 'Quán đã về màu Liresto.',
+        'theme_reset_action' => 'Về màu mặc định',
+        'theme_reset' => 'Quán đã về màu mặc định.',
 
         'modules' => 'Module',
         'module_always_on' => 'Luôn bật',

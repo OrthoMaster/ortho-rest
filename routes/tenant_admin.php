@@ -61,6 +61,8 @@ Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant
     Route::put('order-window', [RestaurantController::class, 'updateOrderWindow'])->middleware(['module:dinein', 'module:schedule'])->name('order-window');
     Route::post('logo', [RestaurantController::class, 'updateLogo'])->name('logo.update');
     Route::delete('logo', [RestaurantController::class, 'destroyLogo'])->name('logo.destroy');
+    Route::put('theme', [RestaurantController::class, 'updateTheme'])->name('theme.update');
+    Route::delete('theme', [RestaurantController::class, 'destroyTheme'])->name('theme.destroy');
 
     Route::prefix('shifts')->name('shifts.')->group(function () {
         Route::get('{type}', [ShiftController::class, 'index'])->whereIn('type', ['opening', 'work'])->name('index');

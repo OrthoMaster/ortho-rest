@@ -21,7 +21,21 @@ final class RestaurantTheme
 
     private const MIN_TEXT_CONTRAST = 4.5;
 
-    /** Rỗng nếu quán chưa chọn màu riêng: trang dùng màu Liresto. */
+    public const RULE = ['required', 'regex:/^#[0-9a-fA-F]{6}$/'];
+
+    /** Lưu màu riêng của quán (chủ quán ở Cài đặt chung, hoặc super admin). */
+    public static function save(Restaurant $restaurant, string $primary, string $secondary): void
+    {
+        $restaurant->update(['theme' => [...($restaurant->theme ?? []), 'primary' => strtolower($primary), 'secondary' => strtolower($secondary)]]);
+    }
+
+    /** Về màu mặc định: bỏ màu riêng, giữ logo. */
+    public static function reset(Restaurant $restaurant): void
+    {
+        $restaurant->update(['theme' => array_diff_key($restaurant->theme ?? [], ['primary' => 1, 'secondary' => 1]) ?: null]);
+    }
+
+    /** Rỗng nếu quán chưa chọn màu riêng: trang dùng màu mặc định. */
     public static function css(Restaurant $restaurant): string
     {
         $primary = $restaurant->theme['primary'] ?? null;

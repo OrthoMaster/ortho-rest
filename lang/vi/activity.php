@@ -51,6 +51,8 @@ return [
     'module_disabled' => 'Tắt :name',
     'logo_changed' => 'Đổi logo quán',
     'logo_removed' => 'Xoá logo quán',
+    'theme_changed' => 'Đổi màu quán: màu chính :primary, màu phụ :secondary',
+    'theme_reset' => 'Quán về màu mặc định',
     'shifts_added' => 'Thêm :type :name (:range) cho :days',
     'order_edited' => 'Sửa đơn :code',
 

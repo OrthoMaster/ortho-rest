@@ -9,6 +9,7 @@ use App\Modules\Kitchen\Kitchen;
 use App\Modules\ModuleManager;
 use App\Support\CustomerRetention;
 use App\Tenancy\RestaurantLogo;
+use App\Tenancy\RestaurantTheme;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -67,6 +68,25 @@ class RestaurantController extends Controller
         ActivityLog::record(tenant()->getKey(), 'settings', __('activity.logo_changed'));
 
         return back()->with('status', __('ui.logo.saved'));
+    }
+
+    /** Màu quán: chủ quán tự đổi ở Cài đặt chung, cạnh logo. */
+    public function updateTheme(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['primary' => RestaurantTheme::RULE, 'secondary' => RestaurantTheme::RULE]);
+
+        RestaurantTheme::save(tenant(), $data['primary'], $data['secondary']);
+        ActivityLog::record(tenant()->getKey(), 'settings', __('activity.theme_changed', ['primary' => strtolower($data['primary']), 'secondary' => strtolower($data['secondary'])]));
+
+        return back()->with('status', __('ui.super.theme_saved'));
+    }
+
+    public function destroyTheme(): RedirectResponse
+    {
+        RestaurantTheme::reset(tenant());
+        ActivityLog::record(tenant()->getKey(), 'settings', __('activity.theme_reset'));
+
+        return back()->with('status', __('ui.super.theme_reset'));
     }
 
     public function destroyLogo(): RedirectResponse
