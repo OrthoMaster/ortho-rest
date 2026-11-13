@@ -430,12 +430,14 @@ tr.is-muted td { color: var(--ink-soft); }
 /* Máy tính: thu gọn menu trái (nhớ trong trình duyệt), nút ở góc trái để hiện lại. */
 .shell { transition: grid-template-columns .2s ease; }
 .sidebar { min-width: 0; overflow: hidden; }
+/* Cuộn trang thì menu trái đứng yên (cuộn riêng nếu dài hơn màn hình), nằm dưới thanh Đăng nhập thay. */
+.sidebar { position: sticky; top: var(--bar-h, 0px); align-self: start; height: calc(100vh - var(--bar-h, 0px)); height: calc(100dvh - var(--bar-h, 0px)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .sidebar-collapse { flex: none; color: inherit; background: rgb(255 255 255 / .25); border-color: rgb(255 255 255 / .5); }
 .sidebar-collapse:hover { background: rgb(255 255 255 / .4); }
 .sidebar-expand { display: none; }
 .sidebar-collapsed .shell { grid-template-columns: 0 minmax(0, 1fr); }
 .sidebar-collapsed .sidebar { visibility: hidden; padding-inline: 0; }
-.sidebar-collapsed .sidebar-expand { display: inline-flex; align-items: center; justify-content: center; position: fixed; top: 1rem; left: 1rem; z-index: 30; color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
+.sidebar-collapsed .sidebar-expand { display: inline-flex; align-items: center; justify-content: center; position: fixed; top: calc(var(--bar-h, 0px) + 1rem); left: 1rem; z-index: 30; color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
 .sidebar-collapsed .content { padding-left: max(4.5rem, clamp(1rem, 3vw, 3rem)); }
 .sidebar-head { display: flex; align-items: center; gap: .65rem; padding: 0 .6rem; min-width: 0; }
 .sidebar-brand { display: flex; align-items: center; gap: .65rem; min-width: 0; color: inherit; text-decoration: none; border-radius: var(--radius); }
@@ -470,7 +472,7 @@ tr.is-muted td { color: var(--ink-soft); }
     .cols-2, .cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Cột trái hẹp (bộ lọc), cột phải rộng (danh sách). */
     .layout-side { grid-template-columns: minmax(18rem, 1fr) minmax(0, 3fr); }
-    .layout-side > aside { position: sticky; top: 1rem; }
+    .layout-side > aside { position: sticky; top: calc(var(--bar-h, 0px) + 1rem); }
     /* Thanh lọc đặt ở cột trái: các ô xếp dọc, rộng hết cột. */
     .filter-bar.is-side { display: grid; gap: .75rem; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
     /* Cột lọc: mọi ô rộng hết khung (track 1fr, không co theo nội dung). */
@@ -512,7 +514,7 @@ tr.is-muted td { color: var(--ink-soft); }
 .flash[data-autohide] { transition: opacity .4s ease; }
 .flash.is-leaving { opacity: 0; }
 
-.impersonation { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; padding: .45rem 1rem; color: var(--on-secondary); background: var(--secondary); font-weight: 500; }
+.impersonation { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; padding: .45rem 1rem; color: var(--on-secondary); background: var(--secondary); font-weight: 500; }
 .impersonation button { font: inherit; font-weight: 600; text-decoration: underline; background: none; border: 0; cursor: pointer; color: inherit; padding: 0; }
 
 .badge { display: inline-block; padding: .1rem .5rem; font-size: .8125rem; font-weight: 500; color: var(--ink-soft); background: var(--ground); border-radius: var(--radius); }
@@ -850,7 +852,8 @@ dialog .pick .multi-options { max-height: min(16rem, 40dvh); }
     .sidebar { overflow: visible; }
     .shell { position: relative; flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
 
-    .sidebar { position: sticky; top: 0; z-index: 20; display: block; padding: 0; }
+    .impersonation { gap: .15rem .75rem; padding: .4rem .75rem; font-size: .875rem; }
+    .sidebar { position: sticky; top: var(--bar-h, 0px); z-index: 20; display: block; height: auto; padding: 0; overflow: visible; }
     .sidebar-top { min-height: 4rem; padding: .6rem 1rem; }
     .sidebar-head { padding: 0; }
 
@@ -1641,6 +1644,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* Ngoài giờ lấy đơn: ô bàn chỉ để xem. */
 .table-tile.is-locked { cursor: not-allowed; opacity: .55; }
 .table-tile.is-locked:hover { border-color: var(--line); }
-/* Phần thứ hai trong cùng một khung (ví dụ Màu quán dưới Logo). */
-.panel-part { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
-.panel-part h3 { margin: 0; }
+/* Khung rộng hết hàng trong .cols, chia đôi bên trong (ví dụ Logo | Màu của quán). */
+.span-all { grid-column: 1 / -1; }
+.panel-split { display: grid; gap: 1.5rem; }
+.panel-split > * + * { padding-top: 1.5rem; border-top: 1px solid var(--line); }
+@media (min-width: 1024px) {
+    .panel-split { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+    .panel-split > * + * { padding: 0 0 0 2rem; border-top: 0; border-left: 1px solid var(--line); }
+}

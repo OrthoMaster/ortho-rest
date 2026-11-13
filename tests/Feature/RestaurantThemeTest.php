@@ -42,7 +42,7 @@ class RestaurantThemeTest extends TestCase
         $settings = "/{$restaurant->slug}/admin/restaurant";
 
         $this->actingAs($owner)->get($settings)->assertOk()
-            ->assertSee(__('ui.logo.panel'))
+            ->assertSee(__('ui.super.theme'))
             ->assertSee('value="'.RestaurantTheme::PRIMARY.'"', false)
             ->assertDontSee(__('ui.super.theme_reset_action'))
             ->assertDontSee('Liresto');

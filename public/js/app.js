@@ -3591,4 +3591,24 @@
         });
     })();
 
+
+    // Thanh "Đăng nhập thay": menu trái và các phần dính trên cùng nằm ngay dưới thanh này.
+    (function () {
+        var bar = document.querySelector('.impersonation');
+
+        if (!bar) {
+            return;
+        }
+
+        var update = function () {
+            document.documentElement.style.setProperty('--bar-h', bar.offsetHeight + 'px');
+        };
+
+        update();
+
+        if ('ResizeObserver' in window) {
+            new ResizeObserver(update).observe(bar);
+        }
+    })();
+
 })();

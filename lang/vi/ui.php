@@ -186,7 +186,6 @@ return [
 
     'logo' => [
         'title' => 'Logo',
-        'panel' => 'Logo và màu',
         'theme_reset_confirm' => 'Bỏ màu riêng của quán, website và phần quản lý về màu mặc định?',
         'alt' => 'Logo :name',
         'hint' => 'Ảnh PNG, JPG hoặc WEBP, tối đa 2 MB. Nên dùng ảnh vuông.',

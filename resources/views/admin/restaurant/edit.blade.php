@@ -8,38 +8,43 @@
     @include('admin.restaurant.subnav')
 
     <div class="cols cols-2">
-    <section class="panel">
-        <h2>{{ __('ui.logo.panel') }}</h2>
-        @include('partials.logo-form', [
-            'restaurant' => $restaurant,
-            'updateUrl' => route('tenant.admin.restaurant.logo.update'),
-            'destroyUrl' => route('tenant.admin.restaurant.logo.destroy'),
-        ])
-
-        {{-- Màu quán: website và phần quản lý đổi theo; chưa chọn thì dùng màu mặc định. --}}
-        <div class="panel-part stack">
-            <div>
-                <h3>{{ __('ui.super.theme') }}</h3>
-                <small class="row-note">{{ __('ui.super.theme_hint') }}</small>
+    {{-- Logo và màu quán: rộng hết hàng, chia đôi (điện thoại xếp dọc). --}}
+    <section class="panel span-all">
+        <div class="panel-split">
+            <div class="stack">
+                <h2>{{ __('ui.logo.title') }}</h2>
+                @include('partials.logo-form', [
+                    'restaurant' => $restaurant,
+                    'updateUrl' => route('tenant.admin.restaurant.logo.update'),
+                    'destroyUrl' => route('tenant.admin.restaurant.logo.destroy'),
+                ])
             </div>
-            <form method="post" action="{{ route('tenant.admin.restaurant.theme.update') }}" class="stack" data-guard>
-                @csrf
-                @method('put')
-                <div class="swatches">
-                    @include('partials.field', ['name' => 'primary', 'type' => 'color', 'label' => __('ui.super.theme_primary'), 'value' => $restaurant->theme['primary'] ?? \App\Tenancy\RestaurantTheme::PRIMARY])
-                    @include('partials.field', ['name' => 'secondary', 'type' => 'color', 'label' => __('ui.super.theme_secondary'), 'value' => $restaurant->theme['secondary'] ?? \App\Tenancy\RestaurantTheme::SECONDARY])
-                </div>
+
+            {{-- Màu quán: website và phần quản lý đổi theo; chưa chọn thì dùng màu mặc định. --}}
+            <div class="stack">
                 <div>
-                    <button class="btn" type="submit">{{ __('ui.super.theme_save') }}</button>
+                    <h2>{{ __('ui.super.theme') }}</h2>
+                    <small class="row-note">{{ __('ui.super.theme_hint') }}</small>
                 </div>
-            </form>
-            @if ($restaurant->themeCss())
-                <form method="post" action="{{ route('tenant.admin.restaurant.theme.destroy') }}" data-confirm="{{ __('ui.logo.theme_reset_confirm') }}" data-confirm-title="{{ __('ui.super.theme_reset_action') }}" data-confirm-ok="{{ __('ui.super.theme_reset_action') }}">
+                <form method="post" action="{{ route('tenant.admin.restaurant.theme.update') }}" class="stack" data-guard>
                     @csrf
-                    @method('delete')
-                    <button class="link" type="submit">{{ __('ui.super.theme_reset_action') }}</button>
+                    @method('put')
+                    <div class="swatches">
+                        @include('partials.field', ['name' => 'primary', 'type' => 'color', 'label' => __('ui.super.theme_primary'), 'value' => $restaurant->theme['primary'] ?? \App\Tenancy\RestaurantTheme::PRIMARY])
+                        @include('partials.field', ['name' => 'secondary', 'type' => 'color', 'label' => __('ui.super.theme_secondary'), 'value' => $restaurant->theme['secondary'] ?? \App\Tenancy\RestaurantTheme::SECONDARY])
+                    </div>
+                    <div>
+                        <button class="btn" type="submit">{{ __('ui.super.theme_save') }}</button>
+                    </div>
                 </form>
-            @endif
+                @if ($restaurant->themeCss())
+                    <form method="post" action="{{ route('tenant.admin.restaurant.theme.destroy') }}" data-confirm="{{ __('ui.logo.theme_reset_confirm') }}" data-confirm-title="{{ __('ui.super.theme_reset_action') }}" data-confirm-ok="{{ __('ui.super.theme_reset_action') }}">
+                        @csrf
+                        @method('delete')
+                        <button class="link" type="submit">{{ __('ui.super.theme_reset_action') }}</button>
+                    </form>
+                @endif
+            </div>
         </div>
     </section>
 
