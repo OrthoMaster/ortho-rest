@@ -151,6 +151,15 @@ return [
     'dashboard' => [
         'greeting' => 'Chào :name',
         'role_at' => ':role tại :restaurant',
+        'service' => 'Phục vụ',
+        'dinein' => 'Lấy đơn',
+        'dinein_count' => '{0} Chưa có bàn nào|[1,*] :count bàn đang phục vụ',
+        'reservation' => 'Khách đặt trước',
+        'reservation_count' => '{0} Không có khách chờ|[1,*] :count khách chưa đến hôm nay',
+        'takeaway' => 'Đơn mang đi',
+        'takeaway_count' => '{0} Không có đơn chờ|[1,*] :count đơn chưa giao hôm nay',
+        'cashier' => 'Thu ngân',
+        'cashier_count' => '{0} Không có phiếu chờ thu|[1,*] :count phiếu chờ thu',
     ],
 
     'placeholder' => [

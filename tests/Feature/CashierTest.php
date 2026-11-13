@@ -140,6 +140,24 @@ class CashierTest extends TestCase
         $this->get("$this->admin/cashier/reconcile/export")->assertOk();
     }
 
+    public function test_dashboard_has_service_tiles_above_screens(): void
+    {
+        $table = $this->table('A1', 1);
+        $this->post("$this->admin/dinein/tables/{$table->id}/close");
+        $this->table('A2', 1);
+
+        $this->get("$this->admin")->assertOk()->assertSeeInOrder([
+            __('ui.dashboard.service'),
+            __('ui.dashboard.dinein'), trans_choice('ui.dashboard.dinein_count', 1),
+            __('ui.dashboard.takeaway'), trans_choice('ui.dashboard.takeaway_count', 0),
+            __('ui.dashboard.cashier'), trans_choice('ui.dashboard.cashier_count', 1),
+        ])->assertDontSee(__('ui.dashboard.reservation'));
+
+        // Nhân viên không có quyền thu tiền: không thấy ô Thu ngân.
+        $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->admin")
+            ->assertSee(__('ui.dashboard.dinein'))->assertDontSee('/admin/cashier"', false);
+    }
+
     public function test_permissions_and_module_off(): void
     {
         $staff = $this->member($this->restaurant, 'staff');
