@@ -18,7 +18,9 @@ return [
 
     'collect' => 'Thanh toán',
     'collect_title' => 'Thanh toán :bill',
-    'collect_open_note' => 'Bàn vẫn đang mở. Thu tiền xong, phục vụ đóng bàn như bình thường.',
+    'collect_open_note' => 'Bàn vẫn đang mở. Khách đã về thì bấm Thanh toán và đóng bàn; khách còn ngồi thì chỉ Thanh toán, phục vụ đóng bàn sau.',
+    'collect_close' => 'Thanh toán và đóng bàn',
+    'close_pending' => 'Bàn :table còn món chưa mang ra, chưa đóng được. Bấm Thanh toán, rồi phục vụ đóng bàn sau.',
     'subtotal' => 'Tạm tính',
     'discount' => 'Giảm giá',
     'total' => 'Phải trả',
@@ -31,6 +33,7 @@ return [
     'number_edit' => 'Sửa số hoá đơn',
     'number_saved' => 'Đã lưu số hoá đơn cho :bill.',
     'paid' => 'Đã thu tiền :bill, :total.',
+    'paid_closed' => 'Đã thu tiền :bill, :total và đóng bàn.',
     'paid_at' => 'Đã thu lúc :time bởi :name',
     'already_paid' => 'Phiếu này đã được thu tiền rồi.',
     'unpaid' => 'Chưa thu',

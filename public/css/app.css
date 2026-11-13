@@ -1534,7 +1534,7 @@ dialog.voucher-dialog { width: min(23rem, calc(100vw - 2rem)); max-height: calc(
 .cash-lines li small { display: block; color: var(--ink-soft); }
 .cash-lines .cash-sum { padding-top: .35rem; border-top: 1px solid var(--line); }
 .cash-lines .cash-due { font-weight: 700; font-size: 1.125rem; }
-dialog.cash-dialog { width: min(28rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
+dialog.cash-dialog { width: min(34rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); }
 @media (max-width: 640px) {
     .cash-totals { grid-template-columns: 1fr 1fr; }
 }

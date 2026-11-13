@@ -92,6 +92,18 @@ class CashierTest extends TestCase
         $this->post("$this->admin/cashier/t{$second->id}/paid", ['bill_number' => '000124']);
         $this->post("$this->admin/dinein/tables/{$second->id}/close")->assertSessionHas('status', __('dinein.closed', ['table' => 'A2']));
 
+        // Bàn đang mở: Thanh toán và đóng bàn một lần; còn món chưa mang ra thì không đóng, không thu.
+        $leaving = $this->table('A5', 2);
+        $this->get("$this->admin/cashier")->assertSee(__('cashier.collect_close'));
+        $leaving->lines()->update(['status' => 'new']);
+        $this->post("$this->admin/cashier/t{$leaving->id}/paid", ['close' => '1'])->assertSessionHas('error', __('cashier.close_pending', ['table' => 'A5']));
+        $this->assertNull($leaving->fresh()->paid_at);
+        $leaving->lines()->update(['status' => 'served']);
+        $this->post("$this->admin/cashier/t{$leaving->id}/paid", ['close' => '1', 'bill_number' => '000125'])
+            ->assertSessionHas('status', __('cashier.paid_closed', ['bill' => __('dinein.table_title', ['table' => 'A5']), 'total' => vnd(20000)]));
+        $this->assertNotNull($leaving->fresh()->closed_at);
+        $this->assertSame([$this->owner->id, '000125'], [$leaving->fresh()->paid_by, $leaving->fresh()->bill_number]);
+
         $this->get("$this->admin/cashier", ['X-Board' => '1'])->assertSee(__('cashier.pending_empty'))
             ->assertSee(__('cashier.number', ['number' => '000123']))->assertSee(__('cashier.no_number'));
 

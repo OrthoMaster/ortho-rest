@@ -4,6 +4,7 @@ namespace App\Modules\Cashier\Http;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Cashier\Cashier;
+use App\Modules\DineIn\Tables;
 use App\Support\BillNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +35,23 @@ class CashierController extends Controller
         $found = Cashier::find($bill);
         $number = $request->validateWithBag('bill-'.$bill, ['bill_number' => BillNumber::RULES])['bill_number'] ?? null;
 
+        // Bàn đang phục vụ: Thanh toán và đóng bàn luôn (khách đã về, phục vụ chưa kịp đóng).
+        $close = $request->boolean('close') && $found->isTable() && $found->model->isOpen();
+
+        if ($close && $found->model->hasPendingLines()) {
+            return back()->with('error', __('cashier.close_pending', ['table' => $found->model->label]));
+        }
+
         try {
             Cashier::collect($found, $number, $request->user());
         } catch (ValidationException $exception) {
             return back()->with('error', $exception->getMessage());
+        }
+
+        if ($close) {
+            Tables::close($found->model, $request->user());
+
+            return back()->with('status', __('cashier.paid_closed', ['bill' => $found->title(), 'total' => vnd($found->total())]));
         }
 
         return back()->with('status', __('cashier.paid', ['bill' => $found->title(), 'total' => vnd($found->total())]));

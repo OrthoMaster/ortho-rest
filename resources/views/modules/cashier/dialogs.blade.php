@@ -41,7 +41,15 @@
                     @endif
                 </div>
                 <div class="dialog-foot">
-                    <button class="btn" type="submit">{{ __('cashier.collect') }}</button>
+                    @if ($bill->isTable() && $bill->model->closed_at === null)
+                        {{-- Bàn đang mở: khách ra quầy rồi về luôn thì thanh toán và đóng bàn một lần. --}}
+                        <span class="form-actions">
+                            <button class="btn" type="submit" name="close" value="1">{{ __('cashier.collect_close') }}</button>
+                            <button class="btn btn-quiet" type="submit">{{ __('cashier.collect') }}</button>
+                        </span>
+                    @else
+                        <button class="btn" type="submit">{{ __('cashier.collect') }}</button>
+                    @endif
                     <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.cancel') }}</button>
                 </div>
             </form>

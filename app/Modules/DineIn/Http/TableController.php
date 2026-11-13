@@ -3,7 +3,6 @@
 namespace App\Modules\DineIn\Http;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Cashier\Cashier;
 use App\Modules\DineIn\LineLog;
 use App\Modules\DineIn\LineStatus;
 use App\Modules\DineIn\Models\DiningTable;
@@ -15,8 +14,6 @@ use App\Modules\Menu\Models\MenuCategory;
 use App\Modules\Menu\Models\MenuItem;
 use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\Reservation\Models\Area;
-use App\Modules\Reservation\ReservationBooking;
-use App\Modules\Reservation\ReservationStatus;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -194,16 +191,7 @@ class TableController extends Controller
             return back()->with('error', __('dinein.close_pending'));
         }
 
-        // Giảm giá tính theo tạm tính lúc đóng bàn và lưu lại. Bật Thu ngân thì phiếu chuyển sang quầy chờ thu.
-        $discount = $table->discount();
-        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount]);
-        Cashier::settleWithoutCashier($table, $request->user(), $table->subtotal() - $discount);
-        LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
-
-        // Khách đặt trước về rồi thì đặt bàn chuyển sang Hoàn tất luôn.
-        if ($table->reservation?->status === ReservationStatus::Seated) {
-            app(ReservationBooking::class)->changeStatus($table->reservation, ReservationStatus::Completed, $request->user());
-        }
+        Tables::close($table, $request->user());
 
         return redirect()->route('tenant.admin.dinein.tables.index')
             ->with('status', __($table->paid_at ? 'dinein.closed' : 'dinein.closed_to_cashier', ['table' => $table->label]));

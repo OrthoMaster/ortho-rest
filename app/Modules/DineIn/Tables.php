@@ -5,9 +5,12 @@ namespace App\Modules\DineIn;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\User;
+use App\Modules\Cashier\Cashier;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\Models\Reservation;
+use App\Modules\Reservation\ReservationBooking;
+use App\Modules\Reservation\ReservationStatus;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -117,5 +120,25 @@ class Tables
         ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_seated', ['table' => $table->label, 'name' => $customer->name]), [], $table);
 
         return $table;
+    }
+
+    /**
+     * Đóng bàn: giảm giá tính theo tạm tính lúc đóng và lưu lại; bật Thu ngân thì phiếu chuyển sang quầy chờ thu.
+     * Khách đặt trước về rồi thì đặt bàn chuyển sang Hoàn tất. Còn món chưa mang ra thì báo lỗi.
+     */
+    public static function close(DiningTable $table, User $user): void
+    {
+        if ($table->hasPendingLines()) {
+            throw ValidationException::withMessages(['table' => __('dinein.close_pending')]);
+        }
+
+        $discount = $table->discount();
+        $table->update(['closed_at' => now(), 'closed_by' => $user->id, 'discount_amount' => $discount]);
+        Cashier::settleWithoutCashier($table, $user, $table->subtotal() - $discount);
+        LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
+
+        if ($table->reservation?->status === ReservationStatus::Seated) {
+            app(ReservationBooking::class)->changeStatus($table->reservation, ReservationStatus::Completed, $user);
+        }
     }
 }

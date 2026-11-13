@@ -135,7 +135,7 @@ class Cashier
      */
     public static function settleWithoutCashier(DiningTable|TakeawayOrder $model, User $user, int $total): void
     {
-        if (! self::enabled() || $total <= 0) {
+        if ($model->paid_at === null && (! self::enabled() || $total <= 0)) {
             $model->update(['paid_at' => now(), 'paid_by' => $user->id]);
         }
     }
