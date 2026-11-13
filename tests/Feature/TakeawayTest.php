@@ -179,6 +179,29 @@ class TakeawayTest extends TestCase
         $this->post($url, ['status' => 'cancelled'])->assertSessionHasErrors('status');
     }
 
+    public function test_cash_register_bill_number_on_delivery_and_later(): void
+    {
+        $order = $this->order();
+        $url = "$this->base/{$order->id}/status";
+
+        foreach (['preparing', 'ready'] as $status) {
+            $this->post($url, ['status' => $status]);
+        }
+
+        // Giao khách: hộp thoại có ô số hoá đơn (không bắt buộc).
+        $this->get("$this->base/{$order->id}")->assertSee('data-open-dialog="deliver-'.$order->id.'"', false)->assertSee('name="bill_number"', false);
+        $this->post($url, ['status' => 'delivered', 'bill_number' => '  000123 '])->assertSessionHasNoErrors();
+        $this->assertSame('000123', $order->fresh()->bill_number);
+        $this->get("$this->base?date={$order->pickup_at->toDateString()}")->assertSee(__('dinein.bills_number', ['number' => '000123']));
+
+        // Sửa sau khi giao (nhập sai, quên nhập); để trống là xoá.
+        $this->put("$this->base/{$order->id}/bill-number", ['bill_number' => '000124'])->assertSessionHas('status');
+        $this->assertSame('000124', $order->fresh()->bill_number);
+        $this->put("$this->base/{$order->id}/bill-number", ['bill_number' => ''])->assertSessionHas('status');
+        $this->assertNull($order->fresh()->bill_number);
+        $this->put("$this->base/{$this->order()->id}/bill-number", ['bill_number' => '1'])->assertNotFound();
+    }
+
     public function test_order_form_lists_takeaway_items_and_marks_sold_out(): void
     {
         $this->item($this->restaurant, 'Đã hết', 10000, ['is_sold_out' => true]);

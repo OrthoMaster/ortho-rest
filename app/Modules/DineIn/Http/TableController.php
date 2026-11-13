@@ -16,6 +16,7 @@ use App\Modules\Menu\Models\MenuItemOptionGroup;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\ReservationBooking;
 use App\Modules\Reservation\ReservationStatus;
+use App\Support\BillNumber;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -193,9 +194,12 @@ class TableController extends Controller
             return back()->with('error', __('dinein.close_pending'));
         }
 
+        // Số hoá đơn máy tính tiền (không bắt buộc) để sau này đối soát doanh thu.
+        $number = $request->validate(['bill_number' => BillNumber::RULES])['bill_number'] ?? null;
+
         // Giảm giá tính theo tạm tính lúc đóng bàn và lưu lại.
         $discount = $table->discount();
-        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount]);
+        $table->update(['closed_at' => now(), 'closed_by' => $request->user()->id, 'discount_amount' => $discount, 'bill_number' => BillNumber::clean($number)]);
         LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
         // Khách đặt trước về rồi thì đặt bàn chuyển sang Hoàn tất luôn.

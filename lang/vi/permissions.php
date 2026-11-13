@@ -37,6 +37,7 @@ return [
         'dinein.close' => 'Xem tạm tính và đóng bàn',
         'dinein.cancel' => 'Huỷ món khu đã làm xong',
         'dinein.offers' => 'Tặng ưu đãi lần sau cho khách',
+        'dinein.bills' => 'Xem phiếu đã đóng, đối soát với máy tính tiền',
         'dinein.vouchers' => 'Tra cứu ưu đãi theo mã, số điện thoại khi khách hỏi',
         'dinein.incidents' => 'Xem danh sách sự cố, xuất Excel',
         'dinein.settings' => 'Cài đặt khu phục vụ và món của từng khu',

@@ -33,7 +33,7 @@
                     <div class="booking-main">
                         <a href="{{ route('tenant.admin.takeaway.show', $order) }}">{{ __('takeaway.number', ['code' => $order->code()]) }}, {{ $order->customer->name }}</a>
                         <small>{{ $order->items->map(fn ($item) => $item->quantity.' × '.$item->name)->join(', ') }}</small>
-                        <small>{{ vnd($order->total) }}</small>
+                        <small>{{ vnd($order->total) }}{{ $order->bill_number ? ' · '.__('dinein.bills_number', ['number' => $order->bill_number]) : '' }}</small>
                     </div>
                     @if ($order->edits_count > 0)<span class="badge badge-warn">{{ __('takeaway.edited') }}</span>@endif
                     <span class="badge {{ $order->status->badge() }}">{{ $order->status->label() }}</span>

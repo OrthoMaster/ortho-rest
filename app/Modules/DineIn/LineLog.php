@@ -68,6 +68,7 @@ final class LineLog
             __('dinein.log_total', ['total' => vnd($subtotal)]),
             $discount > 0 ? __('dinein.log_discount', ['amount' => vnd($discount)]) : null,
             $table->customer ? __('dinein.log_customer', ['name' => $table->customer->name]) : null,
+            $table->bill_number ? __('dinein.log_bill_number', ['number' => $table->bill_number]) : null,
         ])), $table);
     }
 }

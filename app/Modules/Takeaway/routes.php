@@ -32,4 +32,5 @@ Route::middleware('module:takeaway')
 
         Route::get('{order}', [OrderController::class, 'show'])->whereNumber('order')->middleware('can:takeaway.view')->name('show');
         Route::post('{order}/status', [OrderController::class, 'changeStatus'])->whereNumber('order')->middleware('can:takeaway.status')->name('status');
+        Route::put('{order}/bill-number', [OrderController::class, 'billNumber'])->whereNumber('order')->middleware('can:takeaway.status')->name('bill-number');
     });

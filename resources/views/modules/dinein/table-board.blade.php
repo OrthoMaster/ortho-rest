@@ -36,13 +36,26 @@
     @can('dinein.close')
         <span class="dine-actions-end">
             <button class="btn btn-quiet" type="button" data-open-dialog="bill-dialog">{{ __('dinein.bill') }}</button>
-            <form method="post" action="{{ route('tenant.admin.dinein.tables.close', $table) }}"
-                  data-confirm-title="{{ __('dinein.close_title', ['table' => $label]) }}" data-confirm-ok="{{ __('dinein.close') }}"
-                  data-confirm="{{ __('dinein.close_confirm', ['total' => vnd($table->subtotal())]) }}">
-                @csrf
-                <button class="btn btn-quiet" type="submit">{{ __('dinein.close') }}</button>
-            </form>
+            <button class="btn btn-quiet" type="button" data-open-dialog="close-dialog">{{ __('dinein.close') }}</button>
         </span>
+
+        {{-- Đóng bàn: hỏi lại, kèm ô số hoá đơn của máy tính tiền (không bắt buộc) để đối soát doanh thu. --}}
+        <dialog id="close-dialog" class="confirm-dialog" aria-labelledby="close-title">
+            <form method="post" action="{{ route('tenant.admin.dinein.tables.close', $table) }}" class="stack">
+                @csrf
+                <h2 id="close-title">{{ __('dinein.close_title', ['table' => $label]) }}</h2>
+                <p>{{ __('dinein.close_confirm', ['total' => vnd($table->total())]) }}</p>
+                <div class="field">
+                    <label for="close-bill-number">{{ __('dinein.bill_number') }}</label>
+                    <input id="close-bill-number" name="bill_number" maxlength="40" autocomplete="off" placeholder="{{ __('dinein.bill_number_example') }}">
+                    <small class="hint">{{ __('dinein.bill_number_hint') }}</small>
+                </div>
+                <div class="dialog-foot">
+                    <button class="btn" type="submit">{{ __('dinein.close') }}</button>
+                    <button class="btn btn-quiet" type="button" data-close-dialog>{{ __('ui.common.cancel') }}</button>
+                </div>
+            </form>
+        </dialog>
 
         {{-- Phiếu tạm tính: mọi món gộp lại (không theo lượt), để nhập vào máy tính tiền. --}}
         <dialog id="bill-dialog" class="dine-dialog bill-dialog" aria-labelledby="bill-title" data-backdrop-close>
