@@ -1661,7 +1661,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .booking-hero { display: grid; justify-items: center; gap: .2rem; text-align: center; }
 .booking-logo { display: flex; justify-content: center; margin: -3.75rem 0 .35rem; }
 .booking-logo .logo { width: 5.5rem; height: 5.5rem; padding: .35rem; background: var(--surface); border: 0; border-radius: 22px; box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--ink) 35%, transparent); }
-.booking-eyebrow { margin: 0; color: var(--primary-ink); font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .booking-hero h1 { margin: 0; font-size: 1.85rem; }
 .booking-hero .lead { margin: .2rem 0 0; color: var(--ink-soft); }
 .booking-form { display: grid; gap: 1.25rem; }

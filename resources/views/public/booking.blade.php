@@ -17,7 +17,6 @@
             <a class="booking-logo" href="{{ tenant_route('public.home') }}">
                 @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
             </a>
-            <p class="booking-eyebrow">{{ $restaurant->name }}</p>
             <h1>{{ __('website.booking.title') }}</h1>
             <p class="lead">{{ __('website.booking.lead') }}</p>
         </header>

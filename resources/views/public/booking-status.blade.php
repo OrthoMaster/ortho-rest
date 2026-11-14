@@ -13,7 +13,6 @@
             <a class="booking-logo" href="{{ tenant_route('public.home') }}">
                 @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
             </a>
-            <p class="booking-eyebrow">{{ $restaurant->name }}</p>
         </header>
         <div class="booking-status-head">
             <h1>{{ __('website.status.title') }}</h1>
