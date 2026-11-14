@@ -111,8 +111,9 @@ class PublicBookingTest extends TestCase
         $this->assertSame(15, $times->count());
         $this->assertTrue($slots->json('any'));
 
-        // Trang chủ có nút Đặt bàn.
-        $this->get("/{$this->restaurant->slug}")->assertSee(__('website.booking.title'))->assertSee($this->site, false);
+        // Chưa có trang chủ: vào thẳng trang đặt bàn, giữ query.
+        $this->get("/{$this->restaurant->slug}")->assertRedirect(url($this->site));
+        $this->get("/{$this->restaurant->slug}?utm_source=fb")->assertRedirect(url($this->site).'?utm_source=fb');
     }
 
     public function test_guest_books_waits_for_confirmation_and_gets_emails(): void
