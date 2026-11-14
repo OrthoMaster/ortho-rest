@@ -8,10 +8,13 @@
 <main class="booking-page">
     @include('partials.flash')
 
-    <section class="panel booking-card stack">
-        <a class="booking-logo" href="{{ tenant_route('public.home') }}" aria-label="{{ $restaurant->name }}">
-            @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
-        </a>
+    <section class="booking-card stack">
+        <header class="booking-hero">
+            <a class="booking-logo" href="{{ tenant_route('public.home') }}">
+                @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
+            </a>
+            <p class="booking-eyebrow">{{ $restaurant->name }}</p>
+        </header>
         <div class="booking-status-head">
             <h1>{{ __('website.status.title') }}</h1>
             <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>

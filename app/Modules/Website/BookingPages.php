@@ -25,7 +25,7 @@ final class BookingPages
     public const MAX_BYTES = 1_000_000;
 
     /** Chữ giữ chỗ trong trang, thay bằng thông tin thật khi trả trang. */
-    public const PLACEHOLDERS = ['ten_quan', 'logo', 'mau_chinh', 'mau_phu', 'so_dien_thoai', 'dia_chi', 'gio_mo_cua', 'link_trang_chu'];
+    public const PLACEHOLDERS = ['ten_quan', 'logo', 'mau_chinh', 'mau_phu', 'so_dien_thoai', 'email', 'dia_chi', 'gio_mo_cua', 'link_trang_chu'];
 
     public static function mode(): string
     {
@@ -185,6 +185,7 @@ final class BookingPages
             '{{mau_chinh}}' => self::color('primary'),
             '{{mau_phu}}' => self::color('secondary'),
             '{{so_dien_thoai}}' => $restaurant->phone,
+            '{{email}}' => $restaurant->email,
             '{{dia_chi}}' => $restaurant->address,
             '{{gio_mo_cua}}' => self::hoursText(),
             '{{link_trang_chu}}' => tenant_route('public.home'),
@@ -221,6 +222,7 @@ final class BookingPages
             'primary' => self::color('primary'),
             'secondary' => self::color('secondary'),
             'phone' => $restaurant->phone ?: __('website.prompt_unknown'),
+            'email' => $restaurant->email ?: __('website.prompt_unknown'),
             'address' => $restaurant->address ?: __('website.prompt_unknown'),
             'hours' => self::hoursText(),
         ]);

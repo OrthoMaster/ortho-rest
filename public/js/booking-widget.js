@@ -91,7 +91,26 @@
         }
     };
 
-    // Phần chọn: số người, ngày, khu vực, giờ.
+    // Có lỗi thì cuộn tới lỗi đầu tiên (chừa khoảng phía trên) và đặt con trỏ vào ô đó.
+    var focusFirstError = function () {
+        var first = form.querySelector('.lb-error, [aria-invalid="true"]');
+
+        if (!first) {
+            return;
+        }
+
+        // Đưa lỗi lên khoảng một phần ba màn hình, thấy cả ô bị lỗi phía trên.
+        var target = first.classList.contains('lb-error') && first.previousElementSibling && first.previousElementSibling.matches('input, textarea') ? first.previousElementSibling : first;
+        var top = first.getBoundingClientRect().top + window.pageYOffset - window.innerHeight / 3;
+
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+
+        if (target.matches && target.matches('input, textarea')) {
+            target.focus({ preventScroll: true });
+        }
+    };
+
+    // Phần chọn: số người, ngày, giờ.
     var partyValue = el('output', 'lb-party-value');
     var dateButton = el('button', 'lb-date');
     var calendar = el('div', 'lb-calendar');
@@ -159,6 +178,7 @@
         var day = state.date ? openDays[state.date] : null;
 
         dateButton.textContent = '';
+        dateButton.insertAdjacentHTML('beforeend', '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>');
         dateButton.appendChild(el('span', 'lb-date-text', day ? day.long + ', ' + day.day : text.pick_date));
         dateButton.setAttribute('aria-expanded', calendar.hidden ? 'false' : 'true');
         dateButton.classList.toggle('is-empty', !day);
@@ -231,10 +251,24 @@
 
     calendar.hidden = true;
     dateButton.type = 'button';
+    // Lịch mở đè lên trang: lấy màu nền thật của trang (sáng hay tối) để chữ luôn đọc được.
+    var solidBackground = function (node) {
+        for (; node && node.nodeType === 1; node = node.parentNode) {
+            var color = getComputedStyle(node).backgroundColor;
+
+            if (color && color !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(color)) {
+                return color;
+            }
+        }
+
+        return '#fff';
+    };
+
     dateButton.addEventListener('click', function () {
         calendar.hidden = !calendar.hidden;
 
         if (!calendar.hidden) {
+            calendar.style.backgroundColor = solidBackground(mount);
             renderCalendar();
         }
 
@@ -242,7 +276,10 @@
     });
     // Bấm ra ngoài thì đóng lịch.
     document.addEventListener('click', function (event) {
-        if (!calendar.hidden && !calendar.contains(event.target) && !dateButton.contains(event.target)) {
+        // Đường đi của sự kiện tính lúc bấm: nút, ô ngày vừa vẽ lại vẫn tính là bấm trong lịch.
+        var path = event.composedPath ? event.composedPath() : [event.target];
+
+        if (!calendar.hidden && path.indexOf(calendar) === -1 && path.indexOf(dateButton) === -1) {
             calendar.hidden = true;
             renderDateButton();
         }
@@ -362,8 +399,10 @@
         when.appendChild(dateButton);
         when.appendChild(calendar);
 
-        mount.appendChild(field(text.party, party));
-        mount.appendChild(field(text.date, when));
+        var row = el('div', 'lb-row');
+        row.appendChild(field(text.party, party));
+        row.appendChild(field(text.date, when));
+        mount.appendChild(row);
         mount.appendChild(field(text.time, times));
 
         info.days.forEach(function (day) {
@@ -398,8 +437,23 @@
         clearErrors();
         result('');
 
-        if (!state.time) {
+        // Kiểm tra ngay trên máy: chưa chọn ngày giờ, thiếu họ tên hay số điện thoại.
+        if (!state.date) {
+            showError('date', text.pick_date_first);
+        } else if (!state.time) {
             showError('time', text.pick_time);
+        }
+
+        form.querySelectorAll('input[required], textarea[required]').forEach(function (input) {
+            if (!input.value.trim()) {
+                var label = ((form.querySelector('label[for="' + input.id + '"]') || {}).textContent || input.name).replace('*', '').trim().toLowerCase();
+
+                showError(input.name, (text.required || '').replace(':field', label));
+            }
+        });
+
+        if (form.querySelector('.lb-error')) {
+            focusFirstError();
 
             return;
         }
@@ -469,11 +523,7 @@
                     loadSlots();
                 }
 
-                var first = form.querySelector('[aria-invalid], .lb-error');
-
-                if (first) {
-                    first.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                }
+                focusFirstError();
             })
             .catch(function () {
                 done();

@@ -16,6 +16,7 @@ return [
     'booking' => [
         'title' => 'Đặt bàn',
         'lead' => 'Chọn số người, ngày và giờ, quán sẽ giữ bàn cho bạn.',
+        'step_when' => 'Chọn thời gian',
         'your_info' => 'Thông tin của bạn',
         'name_placeholder' => 'Tên người đặt',
         'phone_placeholder' => 'Số điện thoại',
@@ -48,6 +49,7 @@ return [
         'day_closed' => 'Quán nghỉ ngày này.',
         'full' => 'Hết chỗ',
         'pick_time' => 'Chọn giờ bạn muốn đến.',
+        'required' => 'Vui lòng nhập :field.',
         'bad_phone' => 'Số điện thoại chưa đúng.',
         'time_taken' => 'Giờ này vừa hết chỗ, bạn chọn giờ khác nhé.',
         'sending' => 'Đang gửi…',
@@ -187,6 +189,7 @@ Thông tin quán (dùng chữ giữ chỗ, KHÔNG viết cứng, Liresto tự th
 - {{logo}}: link ảnh logo, dùng trong <img src="{{logo}}">
 - {{mau_chinh}}: màu chủ đạo của quán (hiện tại: :primary), {{mau_phu}}: màu phụ (hiện tại: :secondary)
 - {{so_dien_thoai}}: số điện thoại (hiện tại: :phone)
+- {{email}}: email của quán (hiện tại: :email)
 - {{dia_chi}}: địa chỉ (hiện tại: :address)
 - {{gio_mo_cua}}: giờ mở cửa (hiện tại: :hours)
 - {{link_trang_chu}}: link trang chủ của quán
@@ -210,7 +213,8 @@ Thiết kế:
 - Tiếng Việt, ưu tiên điện thoại (một cột, chữ to dễ đọc, nút dễ bấm), máy tính thì đẹp và thoáng.
 - Màu chủ đạo là {{mau_chinh}}: dùng cho nút gửi, điểm nhấn, viền ô đang chọn, tiêu đề nổi bật. {{mau_phu}} chỉ dùng phụ (đường kẻ, chữ nhỏ). Viết thẳng trong CSS, ví dụ: background: {{mau_chinh}};
 - Chữ trên nền {{mau_chinh}} phải đọc rõ (màu sáng thì chữ tối, màu đậm thì chữ trắng).
-- Logo {{logo}} đặt trên cùng, canh giữa, trong khung form đặt bàn. Thông tin liên hệ ({{dia_chi}}, {{so_dien_thoai}}, {{gio_mo_cua}}) đặt ở chân trang, mỗi mục có icon nhỏ phía trước.
+- Logo {{logo}} đặt trên cùng, canh giữa, trong khung form đặt bàn, không viền (có thể đổ bóng nhẹ). Thông tin liên hệ đặt ở chân trang, không lặp lại tên quán: {{dia_chi}} một dòng; {{so_dien_thoai}} và {{email}} chung một dòng; {{gio_mo_cua}} một dòng. Mỗi mục có icon nhỏ phía trước.
+- Khi gửi bị lỗi, cuộn trang tới lỗi đầu tiên.
 - Có thể chỉnh màu bộ chọn của Liresto bằng biến CSS: --lb-primary (nền nút đang chọn), --lb-on-primary (chữ trên nền đó), --lb-radius (bo góc), --lb-line (màu viền); và các class .lb-chip, .lb-time, .lb-label.
 - Chỉ trả về mã HTML hoàn chỉnh, bắt đầu bằng <!doctype html>.
 
