@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class PasswordResetController extends Controller
 {
@@ -24,7 +25,14 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        Password::sendResetLink([...$request->only('email'), LoginController::scope()]);
+        try {
+            Password::sendResetLink([...$request->only('email'), LoginController::scope()]);
+        } catch (Throwable $exception) {
+            // Máy chủ email lỗi (sai MAIL_* trong .env, SMTP từ chối...): ghi log, báo người dùng thay vì trang lỗi 500.
+            report($exception);
+
+            return back()->withInput()->withErrors(['email' => __('passwords.send_failed')]);
+        }
 
         // Trả về cùng một câu dù email có tồn tại hay không.
         return back()->with('status', __('passwords.sent'));

@@ -188,6 +188,18 @@ class AuthTest extends TestCase
         $this->assertTrue(Hash::check('mat-khau-quan-2', $second->fresh()->password));
     }
 
+    public function test_forgot_password_shows_an_error_when_mail_server_fails(): void
+    {
+        $user = User::factory()->owner()->create();
+        // Máy chủ SMTP không kết nối được (sai cấu hình trên server).
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1]);
+
+        $this->from("/{$user->restaurant->slug}/forgot-password")
+            ->post("/{$user->restaurant->slug}/forgot-password", ['email' => $user->email])
+            ->assertRedirect("/{$user->restaurant->slug}/forgot-password")
+            ->assertSessionHasErrors(['email' => __('passwords.send_failed')]);
+    }
+
     public function test_forgot_password_of_another_restaurant_sends_nothing(): void
     {
         Notification::fake();
