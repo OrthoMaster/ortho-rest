@@ -217,9 +217,17 @@ class ScheduleTest extends TestCase
         app(TenantContext::class)->forget();
 
         // Công bố: nhân viên thấy, có nút tải hình; trang hình có tên quán và ngày in.
+        $sent = $this->recordPushes();
+        $this->pushDevice($lan);
+        $this->pushDevice($this->owner);
         $this->actingAs($lan)->post("$this->base/week/publish", ['date' => '2026-11-12'])->assertForbidden();
         $this->actingAs($this->owner)->post("$this->base/week/publish", ['date' => '2026-11-12'])
             ->assertRedirect("$this->base/assign?date=2026-11-09")->assertSessionHas('status', __('schedule.published'));
+        // Người có ca trong tuần nhận thông báo kèm số ca của mình (chủ quán không có ca thì không nhận).
+        $this->assertCount(1, $sent);
+        $this->assertSame([$lan->id], $sent[0]['users']);
+        $this->assertSame(__('schedule.push_published', ['from' => '09/11', 'to' => '15/11']), $sent[0]['title']);
+        $this->assertSame(trans_choice('schedule.push_published_body', 1, ['count' => 1]), $sent[0]['body']);
         $this->get("$this->base/assign?date=2026-11-10")->assertSee(__('schedule.published_badge'))->assertSee(__('schedule.download_image'))
             ->assertSee(__('schedule.unpublish'))->assertDontSee(__('schedule.reset'));
         $this->get("$this->base/week/image?date=2026-11-10")->assertOk()->assertSee($this->restaurant->name)->assertSee('Lan')

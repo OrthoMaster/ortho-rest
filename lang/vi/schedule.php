@@ -52,6 +52,8 @@ return [
     'publish_confirm' => 'Nhân viên sẽ thấy lịch tuần này. Sau khi công bố vẫn sửa được, nhân viên thấy ngay thay đổi.',
     'published' => 'Đã công bố lịch tuần. Nhân viên đã thấy lịch.',
     'publish_log' => 'Công bố lịch tuần :from – :to',
+    'push_published' => 'Đã có lịch làm tuần :from – :to',
+    'push_published_body' => 'Bạn có :count ca trong tuần này. Bấm để xem lịch.',
     'unpublish' => 'Huỷ công bố',
     'unpublish_title' => 'Huỷ công bố lịch tuần :from – :to?',
     'unpublish_confirm' => 'Lịch tuần này quay về bản nháp, nhân viên sẽ không thấy nữa cho tới khi công bố lại.',

@@ -12,6 +12,7 @@ use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Models\Week;
 use App\Modules\Schedule\Placement;
 use App\Modules\Schedule\Roster;
+use App\Push\Notify;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -254,6 +255,17 @@ class ScheduleController extends Controller
         $week->fill(['published_at' => now(), 'published_by' => $request->user()->id])->save();
 
         ActivityLog::record(tenant()->getKey(), 'schedule', __('schedule.publish_log', $this->range($week)));
+
+        // Báo từng người có ca trong tuần: số ca của mình, bấm vào mở lịch tuần đó.
+        $from = $week->week_start;
+        $shifts = Assignment::whereBetween('work_date', [$from->toDateString(), $from->addDays(6)->toDateString()])
+            ->selectRaw('user_id, count(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
+        tenant()->users()->whereIn('id', $shifts->keys())->get()->each(fn (User $user) => Notify::users([$user], [
+            'title' => __('schedule.push_published', $this->range($week)),
+            'body' => trans_choice('schedule.push_published_body', (int) $shifts[$user->id], ['count' => $shifts[$user->id]]),
+            'url' => route('tenant.admin.schedule.week', ['date' => $from->toDateString()]),
+            'tag' => 'schedule-'.$from->toDateString(),
+        ]));
 
         return $this->backToWeek($week, __('schedule.published'));
     }
