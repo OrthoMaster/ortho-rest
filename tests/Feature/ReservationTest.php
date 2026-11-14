@@ -252,6 +252,8 @@ class ReservationTest extends TestCase
             ->assertDontSee('Khách tuần trước')
             ->assertSee('<span class="subnav-count">1</span>', false)
             ->assertSee(__('reservation.upcoming'))
+            // Chờ xác nhận: chấm đỏ ở Tổng quan trên menu trái và góc thẻ Khách đặt trước.
+            ->assertSee(__('ui.nav.attention', ['count' => 1]))
             ->assertDontSee('name="area[]"', false)
             ->assertDontSee('name="source[]"', false);
 

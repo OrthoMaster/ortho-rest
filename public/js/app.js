@@ -3775,4 +3775,45 @@
         });
     });
 
+    // Đồng hồ theo phút: lấy giờ máy chủ lúc tải trang (đồng hồ máy có thể lệch), tính theo múi giờ quán.
+    (function () {
+        var clocks = Array.prototype.slice.call(document.querySelectorAll('[data-clock]'));
+        if (!clocks.length || !window.Intl) return;
+        var first = clocks[0];
+        var offset = Number(first.getAttribute('data-now')) - Date.now();
+        var zone = first.getAttribute('data-tz');
+        var weekdays = JSON.parse(first.getAttribute('data-weekdays') || '[]');
+        var format;
+        try {
+            format = new Intl.DateTimeFormat('en-GB', { timeZone: zone, weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+        } catch (error) {
+            return;
+        }
+        var order = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+        var timer;
+
+        function tick() {
+            clearTimeout(timer);
+            var parts = {};
+            format.formatToParts(new Date(Date.now() + offset)).forEach(function (part) { parts[part.type] = part.value; });
+            var time = parts.hour + ':' + parts.minute;
+            var date = (weekdays[order[parts.weekday]] || '') + ', ' + parts.day + '/' + parts.month;
+            clocks.forEach(function (clock) {
+                var timeNode = clock.querySelector('[data-clock-time]');
+                var dateNode = clock.querySelector('[data-clock-date]');
+                if (timeNode.textContent !== time) timeNode.textContent = time;
+                if (dateNode && dateNode.textContent !== date) dateNode.textContent = date;
+            });
+            // Hẹn đúng đầu phút sau.
+            var now = Date.now() + offset;
+            timer = setTimeout(tick, 60000 - (now % 60000) + 50);
+        }
+
+        tick();
+        // Máy ngủ dậy (điện thoại tắt màn hình) thì cập nhật ngay.
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') tick();
+        });
+    })();
+
 })();

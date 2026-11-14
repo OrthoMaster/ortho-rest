@@ -8,6 +8,8 @@
     </a>
 @endsection
 
+@section('nav_alert', \App\Support\Attention::total(auth()->user()) > 0 ? '1' : '')
+
 @section('nav')
     {{-- Mục của một module: chỉ hiện khi module bật và người dùng có một trong các quyền của mục. --}}
     @php($moduleLink = function (string $key, ?string $except = null) {
@@ -27,7 +29,10 @@
     @php($serviceScreen = request()->routeIs('tenant.admin.dinein.*', 'tenant.admin.reservation.*', 'tenant.admin.takeaway.*', 'tenant.admin.cashier.*', 'tenant.admin.kitchen.*')
         && ! request()->routeIs('tenant.admin.dinein.stations.*'))
 
-    <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard') || $serviceScreen])>{{ __('ui.nav.dashboard') }}</a>
+    {{-- Chấm đỏ có số: việc đang chờ người này xử lý (đặt bàn chờ xác nhận, phiếu chờ thu, đơn nghỉ chờ duyệt). --}}
+    @php($attention = \App\Support\Attention::for(auth()->user()))
+    @php($navBadge = fn (int $count) => $count > 0 ? '<span class="nav-badge" title="'.e(__('ui.nav.attention', ['count' => $count])).'">'.$count.'<span class="visually-hidden"> '.e(__('ui.nav.attention', ['count' => $count])).'</span></span>' : '')
+    <a href="{{ route('tenant.admin.dashboard') }}" @class(['active' => request()->routeIs('tenant.admin.dashboard') || $serviceScreen])>{{ __('ui.nav.dashboard') }}{!! $navBadge(\App\Support\Attention::dashboard(auth()->user())) !!}</a>
     {!! $moduleLink('website') !!}
     @if ($service !== '')
         {!! $service !!}
@@ -38,7 +43,7 @@
     @endif
     {{-- Nhóm nội bộ: nhân viên, lịch làm việc, nghỉ phép (đơn xin nghỉ và ngày phép tách khỏi Lịch làm việc). --}}
     @php($leaveLink = $moduleLink('schedule') !== ''
-        ? '<a href="'.e(route(auth()->user()->can('schedule.leave') ? 'tenant.admin.schedule.leave.index' : 'tenant.admin.schedule.leave.mine')).'"'.(request()->routeIs('tenant.admin.schedule.leave.*') ? ' class="active"' : '').'>'.e(__('leave.nav')).'</a>'
+        ? '<a href="'.e(route(auth()->user()->can('schedule.leave') ? 'tenant.admin.schedule.leave.index' : 'tenant.admin.schedule.leave.mine')).'"'.(request()->routeIs('tenant.admin.schedule.leave.*') ? ' class="active"' : '').'>'.e(__('leave.nav')).$navBadge($attention['leave']).'</a>'
         : '')
     @php($team = $moduleLink('staff').$moduleLink('schedule', 'tenant.admin.schedule.leave.*').$leaveLink)
     @if ($team !== '')

@@ -224,6 +224,19 @@ class LeaveTest extends TestCase
             ->assertDontSee(__('leave.history_monthly', ['month' => '03/2026']));
     }
 
+    public function test_pending_leave_shows_red_badge_for_approver_only(): void
+    {
+        $dashboard = "/{$this->restaurant->slug}/admin";
+        $this->actingAs($this->owner)->get($dashboard)->assertDontSee('nav-badge')->assertDontSee('nav-dot');
+
+        LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);
+
+        $this->get($dashboard)->assertSee(__('ui.nav.attention', ['count' => 1]))->assertSee('nav-dot');
+        $this->get($this->base)->assertSee('subnav-count');
+        // Nhân viên không duyệt đơn: không có chấm đỏ.
+        $this->actingAs($this->lan)->get($dashboard)->assertDontSee('nav-badge')->assertDontSee('nav-dot');
+    }
+
     public function test_unpaid_and_rejected_do_not_use_balance(): void
     {
         $make = fn () => LeaveRequest::create(['restaurant_id' => $this->restaurant->id, 'user_id' => $this->lan->id, 'starts_on' => '2026-11-20', 'ends_on' => '2026-11-20', 'days' => 1, 'status' => LeaveStatus::Pending]);

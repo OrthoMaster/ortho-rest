@@ -16,10 +16,12 @@
             <button class="row-btn sidebar-collapse" type="button" data-sidebar-collapse aria-label="{{ __('ui.nav.hide_menu') }}" title="{{ __('ui.nav.hide_menu') }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m16 10-2 2 2 2"/></svg>
             </button>
+            @include('partials.clock', ['class' => 'clock-bar'])
             <button class="nav-toggle" type="button" aria-controls="sidebar-panel" aria-expanded="false"
                     aria-label="{{ __('ui.nav.open_menu') }}"
                     data-open-label="{{ __('ui.nav.open_menu') }}" data-close-label="{{ __('ui.nav.close_menu') }}">
                 <span></span><span></span><span></span>
+                @if (trim($__env->yieldContent('nav_alert')) !== '')<i class="nav-dot" aria-hidden="true"></i>@endif
             </button>
         </div>
         <div class="sidebar-panel" id="sidebar-panel">
@@ -34,8 +36,11 @@
     <div class="nav-backdrop"></div>
     <button class="row-btn sidebar-expand" type="button" data-sidebar-expand aria-label="{{ __('ui.nav.show_menu') }}" title="{{ __('ui.nav.show_menu') }}">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m14 10 2 2-2 2"/></svg>
+        @if (trim($__env->yieldContent('nav_alert')) !== '')<i class="nav-dot" aria-hidden="true"></i>@endif
     </button>
     <main class="content @yield('content_class')">
+        {{-- Đồng hồ theo phút ở góc trên bên phải mỗi trang (điện thoại: trên thanh đầu trang). --}}
+        @include('partials.clock', ['class' => 'clock-page'])
         @stack('content_top')
         @include('partials.flash')
         @yield('content')

@@ -151,7 +151,10 @@ class CashierTest extends TestCase
             __('ui.dashboard.dinein'), trans_choice('ui.dashboard.dinein_count', 1),
             __('ui.dashboard.takeaway'), trans_choice('ui.dashboard.takeaway_count', 0),
             __('ui.dashboard.cashier'), trans_choice('ui.dashboard.cashier_count', 1),
-        ])->assertDontSee(__('ui.dashboard.reservation'));
+        ])->assertDontSee(__('ui.dashboard.reservation'))
+            // Phiếu chờ thu: chấm đỏ có số ở góc thẻ Thu ngân và ở Tổng quan trên menu trái.
+            ->assertSee('<b class="tile-count" title="'.trans_choice('ui.dashboard.cashier_count', 1).'">1', false)
+            ->assertSee(__('ui.nav.attention', ['count' => 1]));
 
         // Logo, tên quán về Tổng quan; các màn hình phục vụ không còn mục riêng ở menu trái, đang ở đó thì Tổng quan sáng.
         $this->get("$this->admin/cashier")->assertSee('class="sidebar-brand" href="'.url("$this->admin").'"', false)
@@ -160,7 +163,7 @@ class CashierTest extends TestCase
 
         // Nhân viên không có quyền thu tiền: không thấy ô Thu ngân.
         $this->actingAs($this->member($this->restaurant, 'staff'))->get("$this->admin")
-            ->assertSee(__('ui.dashboard.dinein'))->assertDontSee('/admin/cashier"', false);
+            ->assertSee(__('ui.dashboard.dinein'))->assertDontSee('/admin/cashier"', false)->assertDontSee('nav-badge');
     }
 
     public function test_permissions_and_module_off(): void

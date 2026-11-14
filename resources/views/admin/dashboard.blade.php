@@ -17,6 +17,9 @@
                         <a href="{{ route('tenant.admin.'.$tile['route']) }}" @class(['table-tile', 'is-open' => $tile['count'] > 0])>
                             <strong>{{ $tile['label'] }}</strong>
                             <small @class(['badge badge-warn' => $tile['count'] > 0])>{{ $tile['note'] }}</small>
+                            @if ($tile['alert'] > 0)
+                                <b class="tile-count" title="{{ $tile['alert_note'] }}">{{ $tile['alert'] }}<span class="visually-hidden"> {{ $tile['alert_note'] }}</span></b>
+                            @endif
                         </a>
                     </li>
                 @endforeach

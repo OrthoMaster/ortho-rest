@@ -34,6 +34,13 @@ class Cashier
         return (bool) tenant()?->hasModule($module);
     }
 
+    /** Số phiếu chờ thu (đếm thẳng trong database, dùng cho chấm đỏ ở menu trái và Tổng quan). */
+    public static function pendingCount(): int
+    {
+        return (self::on('dinein') ? DiningTable::whereNotNull('closed_at')->whereNull('paid_at')->count() : 0)
+            + (self::on('takeaway') ? TakeawayOrder::whereNull('paid_at')->whereIn('status', [OrderStatus::Ready, OrderStatus::Delivered])->count() : 0);
+    }
+
     /** Chờ thu tiền: bàn đã đóng chưa thu, đơn mang đi xong hoặc đã giao chưa thu. Cũ nhất lên đầu. */
     public static function pending(): Collection
     {

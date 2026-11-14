@@ -94,6 +94,8 @@ return [
         'show_menu' => 'Hiện menu',
         'restaurants' => 'Nhà hàng',
         'view_site' => 'Xem website',
+        'attention' => ':count việc cần xử lý',
+        'clock' => 'Giờ hiện tại',
     ],
 
     'platform' => [
@@ -158,6 +160,7 @@ return [
         'dinein_count' => '{0} Chưa có bàn nào|[1,*] :count bàn đang phục vụ',
         'reservation' => 'Khách đặt trước',
         'reservation_count' => '{0} Không có khách chờ|[1,*] :count khách chưa đến hôm nay',
+        'reservation_pending' => ':count đặt bàn chờ xác nhận',
         'takeaway' => 'Đơn mang đi',
         'takeaway_count' => '{0} Không có đơn chờ|[1,*] :count đơn chưa giao hôm nay',
         'cashier' => 'Thu ngân',
