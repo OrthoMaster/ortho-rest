@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Email',
-    'any_area' => 'Khu nào cũng được',
     'sample_note' => 'Có em bé, cần ghế cao',
     'footer_phone' => 'Điện thoại:',
 
@@ -14,7 +13,6 @@ return [
         'ngay' => 'Ngày',
         'gio' => 'Giờ',
         'so_nguoi' => 'Số người',
-        'khu_vuc' => 'Khu vực',
         'ghi_chu' => 'Ghi chú',
         'ma_dat_ban' => 'Mã đặt bàn',
         'link_dat_ban' => 'Link xem đặt bàn',
@@ -29,13 +27,13 @@ return [
             'name' => 'Khách: đã nhận yêu cầu, chờ xác nhận',
             'hint' => 'Gửi khi khách vừa đặt online và quán cần xác nhận.',
             'subject' => '{{ten_quan}} đã nhận yêu cầu đặt bàn của bạn',
-            'body' => '<p>Chào {{ten_khach}},</p><p>{{ten_quan}} đã nhận yêu cầu đặt bàn của bạn:</p><ul><li>{{ngay}} lúc <strong>{{gio}}</strong></li><li>{{so_nguoi}} người, {{khu_vuc}}</li></ul><p>Yêu cầu đang <strong>chờ quán xác nhận</strong>. Quán sẽ gửi email khi đã xác nhận.</p><p>Xem hoặc huỷ đặt bàn: {{link_dat_ban}}</p><p>Mã đặt bàn: <strong>{{ma_dat_ban}}</strong></p>',
+            'body' => '<p>Chào {{ten_khach}},</p><p>{{ten_quan}} đã nhận yêu cầu đặt bàn của bạn:</p><ul><li>{{ngay}} lúc <strong>{{gio}}</strong></li><li>{{so_nguoi}} người</li></ul><p>Yêu cầu đang <strong>chờ quán xác nhận</strong>. Quán sẽ gửi email khi đã xác nhận.</p><p>Xem hoặc huỷ đặt bàn: {{link_dat_ban}}</p><p>Mã đặt bàn: <strong>{{ma_dat_ban}}</strong></p>',
         ],
         'guest_confirmed' => [
             'name' => 'Khách: quán đã xác nhận',
             'hint' => 'Gửi khi quán nhận đặt bàn (hoặc ngay khi đặt, nếu quán không cần xác nhận).',
             'subject' => '{{ten_quan}} đã xác nhận đặt bàn {{gio}} {{ngay}}',
-            'body' => '<p>Chào {{ten_khach}},</p><p>{{ten_quan}} đã <strong>xác nhận</strong> đặt bàn của bạn:</p><ul><li>{{ngay}} lúc <strong>{{gio}}</strong></li><li>{{so_nguoi}} người, {{khu_vuc}}</li></ul><p>Hẹn gặp bạn! Nếu không đến được, vui lòng huỷ để quán giữ chỗ cho khách khác: {{link_dat_ban}}</p><p>Mã đặt bàn: <strong>{{ma_dat_ban}}</strong></p>',
+            'body' => '<p>Chào {{ten_khach}},</p><p>{{ten_quan}} đã <strong>xác nhận</strong> đặt bàn của bạn:</p><ul><li>{{ngay}} lúc <strong>{{gio}}</strong></li><li>{{so_nguoi}} người</li></ul><p>Hẹn gặp bạn! Nếu không đến được, vui lòng huỷ để quán giữ chỗ cho khách khác: {{link_dat_ban}}</p><p>Mã đặt bàn: <strong>{{ma_dat_ban}}</strong></p>',
         ],
         'guest_rejected' => [
             'name' => 'Khách: quán không nhận được',
@@ -53,7 +51,7 @@ return [
             'name' => 'Quán: có khách đặt bàn online',
             'hint' => 'Gửi cho email nhận thông báo của quán khi có đặt bàn online mới.',
             'subject' => 'Đặt bàn mới: {{ten_khach}}, {{so_nguoi}} người, {{gio}} {{ngay}}',
-            'body' => '<p>Có khách vừa đặt bàn online:</p><ul><li><strong>{{ten_khach}}</strong>, {{so_dien_thoai_khach}}</li><li>{{ngay}} lúc <strong>{{gio}}</strong>, {{so_nguoi}} người, {{khu_vuc}}</li><li>Ghi chú: {{ghi_chu}}</li></ul><p>Mở đặt bàn để xác nhận: {{link_quan_ly}}</p>',
+            'body' => '<p>Có khách vừa đặt bàn online:</p><ul><li><strong>{{ten_khach}}</strong>, {{so_dien_thoai_khach}}</li><li>{{ngay}} lúc <strong>{{gio}}</strong>, {{so_nguoi}} người</li><li>Ghi chú: {{ghi_chu}}</li></ul><p>Mở đặt bàn để xác nhận: {{link_quan_ly}}</p>',
         ],
         'staff_guest_cancelled' => [
             'name' => 'Quán: khách tự huỷ đặt bàn',

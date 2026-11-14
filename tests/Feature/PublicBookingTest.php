@@ -271,7 +271,8 @@ class PublicBookingTest extends TestCase
 
         // Sửa mẫu: bỏ thẻ lạ, giữ biến; về mẫu mặc định.
         $this->get("$base/mau")->assertOk()->assertSee(__('mail.templates.guest_confirmed.name'));
-        $this->get("$base/mau/guest_confirmed")->assertOk()->assertSee('data-var="ten_khach"', false);
+        // Đặt bàn không chọn khu vực: không có biến và chữ Khu vực trong mẫu.
+        $this->get("$base/mau/guest_confirmed")->assertOk()->assertSee('data-var="ten_khach"', false)->assertDontSee('data-var="khu_vuc"', false)->assertDontSee('{{khu_vuc}}');
         $this->put("$base/mau/guest_confirmed", ['subject' => 'Hẹn {{ten_khach}} lúc {{gio}}', 'body' => '<p onclick="x()">Chào <b>{{ten_khach}}</b><script>alert(1)</script></p>'])
             ->assertSessionHas('status');
         $template = MailTemplate::withoutGlobalScopes()->sole();

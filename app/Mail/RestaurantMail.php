@@ -36,7 +36,7 @@ class RestaurantMail
 
     /** Biến chèn được vào mẫu. */
     public const VARIABLES = [
-        'ten_quan', 'ten_khach', 'so_dien_thoai_khach', 'ngay', 'gio', 'so_nguoi', 'khu_vuc', 'ghi_chu',
+        'ten_quan', 'ten_khach', 'so_dien_thoai_khach', 'ngay', 'gio', 'so_nguoi', 'ghi_chu',
         'ma_dat_ban', 'link_dat_ban', 'so_dien_thoai_quan', 'dia_chi_quan', 'link_quan_ly',
     ];
 
@@ -65,7 +65,7 @@ class RestaurantMail
     /** Dữ liệu một đặt bàn cho các biến. @return array<string, string> */
     public static function reservationValues(Reservation $reservation): array
     {
-        $reservation->loadMissing(['customer', 'area']);
+        $reservation->loadMissing('customer');
         $restaurant = tenant();
         $at = $reservation->reserved_at;
 
@@ -76,7 +76,6 @@ class RestaurantMail
             'ngay' => __('ui.calendar.weekdays')[$at->dayOfWeekIso - 1].' '.$at->format('d/m/Y'),
             'gio' => $at->format('H:i'),
             'so_nguoi' => (string) $reservation->party_size,
-            'khu_vuc' => $reservation->area?->name ?? __('mail.any_area'),
             'ghi_chu' => (string) $reservation->notes,
             'ma_dat_ban' => $reservation->code(),
             'link_dat_ban' => $reservation->publicUrl(),
@@ -99,7 +98,6 @@ class RestaurantMail
             'ngay' => __('ui.calendar.weekdays')[$at->dayOfWeekIso - 1].' '.$at->format('d/m/Y'),
             'gio' => $at->format('H:i'),
             'so_nguoi' => '4',
-            'khu_vuc' => __('mail.any_area'),
             'ghi_chu' => __('mail.sample_note'),
             'ma_dat_ban' => 'K7P2QM',
             'link_dat_ban' => tenant_route('public.booking'),
