@@ -1,0 +1,104 @@
+name: Test và deploy lên IONOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Không cho hai lần deploy chạy chồng lên nhau.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: liresto_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, intl, pdo_mysql, gd, bcmath, zip, openssl
+          coverage: none
+
+      - name: Cài thư viện
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Tạo .env cho test
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Kiểm tra định dạng code (pint)
+        run: vendor/bin/pint --test
+
+      - name: Chạy test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+        run: php artisan test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, intl, pdo_mysql, gd, bcmath, zip, openssl
+          coverage: none
+
+      # Cài thư viện ngay trên GitHub, server IONOS không cần Composer.
+      - name: Cài thư viện production
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+
+      - name: Cài SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Bật chế độ bảo trì
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd '${{ secrets.DEPLOY_PATH }}' && PHP_BIN='${{ vars.PHP_BIN }}' bash deploy/before-deploy.sh || true"
+
+      - name: Chép code lên (rsync)
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='.env' \
+            --exclude='/storage/' \
+            --exclude='/public/uploads/' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:'${{ secrets.DEPLOY_PATH }}/'
+
+      - name: Migrate, cache, mở lại trang
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd '${{ secrets.DEPLOY_PATH }}' && PHP_BIN='${{ vars.PHP_BIN }}' bash deploy/after-deploy.sh"
+
+      - name: Kiểm tra trang còn chạy
+        if: ${{ vars.APP_URL != '' }}
+        run: curl --fail --silent --show-error --max-time 20 "${{ vars.APP_URL }}/up" > /dev/null

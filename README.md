@@ -58,6 +58,22 @@ php artisan liresto:vapid               # tạo khoá thông báo đẩy, chép 
 
 Thông báo đẩy và cài ứng dụng (PWA) cần HTTPS (ở local thì `127.0.0.1`/`localhost` được). Chưa có khoá VAPID thì không hiện lời mời bật thông báo và không gửi gì; nút Cài ứng dụng vẫn có.
 
+## Deploy (IONOS Web Expert)
+
+Push lên `main` là GitHub Actions tự chạy (`.github/workflows/deploy.yml`): test + pint, qua hết thì bật bảo trì, `rsync` code vào thư mục trên server, chạy `deploy/after-deploy.sh` (migrate, `optimize`, mở lại trang). Test lỗi thì không deploy. Chạy tay được ở tab Actions → Run workflow.
+
+Trên server, `.env`, `storage/` và `public/uploads/` không bao giờ bị ghi đè. Thư viện (`vendor/`) cài sẵn trên GitHub, server không cần Composer.
+
+**Cài lần đầu**
+
+1. Panel IONOS: chọn PHP 8.4 cho domain; tạo database MySQL 8; trỏ domain vào thư mục `<DEPLOY_PATH>/public`; bật SSL.
+2. Tạo SSH key riêng cho GitHub (trên máy mình): `ssh-keygen -t ed25519 -f liresto_deploy -N ""`, rồi thêm nội dung `liresto_deploy.pub` vào `~/.ssh/authorized_keys` trên IONOS.
+3. GitHub → Settings → Environments → `production`:
+   - Secrets: `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY` (nội dung file `liresto_deploy`), `SSH_KNOWN_HOSTS` (kết quả `ssh-keyscan <SSH_HOST>`), `DEPLOY_PATH` (đường dẫn thư mục trên server, ví dụ `liresto`)
+   - Variables: `APP_URL` (để kiểm tra `/up` sau khi deploy), `PHP_BIN` (không bắt buộc: `php8.4-cli` hay `php8.4`, để trống thì tự tìm)
+4. Tạo `<DEPLOY_PATH>/.env` trên server từ `.env.example`: `APP_KEY` (tạo ở máy mình bằng `php artisan key:generate --show`), `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, `MAIN_DOMAINS`, `DB_HOST`/`DB_DATABASE`/`DB_USERNAME`/`DB_PASSWORD` (lấy ở panel IONOS → Bases de données), `MAIL_*`, `SEED_PASSWORD`.
+5. Chạy workflow lần đầu, rồi SSH vào chạy một lần: `php8.4 artisan liresto:vapid` (chép khoá vào `.env`), `php8.4 artisan liresto:super-admin <email>`, rồi `php8.4 artisan optimize` để nạp lại `.env`. Sửa `.env` trên server lúc nào cũng phải chạy lại `optimize`.
+
 ## Cấu trúc
 
 | Đường dẫn | Nội dung |
