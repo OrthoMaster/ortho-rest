@@ -1,6 +1,6 @@
 <ul class="booking-list">
     @foreach ($rows as $reservation)
-        <li @class(['row-link', 'is-pending' => $reservation->status === \App\Modules\Reservation\ReservationStatus::Pending, 'is-done' => in_array($reservation->status, [\App\Modules\Reservation\ReservationStatus::Completed, \App\Modules\Reservation\ReservationStatus::NoShow], true)])
+        <li @class(['row-link', 'is-done' => in_array($reservation->status, [\App\Modules\Reservation\ReservationStatus::Completed, \App\Modules\Reservation\ReservationStatus::NoShow], true)])
             data-search-item="{{ $reservation->customer->name }} {{ $reservation->customer->phone }} {{ ltrim((string) $reservation->customer->phone, '0') }}">
             <span class="booking-time">{{ $reservation->reserved_at->format('H:i') }}</span>
             <div class="booking-main">

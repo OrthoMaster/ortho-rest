@@ -171,7 +171,6 @@ input[type=checkbox]:checked::after { transform: translateX(1.05rem); }
 .chip.is-active .chip-count { background: rgb(255 255 255 / .45); }
 .day-group h2 small { margin-left: .4rem; font-size: .875rem; font-weight: 400; color: var(--ink-soft); }
 .today-head h2 { margin: 0 0 .15rem; font-size: 1.125rem; }
-.booking-list li.is-pending { background: var(--warn-bg); }
 .booking-list li.is-done { opacity: .6; }
 .filter-search input { width: 15rem; }
 .timeline { display: grid; gap: .9rem; margin: 0; padding: 0 0 0 1rem; list-style: none; border-left: 2px solid var(--line); }
@@ -637,6 +636,9 @@ h3 { margin: .5rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--ink-
 .booking-list { display: grid; margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .booking-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: .75rem 1rem; }
 .booking-list li + li { border-top: 1px solid var(--line); }
+/* Nền của dòng (rê chuột) bo theo góc khung. Không dùng overflow: hidden vì sẽ cắt menu 3 chấm. */
+.booking-list li:first-child { border-top-left-radius: calc(var(--radius) - 1px); border-top-right-radius: calc(var(--radius) - 1px); }
+.booking-list li:last-child { border-bottom-left-radius: calc(var(--radius) - 1px); border-bottom-right-radius: calc(var(--radius) - 1px); }
 .booking-time { min-width: 3.25rem; font-size: 1.125rem; font-weight: 700; color: var(--ink); text-decoration: none; }
 .booking-main { flex: 1 1 12rem; display: grid; min-width: 0; }
 .booking-main > a { font-weight: 600; color: var(--ink); text-decoration: none; }
