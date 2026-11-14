@@ -1656,11 +1656,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* Trang công khai: đặt bàn mẫu, khách xem đặt bàn của mình. */
 .public-page { background: var(--ground); }
 .booking-page { display: grid; gap: 1.25rem; width: 100%; max-width: 40rem; margin: 0 auto; padding: 1.5rem 16px 2.5rem; }
-.booking-head { display: grid; gap: .5rem; justify-items: center; text-align: center; }
-.booking-brand { display: grid; justify-items: center; gap: .5rem; color: var(--ink); font-size: 1.35rem; font-weight: 700; text-decoration: none; }
-.booking-contact { display: flex; flex-wrap: wrap; justify-content: center; gap: .25rem 1rem; margin: 0; padding: 0; color: var(--ink-soft); list-style: none; font-size: .925rem; }
-.booking-contact a { color: inherit; }
+.booking-logo { display: flex; justify-content: center; margin-bottom: .5rem; }
 .booking-card h1 { margin: 0; }
+.booking-card.is-form > h1, .booking-card.is-form > .lead { text-align: center; }
+.booking-foot { display: grid; gap: .5rem; justify-items: center; padding: .5rem 0 0; color: var(--ink-soft); font-size: .925rem; text-align: center; }
+.booking-foot strong { color: var(--ink); }
+.booking-foot ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.booking-foot li { display: flex; align-items: flex-start; justify-content: center; gap: .45rem; }
+.booking-foot svg { flex: none; width: 1.1rem; height: 1.1rem; margin-top: .1rem; color: var(--primary-ink); }
+.booking-foot a { color: inherit; }
 .booking-card h2 { margin: .5rem 0 0; font-size: 1.05rem; }
 .booking-card .lead { margin: .25rem 0 1rem; color: var(--ink-soft); }
 .booking-card textarea { resize: vertical; }

@@ -9,7 +9,7 @@ return [
         'name' => 'Họ tên',
         'phone' => 'Số điện thoại',
         'email' => 'Email',
-        'notes' => 'Ghi chú',
+        'notes' => 'Lời nhắn',
     ],
 
     // Trang đặt bàn mẫu.
@@ -18,9 +18,8 @@ return [
         'lead' => 'Chọn số người, ngày và giờ, quán sẽ giữ bàn cho bạn.',
         'your_info' => 'Thông tin của bạn',
         'name_placeholder' => 'Tên người đặt',
-        'phone_placeholder' => 'Để quán gọi lại khi cần',
+        'phone_placeholder' => 'Số điện thoại',
         'email_placeholder' => 'Nhận email xác nhận (không bắt buộc)',
-        'notes_placeholder' => 'Có em bé, sinh nhật, muốn ngồi gần cửa sổ…',
         'submit' => 'Gửi yêu cầu đặt bàn',
         'submit_direct' => 'Đặt bàn',
         'confirm_note' => 'Quán sẽ xác nhận và báo lại cho bạn.',
@@ -38,8 +37,11 @@ return [
         'date' => 'Ngày',
         'today' => 'Hôm nay',
         'closed' => 'Nghỉ',
-        'area' => 'Khu vực',
-        'any_area' => 'Khu nào cũng được',
+        'pick_date' => 'Chọn ngày',
+        'pick_date_first' => 'Chọn ngày để xem giờ còn trống.',
+        'month' => 'Tháng :month/:year',
+        'prev_month' => 'Tháng trước',
+        'next_month' => 'Tháng sau',
         'time' => 'Giờ',
         'loading' => 'Đang xem giờ còn trống…',
         'no_slots' => 'Ngày này đã hết chỗ cho số người bạn chọn. Thử ngày khác hoặc gọi quán.',
@@ -65,7 +67,7 @@ return [
         'when' => 'Thời gian',
         'party' => ':count người',
         'area' => 'Khu vực',
-        'notes' => 'Ghi chú',
+        'notes' => 'Lời nhắn',
         'name' => 'Người đặt',
         'states' => [
             'pending' => 'Quán đã nhận yêu cầu và sẽ xác nhận sớm.',
@@ -183,7 +185,7 @@ Bạn là nhà thiết kế web. Hãy viết MỘT file HTML duy nhất (CSS vi�
 Thông tin quán (dùng chữ giữ chỗ, KHÔNG viết cứng, Liresto tự thay khi hiển thị):
 - {{ten_quan}}: tên quán (hiện tại: :name)
 - {{logo}}: link ảnh logo, dùng trong <img src="{{logo}}">
-- {{mau_chinh}}: màu chính (hiện tại: :primary), {{mau_phu}}: màu phụ (hiện tại: :secondary)
+- {{mau_chinh}}: màu chủ đạo của quán (hiện tại: :primary), {{mau_phu}}: màu phụ (hiện tại: :secondary)
 - {{so_dien_thoai}}: số điện thoại (hiện tại: :phone)
 - {{dia_chi}}: địa chỉ (hiện tại: :address)
 - {{gio_mo_cua}}: giờ mở cửa (hiện tại: :hours)
@@ -195,8 +197,8 @@ BẮT BUỘC (thiếu thì trang không đăng được):
    - <input name="name" required> họ tên
    - <input name="phone" type="tel" required> số điện thoại
    - <input name="email" type="email"> email (không bắt buộc)
-   - <textarea name="notes"></textarea> ghi chú (không bắt buộc)
-   - <div data-liresto-when></div>: để TRỐNG, Liresto tự chèn bộ chọn số người, ngày, khu vực và giờ còn trống vào đây
+   - <textarea name="notes"></textarea> lời nhắn (không bắt buộc, nhãn là "Lời nhắn", không có placeholder)
+   - <div data-liresto-when></div>: để TRỐNG, Liresto tự chèn vào đây bộ chọn số người, ô ngày (bấm mở lịch, chỉ ngày quán nhận đặt mới chọn được) và các giờ (giờ đã đầy bị khoá)
    - một nút <button type="submit">
 3. Có thể thêm <div data-liresto-result></div> ở chỗ muốn hiện thông báo gửi thành công hoặc lỗi.
 4. KHÔNG tự viết lịch, ô chọn ngày giờ hay số người. KHÔNG viết JavaScript gửi form: Liresto lo việc gửi và báo lỗi.
@@ -206,7 +208,9 @@ BẮT BUỘC (thiếu thì trang không đăng được):
 
 Thiết kế:
 - Tiếng Việt, ưu tiên điện thoại (một cột, chữ to dễ đọc, nút dễ bấm), máy tính thì đẹp và thoáng.
-- Dùng {{mau_chinh}} và {{mau_phu}} trong CSS, ví dụ: color: {{mau_phu}};
+- Màu chủ đạo là {{mau_chinh}}: dùng cho nút gửi, điểm nhấn, viền ô đang chọn, tiêu đề nổi bật. {{mau_phu}} chỉ dùng phụ (đường kẻ, chữ nhỏ). Viết thẳng trong CSS, ví dụ: background: {{mau_chinh}};
+- Chữ trên nền {{mau_chinh}} phải đọc rõ (màu sáng thì chữ tối, màu đậm thì chữ trắng).
+- Logo {{logo}} đặt trên cùng, canh giữa, trong khung form đặt bàn. Thông tin liên hệ ({{dia_chi}}, {{so_dien_thoai}}, {{gio_mo_cua}}) đặt ở chân trang, mỗi mục có icon nhỏ phía trước.
 - Có thể chỉnh màu bộ chọn của Liresto bằng biến CSS: --lb-primary (nền nút đang chọn), --lb-on-primary (chữ trên nền đó), --lb-radius (bo góc), --lb-line (màu viền); và các class .lb-chip, .lb-time, .lb-label.
 - Chỉ trả về mã HTML hoàn chỉnh, bắt đầu bằng <!doctype html>.
 

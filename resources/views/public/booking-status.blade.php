@@ -6,16 +6,12 @@
 
 @section('body')
 <main class="booking-page">
-    <header class="booking-head">
-        <a class="booking-brand" href="{{ tenant_route('public.home') }}">
-            @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
-            <span>{{ $restaurant->name }}</span>
-        </a>
-    </header>
-
     @include('partials.flash')
 
     <section class="panel booking-card stack">
+        <a class="booking-logo" href="{{ tenant_route('public.home') }}" aria-label="{{ $restaurant->name }}">
+            @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
+        </a>
         <div class="booking-status-head">
             <h1>{{ __('website.status.title') }}</h1>
             <span class="badge {{ $reservation->status->badge() }}">{{ $reservation->status->label() }}</span>
@@ -43,6 +39,8 @@
             <p><a class="btn btn-quiet" href="{{ tenant_route('public.booking') }}">{{ __('website.status.book_again') }}</a></p>
         @endif
     </section>
+
+    @include('public.booking-contact', ['restaurant' => $restaurant])
 </main>
 @include('partials.confirm-dialog')
 @endsection

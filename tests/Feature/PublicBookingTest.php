@@ -99,7 +99,10 @@ class PublicBookingTest extends TestCase
         $this->assertTrue($info->json('confirm'));
         $this->assertSame('2026-12-01', $info->json('days.0.date'));
         $this->assertSame(20, $info->json('max_party'));
-        $this->assertSame([], $info->json('areas'));
+        $this->assertNull($info->json('areas'));
+        $this->assertSame(['Hôm nay', true], [$info->json('days.0.long'), $info->json('days.0.today')]);
+        $this->assertSame('Thứ năm', $info->json('days.2.long'));
+        $this->assertSame('T2', $info->json('text.weekdays.0'));
 
         // Ca tối 17:00–22:00, lượt bàn 90 phút: 17:00 … 20:30 mỗi 15 phút.
         $slots = $this->getJson("$this->site/gio-trong?date=2026-12-03&party_size=4")->assertOk();

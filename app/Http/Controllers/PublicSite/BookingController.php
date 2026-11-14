@@ -66,25 +66,26 @@ class BookingController extends Controller
             $hours = tenant()->hoursOn($day);
             $days[] = [
                 'date' => $day->toDateString(),
-                'weekday' => $day->isToday() ? __('website.widget.today') : __('ui.calendar.weekdays_short')[$day->dayOfWeekIso - 1],
+                'long' => $day->isToday() ? __('website.widget.today') : __('ui.calendar.weekdays')[$day->dayOfWeekIso - 1],
                 'day' => $day->format('d/m'),
+                'today' => $day->isToday(),
                 'open' => $hours['closed'] === null,
                 'note' => $hours['closed'],
             ];
         }
 
-        $areas = Area::where('is_active', true)->where('capacity', '>', 0)->orderBy('sort_order')->orderBy('id')->get(['id', 'name', 'capacity']);
-        $maxParty = max(1, min(ReservationBooking::onlineSeats($settings), (int) $areas->max('capacity')));
+        // Khách không chọn khu vực: quán xếp. Một bàn ngồi chung một khu nên tối đa bằng khu lớn nhất.
+        $largestArea = (int) Area::where('is_active', true)->max('capacity');
+        $maxParty = max(1, min(ReservationBooking::onlineSeats($settings), $largestArea));
 
         return response()->json([
             'online' => (bool) $settings['online_enabled'],
             'closed_message' => __('website.widget.online_off', ['phone' => tenant()->phone ?: '']),
             'confirm' => ! $settings['auto_confirm'],
             'days' => $days,
-            'areas' => $areas->count() > 1 ? $areas->map(fn (Area $area) => ['id' => $area->id, 'name' => $area->name])->values() : [],
             'max_party' => $maxParty,
             'token' => Crypt::encryptString(json_encode(['restaurant' => tenant()->id, 'at' => now()->timestamp])),
-            'text' => __('website.widget'),
+            'text' => [...__('website.widget'), 'weekdays' => __('ui.calendar.weekdays_short')],
         ]);
     }
 
@@ -93,10 +94,9 @@ class BookingController extends Controller
         $data = $request->validate([
             'date' => ['required', 'date_format:Y-m-d'],
             'party_size' => ['required', 'integer', 'min:1', 'max:500'],
-            'area_id' => ['nullable', 'integer'],
         ]);
 
-        $slots = $this->booking->onlineSlots(CarbonImmutable::parse($data['date']), (int) $data['party_size'], filled($data['area_id'] ?? null) ? (int) $data['area_id'] : null);
+        $slots = $this->booking->onlineSlots(CarbonImmutable::parse($data['date']), (int) $data['party_size']);
 
         return response()->json([
             'periods' => collect($slots)->groupBy('period')->map(fn ($times, $name) => [
@@ -117,7 +117,6 @@ class BookingController extends Controller
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'date_format:H:i'],
             'party_size' => ['required', 'integer', 'min:1', 'max:500'],
-            'area_id' => ['nullable', 'integer'],
             'token' => ['required', 'string'],
             'test' => ['nullable', 'string'],
             // Ô bẫy: người không thấy, bot hay điền.
@@ -132,10 +131,9 @@ class BookingController extends Controller
         ]);
 
         $this->assertToken($data['token']);
-        $areaId = filled($data['area_id'] ?? null) ? (int) $data['area_id'] : null;
 
         if (filled($data['test'] ?? null)) {
-            return $this->testSubmit($data, $areaId);
+            return $this->testSubmit($data);
         }
 
         $phone = preg_replace('/[^0-9+]/', '', $data['phone']);
@@ -148,7 +146,7 @@ class BookingController extends Controller
 
         try {
             $reservation = $existing ?? $this->booking->create([
-                'area_id' => $areaId,
+                'area_id' => null,
                 'reserved_at' => $start,
                 'party_size' => (int) $data['party_size'],
                 'customer_name' => trim($data['name']),
@@ -158,9 +156,7 @@ class BookingController extends Controller
                 'locale' => app()->getLocale(),
             ], ReservationSource::Online);
         } catch (ValidationException $exception) {
-            throw ValidationException::withMessages(collect($exception->errors())->mapWithKeys(
-                fn ($messages, $key) => [in_array($key, ['area_id'], true) ? 'area_id' : 'time' => $messages],
-            )->all());
+            throw ValidationException::withMessages(['time' => collect($exception->errors())->flatten()->all()]);
         }
 
         return response()->json([
@@ -193,7 +189,7 @@ class BookingController extends Controller
     }
 
     /** Gửi thử từ trang xem thử: kiểm tra như thật, không tạo đặt bàn, đánh dấu bản nháp đã thử. */
-    private function testSubmit(array $data, ?int $areaId): JsonResponse
+    private function testSubmit(array $data): JsonResponse
     {
         try {
             $test = json_decode(Crypt::decryptString($data['test']), true);
@@ -204,7 +200,7 @@ class BookingController extends Controller
         $page = ($test['restaurant'] ?? null) === tenant()->id && ($test['until'] ?? 0) > now()->timestamp ? BookingPage::find($test['page'] ?? 0) : null;
         abort_if($page === null, 403);
 
-        $free = collect($this->booking->onlineSlots(CarbonImmutable::parse($data['date']), (int) $data['party_size'], $areaId))
+        $free = collect($this->booking->onlineSlots(CarbonImmutable::parse($data['date']), (int) $data['party_size']))
             ->contains(fn ($slot) => $slot['time'] === $data['time'] && $slot['available']);
 
         if (! $free) {

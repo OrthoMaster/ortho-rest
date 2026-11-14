@@ -17,7 +17,7 @@
 
     var info = null;
     var text = {};
-    var state = { party: 2, date: null, area: '', time: null };
+    var state = { party: 2, date: null, time: null, month: null };
     var request = 0;
 
     var el = function (tag, className, content) {
@@ -77,7 +77,7 @@
 
     var showError = function (field, message) {
         var target = form.querySelector('[name="' + field + '"]:not([type=hidden])');
-        var anchor = target || (field === 'time' || field === 'date' || field === 'party_size' || field === 'area_id' ? mount.querySelector('.lb-times') : null);
+        var anchor = target || (field === 'time' || field === 'party_size' ? mount.querySelector('.lb-times') : (field === 'date' ? mount.querySelector('.lb-date') : null));
         var error = el('p', 'lb-error', message);
 
         if (target) {
@@ -93,9 +93,10 @@
 
     // Phần chọn: số người, ngày, khu vực, giờ.
     var partyValue = el('output', 'lb-party-value');
-    var days = el('div', 'lb-days');
-    var areas = el('div', 'lb-chips');
+    var dateButton = el('button', 'lb-date');
+    var calendar = el('div', 'lb-calendar');
     var times = el('div', 'lb-times');
+    var openDays = {};
 
     var field = function (label, body) {
         var wrap = el('div', 'lb-field');
@@ -141,36 +142,125 @@
         loadSlots();
     }, 'lb-step');
 
-    var renderDays = function () {
-        days.textContent = '';
-        info.days.forEach(function (day) {
-            var button = chip(day.weekday, day.open ? day.day : text.closed, day.date === state.date, !day.open, function () {
-                state.date = day.date;
-                state.time = null;
-                renderDays();
-                loadSlots();
-            }, 'lb-chip lb-day');
+    // Ngày: bấm nút thì mở lịch tháng; ngày quán nhận đặt thì bấm được, còn lại mờ.
+    var pad = function (number) {
+        return (number < 10 ? '0' : '') + number;
+    };
+    var iso = function (date) {
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+    };
+    var parse = function (value) {
+        var parts = value.split('-');
 
-            if (day.note) {
-                button.title = day.note;
-            }
+        return new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    };
 
-            days.appendChild(button);
-        });
+    var renderDateButton = function () {
+        var day = state.date ? openDays[state.date] : null;
+
+        dateButton.textContent = '';
+        dateButton.appendChild(el('span', 'lb-date-text', day ? day.long + ', ' + day.day : text.pick_date));
+        dateButton.setAttribute('aria-expanded', calendar.hidden ? 'false' : 'true');
+        dateButton.classList.toggle('is-empty', !day);
         hidden('date', state.date);
     };
 
-    var renderAreas = function () {
-        areas.textContent = '';
-        [{ id: '', name: text.any_area }].concat(info.areas).forEach(function (area) {
-            areas.appendChild(chip(area.name, null, String(area.id) === String(state.area), false, function () {
-                state.area = String(area.id);
-                renderAreas();
-                loadSlots();
-            }));
+    var renderCalendar = function () {
+        var first = info.days[0] ? parse(info.days[0].date) : new Date();
+        var last = info.days.length ? parse(info.days[info.days.length - 1].date) : first;
+        var month = state.month || new Date(first.getFullYear(), first.getMonth(), 1);
+        var head = el('div', 'lb-cal-head');
+        var prev = el('button', 'lb-cal-nav', '‹');
+        var next = el('button', 'lb-cal-nav', '›');
+        var grid = el('div', 'lb-cal-grid');
+
+        calendar.textContent = '';
+        prev.type = next.type = 'button';
+        prev.setAttribute('aria-label', text.prev_month);
+        next.setAttribute('aria-label', text.next_month);
+        prev.disabled = month <= new Date(first.getFullYear(), first.getMonth(), 1);
+        next.disabled = new Date(month.getFullYear(), month.getMonth() + 1, 1) > last;
+        prev.addEventListener('click', function () {
+            state.month = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+            renderCalendar();
         });
-        hidden('area_id', state.area);
+        next.addEventListener('click', function () {
+            state.month = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+            renderCalendar();
+        });
+
+        head.appendChild(prev);
+        head.appendChild(el('strong', 'lb-cal-title', text.month.replace(':month', month.getMonth() + 1).replace(':year', month.getFullYear())));
+        head.appendChild(next);
+        calendar.appendChild(head);
+
+        text.weekdays.forEach(function (name) {
+            grid.appendChild(el('span', 'lb-cal-weekday', name));
+        });
+
+        // Lịch bắt đầu từ thứ Hai.
+        var offset = (month.getDay() + 6) % 7;
+
+        for (var i = 0; i < offset; i++) {
+            grid.appendChild(el('span'));
+        }
+
+        for (var date = new Date(month); date.getMonth() === month.getMonth(); date.setDate(date.getDate() + 1)) {
+            var key = iso(date);
+            var day = openDays[key];
+            var button = el('button', 'lb-cal-day', String(date.getDate()));
+
+            button.type = 'button';
+            button.disabled = !day || !day.open;
+            button.setAttribute('aria-pressed', key === state.date ? 'true' : 'false');
+            button.dataset.date = key;
+
+            if (day && day.today) {
+                button.classList.add('is-today');
+            }
+
+            if (day && day.note) {
+                button.title = day.note;
+            }
+
+            grid.appendChild(button);
+        }
+
+        calendar.appendChild(grid);
     };
+
+    calendar.hidden = true;
+    dateButton.type = 'button';
+    dateButton.addEventListener('click', function () {
+        calendar.hidden = !calendar.hidden;
+
+        if (!calendar.hidden) {
+            renderCalendar();
+        }
+
+        renderDateButton();
+    });
+    // Bấm ra ngoài thì đóng lịch.
+    document.addEventListener('click', function (event) {
+        if (!calendar.hidden && !calendar.contains(event.target) && !dateButton.contains(event.target)) {
+            calendar.hidden = true;
+            renderDateButton();
+        }
+    });
+    calendar.addEventListener('click', function (event) {
+        var button = event.target.closest('.lb-cal-day');
+
+        if (!button || button.disabled) {
+            return;
+        }
+
+        state.date = button.dataset.date;
+        state.time = null;
+        calendar.hidden = true;
+        clearErrors();
+        renderDateButton();
+        loadSlots();
+    });
 
     var renderTimes = function (data) {
         times.textContent = '';
@@ -208,6 +298,9 @@
 
     var loadSlots = function () {
         if (!state.date) {
+            times.textContent = '';
+            times.appendChild(el('p', 'lb-empty', text.pick_date_first));
+
             return;
         }
 
@@ -215,7 +308,7 @@
         times.textContent = '';
         times.appendChild(el('p', 'lb-empty', text.loading));
 
-        var url = config.slots + '?date=' + state.date + '&party_size=' + state.party + '&area_id=' + state.area;
+        var url = config.slots + '?date=' + state.date + '&party_size=' + state.party;
 
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(function (response) {
@@ -265,23 +358,21 @@
         minus.setAttribute('aria-label', text.fewer);
         plus.setAttribute('aria-label', text.more);
 
+        var when = el('div', 'lb-date-wrap');
+        when.appendChild(dateButton);
+        when.appendChild(calendar);
+
         mount.appendChild(field(text.party, party));
-        mount.appendChild(field(text.date, days));
-
-        if (info.areas.length) {
-            mount.appendChild(field(text.area, areas));
-        }
-
+        mount.appendChild(field(text.date, when));
         mount.appendChild(field(text.time, times));
 
+        info.days.forEach(function (day) {
+            openDays[day.date] = day;
+        });
         state.party = Math.min(state.party, info.max_party);
-        state.date = (info.days.find(function (day) {
-            return day.open;
-        }) || {}).date || null;
 
         renderParty();
-        renderDays();
-        renderAreas();
+        renderDateButton();
         loadSlots();
 
         // Ô bẫy bot: người không thấy, không bấm tới.

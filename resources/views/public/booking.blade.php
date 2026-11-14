@@ -12,19 +12,10 @@
 
 @section('body')
 <main class="booking-page">
-    <header class="booking-head">
-        <a class="booking-brand" href="{{ tenant_route('public.home') }}">
+    <section class="panel booking-card is-form">
+        <a class="booking-logo" href="{{ tenant_route('public.home') }}" aria-label="{{ $restaurant->name }}">
             @include('partials.restaurant-logo', ['restaurant' => $restaurant, 'size' => 'lg'])
-            <span>{{ $restaurant->name }}</span>
         </a>
-        <ul class="booking-contact">
-            @if ($restaurant->address)<li>{{ $restaurant->address }}</li>@endif
-            @if ($restaurant->phone)<li><a href="tel:{{ preg_replace('/[^0-9+]/', '', $restaurant->phone) }}">{{ $restaurant->phone }}</a></li>@endif
-            <li>{{ __('website.booking.hours') }}: {{ $hours }}</li>
-        </ul>
-    </header>
-
-    <section class="panel booking-card">
         <h1>{{ __('website.booking.title') }}</h1>
         <p class="lead">{{ __('website.booking.lead') }}</p>
 
@@ -46,7 +37,7 @@
             </div>
             <div class="field">
                 <label for="b-notes">{{ __('website.fields.notes') }}</label>
-                <textarea id="b-notes" name="notes" rows="3" maxlength="500" placeholder="{{ __('website.booking.notes_placeholder') }}"></textarea>
+                <textarea id="b-notes" name="notes" rows="3" maxlength="500"></textarea>
             </div>
             <div data-liresto-result hidden></div>
             <div class="booking-submit">
@@ -55,5 +46,7 @@
             </div>
         </form>
     </section>
+
+    @include('public.booking-contact', ['restaurant' => $restaurant, 'hours' => $hours])
 </main>
 @endsection
