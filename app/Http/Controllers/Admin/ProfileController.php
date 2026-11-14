@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Auth\DeviceGuard;
 use App\Http\Controllers\Controller;
+use App\Models\PushSubscription;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ProfileController extends Controller
             'devices' => $user->devices()->latest('last_seen_at')->get(),
             'currentDevice' => $request->session()->get(DeviceGuard::SESSION_KEY),
             'impersonating' => $request->session()->has('impersonator_id'),
+            'pushDevices' => PushSubscription::where('user_id', $user->id)->count(),
         ]);
     }
 

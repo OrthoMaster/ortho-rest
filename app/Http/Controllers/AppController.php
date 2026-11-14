@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\PushSubscription;
+use App\Push\WebPush;
 use App\Tenancy\RestaurantTheme;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -94,6 +96,26 @@ class AppController extends Controller
         $request->session()->put('push_subscription', $subscription->id);
 
         return response()->json(['ok' => true]);
+    }
+
+    /** Gửi thử một thông báo đến mọi máy đã bật thông báo của người này (trang Tài khoản). */
+    public function testPush(Request $request, WebPush $push): RedirectResponse
+    {
+        $subscriptions = PushSubscription::where('user_id', $request->user()->id)->get();
+
+        if (! WebPush::enabled() || $subscriptions->isEmpty()) {
+            return back()->with('error', __(WebPush::enabled() ? 'push.test_no_device' : 'push.test_no_keys'));
+        }
+
+        $push->send($subscriptions, [
+            'title' => __('push.test_title'),
+            'body' => __('push.test_body', ['time' => now()->format('H:i')]),
+            'url' => route('tenant.admin.profile.edit'),
+            'tag' => 'push-test',
+            'icon' => route('tenant.app-icon', ['size' => 192]),
+        ]);
+
+        return back()->with('status', trans_choice('push.test_sent', $subscriptions->count(), ['count' => $subscriptions->count()]));
     }
 
     /** Đổi logo thì đổi đường dẫn icon để máy tải icon mới. */

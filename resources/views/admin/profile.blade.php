@@ -31,6 +31,22 @@
         </form>
     </section>
 
+    {{-- Thông báo đẩy: số máy đã bật, gửi thử để kiểm tra máy có nhận được không. --}}
+    <section class="panel stack" id="push">
+        <h2>{{ __('push.profile_title') }}</h2>
+        @if (! \App\Push\WebPush::enabled())
+            <p class="row-note">{{ __('push.test_no_keys') }}</p>
+        @else
+            <p class="row-note">{{ $pushDevices > 0 ? trans_choice('push.profile_devices', $pushDevices, ['count' => $pushDevices]) : __('push.test_no_device') }}</p>
+            @if ($pushDevices > 0)
+                <form method="post" action="{{ route('tenant.admin.push.test') }}">
+                    @csrf
+                    <button class="btn btn-quiet" type="submit">{{ __('push.test') }}</button>
+                </form>
+            @endif
+        @endif
+    </section>
+
     </div>
 
     <section class="panel" id="devices">

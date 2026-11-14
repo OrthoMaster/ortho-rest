@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ShiftType;
 use App\Models\ActivityLog;
 use App\Models\Department;
+use App\Models\PushSubscription;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -13,9 +14,11 @@ use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\LeaveRequest;
+use App\Push\WebPush;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class LeaveTest extends TestCase
@@ -222,6 +225,36 @@ class LeaveTest extends TestCase
         // Thông tin số ngày phép: chỉ các dòng trong khoảng.
         $this->get("$this->base/mine?from=2026-03-01&to=2026-03-31")->assertSee(__('leave.history_monthly', ['month' => '02/2026']))
             ->assertDontSee(__('leave.history_monthly', ['month' => '03/2026']));
+    }
+
+    public function test_leave_requests_and_decisions_are_pushed(): void
+    {
+        config(['liresto.push.public_key' => 'public', 'liresto.push.private_key' => 'private']);
+        $sent = new \ArrayObject;
+        $this->app->instance(WebPush::class, new class($sent) extends WebPush
+        {
+            public function __construct(private \ArrayObject $log) {}
+
+            public function send(Collection $subscriptions, array $message): void
+            {
+                $this->log[] = ['users' => $subscriptions->pluck('user_id')->all(), ...$message];
+            }
+        });
+        foreach ([$this->owner, $this->lan] as $index => $user) {
+            PushSubscription::create(['user_id' => $user->id, 'endpoint' => "https://push.test/$index", 'endpoint_hash' => hash('sha256', (string) $index), 'public_key' => 'k', 'auth_token' => 'a']);
+        }
+
+        // Nhân viên xin nghỉ: báo chủ quán (người duyệt), không báo chính mình.
+        $this->actingAs($this->lan)->post($this->base, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-16', 'whole_day' => 1, 'reason' => 'Về quê']);
+        $this->assertSame([$this->owner->id], $sent[0]['users']);
+        $this->assertSame(__('leave.push_new', ['name' => 'Lan']), $sent[0]['title']);
+        $this->assertStringContainsString('Về quê', $sent[0]['body']);
+
+        // Chủ quán duyệt: báo người xin nghỉ.
+        $leave = LeaveRequest::withoutGlobalScopes()->sole();
+        $this->actingAs($this->owner)->post("$this->base/{$leave->id}/decide", ['action' => 'approve', 'is_paid' => 1]);
+        $this->assertSame([$this->lan->id], $sent[1]['users']);
+        $this->assertSame(__('leave.push_approved'), $sent[1]['title']);
     }
 
     public function test_pending_leave_shows_red_badge_for_approver_only(): void

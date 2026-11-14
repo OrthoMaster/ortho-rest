@@ -7,7 +7,9 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Gửi thông báo đẩy (Web Push) tới trình duyệt, không cần thư viện ngoài:
@@ -57,6 +59,19 @@ class WebPush
         if ($gone->isNotEmpty()) {
             PushSubscription::withoutGlobalScopes()->whereKey($gone->all())->delete();
         }
+
+        // Lỗi khác (khoá VAPID sai, Apple từ chối, không kết nối được...): ghi log để tìm nguyên nhân.
+        collect($responses)->each(function ($response, $id) use ($gone): void {
+            if ($gone->contains($id) || ($response instanceof Response && $response->successful())) {
+                return;
+            }
+
+            Log::warning('Web push failed', [
+                'subscription' => $id,
+                'status' => $response instanceof Response ? $response->status() : null,
+                'error' => $response instanceof Response ? mb_substr($response->body(), 0, 300) : ($response instanceof Throwable ? $response->getMessage() : null),
+            ]);
+        });
     }
 
     /**

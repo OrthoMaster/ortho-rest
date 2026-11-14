@@ -3775,6 +3775,19 @@
         });
     });
 
+    // Lịch tuần, lịch nghỉ: bảng rộng hơn khung thì cuộn ngang tới cột hôm nay (ngay sau cột tên cố định bên trái).
+    document.querySelectorAll('[data-scroll-today]').forEach(function (wrap) {
+        var today = wrap.querySelector('thead th.is-today');
+
+        if (!today || wrap.scrollWidth <= wrap.clientWidth) {
+            return;
+        }
+
+        var first = wrap.querySelector('thead th');
+        var offset = today.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft;
+        wrap.scrollLeft = Math.max(0, offset - (first && first !== today ? first.getBoundingClientRect().width : 0));
+    });
+
     // Đồng hồ theo phút: lấy giờ máy chủ lúc tải trang (đồng hồ máy có thể lệch), tính theo múi giờ quán.
     (function () {
         var clocks = Array.prototype.slice.call(document.querySelectorAll('[data-clock]'));

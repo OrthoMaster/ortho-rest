@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Push\WebPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -85,7 +86,36 @@ class AppInstallTest extends TestCase
         $this->assertSame(0, PushSubscription::count());
     }
 
-    public function test_no_banner_without_keys_or_kitchen_module(): void
+    public function test_profile_sends_a_test_notification_to_own_devices(): void
+    {
+        $profile = "/{$this->restaurant->slug}/admin/profile";
+        $test = "/{$this->restaurant->slug}/admin/push/test";
+        // Chưa có khoá VAPID: báo máy chủ chưa cài.
+        $this->actingAs($this->owner)->get($profile)->assertSee(__('push.test_no_keys'));
+
+        config(['liresto.push.public_key' => 'BPub', 'liresto.push.private_key' => 'priv']);
+        $sent = new \ArrayObject;
+        $this->app->instance(WebPush::class, new class($sent) extends WebPush
+        {
+            public function __construct(private \ArrayObject $log) {}
+
+            public function send(Collection $subscriptions, array $message): void
+            {
+                $this->log[] = ['users' => $subscriptions->pluck('user_id')->all(), ...$message];
+            }
+        });
+
+        $this->get($profile)->assertSee(__('push.test_no_device'))->assertDontSee(__('push.test'));
+        $this->from($profile)->post($test)->assertSessionHas('error', __('push.test_no_device'));
+
+        PushSubscription::create(['user_id' => $this->owner->id, 'endpoint' => 'https://push.test/1', 'endpoint_hash' => hash('sha256', '1'), 'public_key' => 'k', 'auth_token' => 'a']);
+        $this->get($profile)->assertSee(trans_choice('push.profile_devices', 1, ['count' => 1]))->assertSee(__('push.test'));
+        $this->from($profile)->post($test)->assertSessionHas('status');
+        $this->assertSame([$this->owner->id], $sent[0]['users']);
+        $this->assertSame(__('push.test_title'), $sent[0]['title']);
+    }
+
+    public function test_banner_needs_keys_and_shows_for_any_module(): void
     {
         $this->actingAs($this->owner)->get("/{$this->restaurant->slug}/admin")->assertOk()
             ->assertSee('rel="manifest"', false)->assertDontSee('data-push', false);
@@ -93,7 +123,8 @@ class AppInstallTest extends TestCase
         config(['liresto.push.public_key' => 'BPub', 'liresto.push.private_key' => 'priv']);
         $other = Restaurant::factory()->create();
         $this->enableModules($other, 'menu');
-        $this->actingAs(User::factory()->owner($other)->create())->get("/{$other->slug}/admin")->assertOk()->assertDontSee('data-push', false);
+        // Mọi quán đều nhận thông báo (đơn xin nghỉ, đặt bàn...), không chỉ quán có Màn hình khu vực.
+        $this->actingAs(User::factory()->owner($other)->create())->get("/{$other->slug}/admin")->assertOk()->assertSee('data-push', false);
     }
 
     /** Mã hoá đúng ví dụ mẫu trong RFC 8291, phụ lục A; chữ ký VAPID kiểm tra được bằng khoá công khai. */

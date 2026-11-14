@@ -26,6 +26,7 @@ Route::delete('profile/devices/{device}', [DeviceController::class, 'destroy'])-
 
 // Máy này bật thông báo đẩy.
 Route::post('push', [AppController::class, 'subscribe'])->middleware('throttle:30,1')->name('push.subscribe');
+Route::post('push/test', [AppController::class, 'testPush'])->middleware('throttle:6,1')->name('push.test');
 
 // Khách hàng dùng chung cho đặt bàn và đặt mang đi.
 Route::get('customers', [CustomerController::class, 'index'])->middleware('can:customers.view')->name('customers.index');
