@@ -4,6 +4,8 @@
     </IfModule>
 
     RewriteEngine On
+    # IONOS (hosting chia sẻ) cần RewriteBase, thiếu thì mọi đường dẫn trừ trang chủ đều lỗi.
+    RewriteBase /
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
