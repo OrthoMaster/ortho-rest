@@ -11,6 +11,7 @@ use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\Models\Reservation;
 use App\Modules\Reservation\ReservationBooking;
 use App\Modules\Reservation\ReservationStatus;
+use App\Push\Notify;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -134,7 +135,18 @@ class Tables
 
         $discount = $table->discount();
         $table->update(['closed_at' => now(), 'closed_by' => $user->id, 'discount_amount' => $discount]);
-        Cashier::settleWithoutCashier($table, $user, $table->subtotal() - $discount);
+        $total = $table->subtotal() - $discount;
+        Cashier::settleWithoutCashier($table, $user, $total);
+
+        // Bàn chuyển sang quầy chờ thu: báo người thu tiền.
+        if ($table->paid_at === null) {
+            Notify::permitted('cashier.collect', [
+                'title' => __('cashier.push_pending', ['table' => $table->label]),
+                'body' => __('cashier.push_pending_body', ['total' => vnd($total)]),
+                'url' => route('tenant.admin.cashier.index'),
+                'tag' => 'cashier-t'.$table->getKey(),
+            ]);
+        }
         LineLog::closed($table->load('customer'), $table->subtotal(), $discount, (int) $table->lines()->where('status', LineStatus::Served)->sum('quantity'));
 
         if ($table->reservation?->status === ReservationStatus::Seated) {

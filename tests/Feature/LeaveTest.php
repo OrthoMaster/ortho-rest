@@ -181,10 +181,14 @@ class LeaveTest extends TestCase
             ->assertSee(__('leave.adjust'))->assertSee(__('leave.history_monthly', ['month' => '02/2026']));
 
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => '', 'reason' => ''])->assertSessionHasErrorsIn('adjust', ['left', 'reason']);
+        $sent = $this->recordPushes();
+        $this->pushDevice($this->lan);
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'Vào làm giữa tháng 1'])
             ->assertRedirect("$this->base/mine?user={$this->lan->id}")
             ->assertSessionHas('status', __('leave.adjusted', ['name' => 'Lan', 'days' => '8,5']));
         $this->assertSame(8.5, LeaveBook::balance($this->lan->fresh())['left']);
+        $this->assertSame([$this->lan->id], $sent[0]['users']);
+        $this->assertSame(__('leave.push_adjusted', ['days' => '8,5']), $sent[0]['title']);
         $this->assertSame(__('leave.log_adjusted', ['name' => 'Lan', 'from' => '10', 'to' => '8,5', 'reason' => 'Vào làm giữa tháng 1']), ActivityLog::withoutGlobalScopes()->latest('id')->value('summary'));
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'x'])->assertSessionHas('status', __('leave.adjust_same'));
 

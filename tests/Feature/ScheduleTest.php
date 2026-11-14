@@ -248,6 +248,49 @@ class ScheduleTest extends TestCase
         $this->assertTrue(ActivityLog::where('area', 'schedule')->where('summary', 'like', '%Xoá hết lịch tuần%')->exists());
     }
 
+    public function test_changes_to_published_week_and_short_shifts_are_pushed(): void
+    {
+        $lan = $this->staff('Lan', $this->kitchenDept);
+        $minh = $this->staff('Minh', $this->kitchenDept);
+        $manager = $this->member($this->restaurant, 'manager', ['name' => 'Quản lý']);
+        $lane = 's'.$this->kitchen->id;
+        $this->place($lan, '2026-11-10', (string) $this->dinner->id, $lane)->assertOk();
+        $minhRow = $this->place($minh, '2026-11-10', (string) $this->dinner->id, $lane)->assertOk();
+        app(TenantContext::class)->set($this->restaurant);
+        DefaultSlot::create(['weekday' => 2, 'shift_id' => $this->dinner->id, 'dinein_station_id' => $this->kitchen->id, 'needed' => 2]);
+        app(TenantContext::class)->forget();
+
+        $sent = $this->recordPushes();
+        foreach ([$lan, $minh, $manager] as $user) {
+            $this->pushDevice($user);
+        }
+
+        // Tuần nháp: sửa không báo ai.
+        $this->place($lan, '2026-11-10', (string) $this->lunch->id, $lane)->assertOk();
+        $this->assertCount(0, $sent);
+
+        // Tuần đã công bố: Lan bị bỏ khỏi ca trưa thì nhận thông báo; thay đổi tiếp theo gom chung một thông báo.
+        $this->post("$this->base/week/publish", ['date' => '2026-11-10']);
+        $sent->exchangeArray([]);
+        $lunchRow = Assignment::withoutGlobalScopes()->where('user_id', $lan->id)->where('shift_id', $this->lunch->id)->sole();
+        $this->deleteJson("$this->base/assignments/{$lunchRow->id}")->assertOk();
+        $this->assertSame([$lan->id], $sent[0]['users']);
+        $this->assertSame(__('schedule.push_changed'), $sent[0]['title']);
+        $this->assertStringContainsString('− T3 10/11 · Ca trưa', $sent[0]['body']);
+        $this->place($lan, '2026-11-10', (string) $this->lunch->id, $lane)->assertOk();
+        $this->assertSame(2, substr_count($sent[1]['body'], "\n") + 1);
+
+        // Duyệt nghỉ cho Minh: ca tối Bếp cần 2 người, còn 1, báo người xếp lịch.
+        $sent->exchangeArray([]);
+        $this->post("$this->base/leave", ['user_id' => $minh->id, 'starts_on' => '2026-11-10', 'ends_on' => '2026-11-10', 'whole_day' => 1, 'action' => 'approve', 'is_paid' => 1]);
+        $short = collect($sent)->firstWhere('title', __('schedule.push_short', ['name' => 'Minh']));
+        $this->assertNotNull($short);
+        $this->assertSame([$manager->id], $short['users']);
+        $this->assertStringContainsString('T3 10/11 · Ca tối · ', $short['body']);
+        $this->assertStringContainsString('1/2', $short['body']);
+        $this->assertNotNull($minhRow);
+    }
+
     public function test_future_published_week_can_be_reset(): void
     {
         $lan = $this->staff('Lan');

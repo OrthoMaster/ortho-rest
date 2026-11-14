@@ -61,7 +61,12 @@ class CashierTest extends TestCase
     {
         // Phục vụ đóng bàn: bàn trống ngay, phiếu chưa thu, chuyển sang quầy.
         $first = $this->table('A1', 3);
+        $sent = $this->recordPushes();
+        $this->pushDevice($manager = $this->member($this->restaurant, 'manager'));
         $this->post("$this->admin/dinein/tables/{$first->id}/close")->assertSessionHas('status', __('dinein.closed_to_cashier', ['table' => 'A1']));
+        // Báo người thu tiền.
+        $this->assertSame([$manager->id], $sent[0]['users']);
+        $this->assertSame(__('cashier.push_pending', ['table' => 'A1']), $sent[0]['title']);
         $this->assertNull($first->fresh()->paid_at);
         $this->assertNotNull($first->fresh()->closed_at);
 

@@ -131,6 +131,8 @@ return [
     'guest_phone_hint' => 'Không bắt buộc. Có số thì lần sau khách quay lại tra được ngay, thấy ưu đãi đã tặng.',
     'log_guest_removed' => 'Bàn :table: bỏ gắn khách :name',
     'log_incident' => 'Bàn :table: sự cố :kind',
+    'push_incident' => 'Bàn :table: sự cố :kind',
+    'push_incident_by' => 'Ghi bởi :name',
     'log_gift' => 'Bàn :table: tặng ưu đãi lần sau cho :name',
     'log_offer_applied' => 'Bàn :table: áp ưu đãi của khách vào phiếu',
     'log_discount_removed' => 'Bàn :table: bỏ giảm giá trên phiếu',

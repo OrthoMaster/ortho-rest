@@ -17,13 +17,13 @@ class Notify
      * @param  iterable<User>  $users
      * @param  array{title: string, body?: string, url?: string, tag?: string}  $message
      */
-    public static function users(iterable $users, array $message): void
+    public static function users(iterable $users, array $message, bool $skipActor = true): void
     {
         if (! WebPush::enabled() || tenant() === null) {
             return;
         }
 
-        $ids = collect($users)->map(fn (User $user) => $user->getKey())->reject(fn ($id) => $id === auth()->id())->unique()->values()->all();
+        $ids = collect($users)->map(fn (User $user) => $user->getKey())->reject(fn ($id) => $skipActor && $id === auth()->id())->unique()->values()->all();
         $subscriptions = $ids === [] ? collect() : PushSubscription::whereIn('user_id', $ids)->get();
 
         if ($subscriptions->isEmpty()) {

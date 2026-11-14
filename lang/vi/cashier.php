@@ -6,6 +6,8 @@ return [
     'reconcile_tab' => 'Đối soát',
 
     'pending' => 'Chờ thu tiền',
+    'push_pending' => 'Bàn :table chờ thu tiền',
+    'push_pending_body' => 'Tổng :total. Bấm để mở Thu ngân.',
     'pending_empty' => 'Không có phiếu nào chờ thu.',
     'open' => 'Bàn đang phục vụ',
     'open_hint' => 'Khách ra quầy trước khi phục vụ đóng bàn thì thu ở đây.',

@@ -9,6 +9,7 @@ use App\Models\CustomerOffer;
 use App\Modules\DineIn\Models\DiningTable;
 use App\Modules\DineIn\Models\Incident;
 use App\Modules\Takeaway\DiscountType;
+use App\Push\Notify;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,6 +85,13 @@ class GuestController extends Controller
             'created_by' => $request->user()->id,
         ]);
         ActivityLog::record($table->restaurant_id, 'dinein', __('dinein.log_incident', ['table' => $table->label, 'kind' => $incident->kindLabel()]), array_filter([$incident->note]), $table);
+        // Báo chủ quán và người xem sự cố.
+        Notify::permitted('dinein.incidents', [
+            'title' => __('dinein.push_incident', ['table' => $table->label, 'kind' => $incident->kindLabel()]),
+            'body' => trim(($incident->note ? $incident->note."\n" : '').__('dinein.push_incident_by', ['name' => $request->user()->name])),
+            'url' => route('tenant.admin.dinein.incidents'),
+            'tag' => 'incident-'.$incident->getKey(),
+        ]);
 
         if (! $gift) {
             return back()->with('status', __('dinein.incident_saved'));

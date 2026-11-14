@@ -12,6 +12,7 @@ use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Models\Week;
 use App\Modules\Schedule\Placement;
 use App\Modules\Schedule\Roster;
+use App\Modules\Schedule\ScheduleAlerts;
 use App\Push\Notify;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -124,6 +125,7 @@ class ScheduleController extends Controller
             'user_id' => $user->id,
             ...Roster::laneColumns($data['lane']),
         ]);
+        ScheduleAlerts::changed($row, 'added');
 
         return $this->placed($row, $user, $result['warnings']);
     }
@@ -145,11 +147,15 @@ class ScheduleController extends Controller
             return response()->json(['message' => $result['error']], 422);
         }
 
+        $before = $assignment->replicate();
         $assignment->update([
             'work_date' => $date->toDateString(),
             'shift_id' => $data['slot'] === Roster::WHOLE_DAY ? null : (int) $data['slot'],
             ...Roster::laneColumns($data['lane']),
         ]);
+
+        ScheduleAlerts::changed($before, 'removed');
+        ScheduleAlerts::changed($assignment, 'added');
 
         return $this->placed($assignment, $user, $result['warnings']);
     }
@@ -158,6 +164,7 @@ class ScheduleController extends Controller
     {
         $user = Roster::users()->get($assignment->user_id);
         $assignment->delete();
+        ScheduleAlerts::changed($assignment, 'removed');
 
         return response()->json(['stats' => $user ? $this->stats(collect([$user->id => $user]), Roster::week($assignment->work_date->toImmutable())) : []]);
     }

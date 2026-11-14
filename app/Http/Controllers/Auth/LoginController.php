@@ -6,6 +6,7 @@ use App\Auth\DeviceGuard;
 use App\Http\Controllers\Controller;
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Push\Notify;
 use App\Support\Phone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -49,8 +50,20 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        if ($this->devices->admit($request->user(), $request) === null) {
+        $device = $this->devices->admit($request->user(), $request);
+
+        if ($device === null) {
             $this->reject($request, __('ui.devices.blocked'));
+        }
+
+        // Đăng nhập từ máy mới (đã có máy khác): báo các máy đang bật thông báo của chính người này.
+        if ($device->wasRecentlyCreated && $request->user()->devices()->count() > 1) {
+            Notify::users([$request->user()], [
+                'title' => __('ui.devices.push_new', ['name' => $device->name]),
+                'body' => __('ui.devices.push_new_body', ['time' => now()->format('H:i d/m'), 'ip' => $request->ip()]),
+                'url' => route('tenant.admin.profile.edit').'#devices',
+                'tag' => 'device-'.$device->getKey(),
+            ], skipActor: false);
         }
 
         return redirect()->intended($request->user()->homeUrl());
