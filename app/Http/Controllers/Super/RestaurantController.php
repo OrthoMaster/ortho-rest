@@ -47,7 +47,8 @@ class RestaurantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             ...$this->slugRules(),
             'owner_name' => ['required', 'string', 'max:255'],
-            'owner_email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            // Quán mới chưa có ai: email đã dùng ở quán khác vẫn được (mỗi quán một tài khoản riêng).
+            'owner_email' => ['required', 'email', 'max:255'],
             'owner_password' => ['required', Password::min(8)],
         ]);
 

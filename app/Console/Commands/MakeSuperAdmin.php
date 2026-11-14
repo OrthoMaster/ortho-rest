@@ -15,7 +15,7 @@ class MakeSuperAdmin extends Command
     {
         $email = (string) $this->argument('email');
 
-        if (User::where('email', $email)->exists()) {
+        if (User::where('email', $email)->where('is_super_admin', true)->exists()) {
             $this->error('Email này đã có tài khoản.');
 
             return self::FAILURE;

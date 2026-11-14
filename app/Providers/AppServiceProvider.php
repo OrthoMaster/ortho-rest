@@ -50,11 +50,11 @@ class AppServiceProvider extends ServiceProvider
             ->subject(__('ui.password.mail_subject'))
             ->line(__('ui.password.mail_intro'))
             ->action(__('ui.password.mail_action'), $notifiable->is_super_admin || $notifiable->restaurant === null
-                ? route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()])
+                ? route('password.reset', ['token' => $token, 'email' => $notifiable->email])
                 : route('tenant.password.reset', [
                     'resto' => $notifiable->restaurant->slug,
                     'token' => $token,
-                    'email' => $notifiable->getEmailForPasswordReset(),
+                    'email' => $notifiable->email,
                 ]))
             ->line(__('ui.password.mail_expire', ['count' => config('auth.passwords.users.expire')]))
             ->line(__('ui.password.mail_ignore')));

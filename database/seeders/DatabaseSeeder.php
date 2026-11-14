@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         bool $superAdmin = false,
         ?string $phone = null,
     ): User {
-        $user = User::where('email', $email)->firstOr(fn () => new User(['email' => $email]));
+        $user = User::where('email', $email)->where('restaurant_id', $restaurant?->getKey())->firstOr(fn () => new User(['email' => $email]));
         $user->forceFill([
             'name' => $name,
             'password' => config('liresto.seed_password') ?: 'password',

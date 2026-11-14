@@ -175,7 +175,7 @@ class AccountController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', Phone::RULE, Rule::unique('users')->where('restaurant_id', tenant()->getKey())->ignore($account)],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($account)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->where('restaurant_id', tenant()->getKey())->ignore($account)],
             'password' => [$account ? 'nullable' : 'required', 'string', Password::min(8)],
             'positions' => ['array'],
             'positions.*' => ['integer', Rule::exists('positions', 'id')->where('restaurant_id', tenant()->getKey())],

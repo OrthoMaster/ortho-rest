@@ -31,10 +31,11 @@ class ProfileController extends Controller
 
         $request->merge(['phone' => filled($request->input('phone')) ? Phone::normalize((string) $request->input('phone')) : null]);
 
+        // Email, số điện thoại chỉ cần không trùng trong quán (cùng email có thể có tài khoản ở quán khác).
         // Chủ quán đăng nhập bằng email nên email bắt buộc; nhân viên thì số điện thoại bắt buộc.
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => [$user->isOwner() ? 'required' : 'nullable', 'email', 'max:255', Rule::unique('users')->ignore($user)],
+            'email' => [$user->isOwner() ? 'required' : 'nullable', 'email', 'max:255', Rule::unique('users')->where('restaurant_id', $user->restaurant_id)->ignore($user)],
             'phone' => [$user->isOwner() ? 'nullable' : 'required', 'string', Phone::RULE, Rule::unique('users')->where('restaurant_id', $user->restaurant_id)->ignore($user)],
         ]);
 

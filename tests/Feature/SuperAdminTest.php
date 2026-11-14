@@ -46,6 +46,22 @@ class SuperAdminTest extends TestCase
         $this->assertSame(UserRole::Owner, $owner->role);
     }
 
+    public function test_owner_email_of_another_restaurant_can_open_a_new_one(): void
+    {
+        $existing = User::factory()->owner()->create(['email' => 'hoa@pho.vn']);
+
+        $this->actingAs($this->admin)->post('/super/restaurants', [
+            'name' => 'Phở Đầu Bò 2',
+            'owner_name' => 'Chị Hoa',
+            'owner_email' => 'hoa@pho.vn',
+            'owner_password' => 'mat-khau-dai',
+        ])->assertSessionHasNoErrors();
+
+        $owner = Restaurant::where('slug', 'pho-dau-bo-2')->firstOrFail()->owner();
+        $this->assertSame('hoa@pho.vn', $owner->email);
+        $this->assertNotSame($existing->id, $owner->id);
+    }
+
     public function test_reserved_and_invalid_slugs_are_rejected(): void
     {
         $restaurant = Restaurant::factory()->create();

@@ -157,6 +157,11 @@ class StaffTest extends TestCase
 
         // Trùng số trong quán thì không cho.
         $this->post("$this->admin/staff/accounts", ['name' => 'Lan 2', 'phone' => '0902223333', 'password' => 'matkhau123'])->assertSessionHasErrors('phone');
+        // Email: trùng trong quán thì không cho, email đã dùng ở quán khác thì được.
+        $this->post("$this->admin/staff/accounts", ['name' => 'Lan 3', 'phone' => '0902223334', 'email' => 'chu@quan.vn', 'password' => 'matkhau123'])->assertSessionHasErrors('email');
+        User::factory()->owner()->create(['email' => 'mai@quan-khac.vn']);
+        $this->post("$this->admin/staff/accounts", ['name' => 'Mai', 'phone' => '0902223335', 'email' => 'mai@quan-khac.vn', 'password' => 'matkhau123', 'positions' => [$this->position('staff')->id]])->assertSessionHasNoErrors();
+        $this->assertSame(2, User::where('email', 'mai@quan-khac.vn')->count());
 
         // Đổi chức vụ và đặt mật khẩu mới: đăng xuất mọi thiết bị của Lan.
         UserDevice::create(['user_id' => $lan->id, 'token_hash' => hash('sha256', 'x'), 'name' => 'iPhone', 'last_seen_at' => now()]);

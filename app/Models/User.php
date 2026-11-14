@@ -49,6 +49,15 @@ class User extends Authenticatable
     /** @var list<string>|null quyền gộp từ các chức vụ, nhớ trong một request */
     private ?array $permissionKeysCache = null;
 
+    /**
+     * Khoá của mã đặt lại mật khẩu. Cùng một email có thể có tài khoản ở nhiều quán,
+     * nên khoá kèm quán: mã xin ở quán này không dùng được ở quán khác, và không đè mã của nhau.
+     */
+    public function getEmailForPasswordReset(): string
+    {
+        return $this->restaurant_id ? $this->restaurant_id.'|'.$this->email : (string) $this->email;
+    }
+
     /** Bộ phận theo hợp đồng (Bếp, Phục vụ...). */
     public function department(): BelongsTo
     {

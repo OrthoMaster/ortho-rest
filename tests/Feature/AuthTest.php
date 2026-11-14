@@ -157,6 +157,37 @@ class AuthTest extends TestCase
         $this->get('/super/restaurants')->assertRedirect('/login');
     }
 
+    public function test_same_email_has_a_separate_account_in_each_restaurant(): void
+    {
+        Notification::fake();
+        $first = User::factory()->owner()->create(['email' => 'chu@quan.vn']);
+        $second = User::factory()->owner()->create(['email' => 'chu@quan.vn', 'password' => 'mat-khau-quan-2']);
+        $one = "/{$first->restaurant->slug}";
+        $two = "/{$second->restaurant->slug}";
+
+        // Mã đặt lại mật khẩu của quán 1 không dùng được ở quán 2, và không đè mã của nhau.
+        $this->post("$one/forgot-password", ['email' => 'chu@quan.vn']);
+        $this->post("$two/forgot-password", ['email' => 'chu@quan.vn']);
+        $token = null;
+        Notification::assertSentTo($first, ResetPassword::class, function (ResetPassword $notification) use (&$token, $first, $one) {
+            $this->assertStringContainsString("$one/reset-password/", $notification->toMail($first)->actionUrl);
+            $token = $notification->token;
+
+            return true;
+        });
+        $reset = ['token' => $token, 'email' => 'chu@quan.vn', 'password' => 'mat-khau-moi', 'password_confirmation' => 'mat-khau-moi'];
+        $this->post("$two/reset-password", $reset)->assertSessionHasErrors('email');
+        $this->post("$one/reset-password", $reset)->assertRedirect("$one/login");
+
+        // Mỗi quán đăng nhập vào đúng tài khoản của quán đó, mật khẩu riêng.
+        $this->post("$two/login", ['login' => 'chu@quan.vn', 'password' => 'mat-khau-moi'])->assertSessionHasErrors('login');
+        $this->post("$two/login", ['login' => 'chu@quan.vn', 'password' => 'mat-khau-quan-2'])->assertRedirect("$two/admin");
+        $this->assertAuthenticatedAs($second);
+
+        $this->assertTrue(Hash::check('mat-khau-moi', $first->fresh()->password));
+        $this->assertTrue(Hash::check('mat-khau-quan-2', $second->fresh()->password));
+    }
+
     public function test_forgot_password_of_another_restaurant_sends_nothing(): void
     {
         Notification::fake();
