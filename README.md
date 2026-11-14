@@ -37,6 +37,8 @@ Mật khẩu đều là `password` (đặt `SEED_PASSWORD` trong `.env` để đ
 
 Người của quán đăng nhập ở <http://127.0.0.1:8000/saigon/login>. Web công khai: <http://127.0.0.1:8000/saigon>.
 
+Trang đặt bàn online: <http://127.0.0.1:8000/saigon/dat-ban>. Email gửi khách (đặt bàn) dùng máy chủ riêng của quán nếu đã cài ở Email trong quản lý, chưa cài thì dùng `MAIL_*` trong `.env` (tên người gửi là tên quán).
+
 Email quên mật khẩu không gửi thật ở local, link nằm trong `storage/logs/laravel.log`.
 
 ## Lệnh hay dùng

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ShiftType;
 use App\Enums\SpecialDayType;
+use App\Mail\TemplatedMail;
 use App\Models\Customer;
 use App\Models\Restaurant;
 use App\Models\Shift;
@@ -15,12 +16,10 @@ use App\Modules\Reservation\Models\Reservation;
 use App\Modules\Reservation\ReservationBooking;
 use App\Modules\Reservation\ReservationSource;
 use App\Modules\Reservation\ReservationStatus;
-use App\Modules\Reservation\ReservationStatusNotification;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Notifications\AnonymousNotifiable;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -402,15 +401,14 @@ class ReservationTest extends TestCase
 
     public function test_confirmation_mail_is_sent_only_with_an_email(): void
     {
-        Notification::fake();
+        Mail::fake();
         $this->withoutDefer();
 
         $this->book(['customer_email' => 'khach@mail.vn']);
         $this->book(['customer_name' => 'Không email', 'customer_phone' => '0903333333']);
 
-        Notification::assertSentTimes(ReservationStatusNotification::class, 1);
-        Notification::assertSentTo(new AnonymousNotifiable, ReservationStatusNotification::class,
-            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'khach@mail.vn');
+        Mail::assertSentCount(1);
+        Mail::assertSent(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('khach@mail.vn') && $mail->key === 'guest_confirmed');
     }
 
     private function booked(string $at, string $name = 'Khách'): Reservation

@@ -8,6 +8,7 @@ class Installer extends ModuleInstaller
 {
     public function defaultSettings(): array
     {
-        return ['theme' => 'default', 'locales' => ['vi']];
+        // booking_page: trang đặt bàn công khai dùng mẫu của Liresto (default) hay trang quán tự tạo (custom).
+        return ['theme' => 'default', 'locales' => ['vi'], 'booking_page' => 'default'];
     }
 }

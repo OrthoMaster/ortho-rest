@@ -13,12 +13,46 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Reservation extends Model
 {
     use BelongsToRestaurant, RecordsActivity;
 
     protected $guarded = ['id'];
+
+    /** Mã riêng trong link khách xem, tự huỷ đặt bàn (không đoán được, không lộ số thứ tự). */
+    protected static function booted(): void
+    {
+        static::creating(function (Reservation $reservation): void {
+            $reservation->public_token ??= Str::random(24);
+        });
+        static::replicating(function (Reservation $reservation): void {
+            $reservation->public_token = null;
+        });
+    }
+
+    /** Link khách xem lại đặt bàn của mình. */
+    public function publicUrl(): string
+    {
+        if ($this->public_token === null) {
+            $this->forceFill(['public_token' => Str::random(24)])->saveQuietly();
+        }
+
+        return tenant_route('public.booking.status', ['token' => $this->public_token]);
+    }
+
+    /** Mã ngắn đọc cho quán qua điện thoại. */
+    public function code(): string
+    {
+        return strtoupper(substr((string) $this->public_token, 0, 6));
+    }
+
+    /** Khách tự huỷ được khi đang chờ hoặc đã nhận và chưa tới giờ. */
+    public function guestCanCancel(): bool
+    {
+        return in_array($this->status, [ReservationStatus::Pending, ReservationStatus::Confirmed], true) && $this->reserved_at->isFuture();
+    }
 
     protected function casts(): array
     {

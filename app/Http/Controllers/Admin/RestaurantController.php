@@ -70,6 +70,20 @@ class RestaurantController extends Controller
         return back()->with('status', __('ui.logo.saved'));
     }
 
+    /** Liên hệ của quán: hiện trên trang đặt bàn, trong email; khách trả lời email thì về email này. */
+    public function updateContact(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'phone' => ['nullable', 'string', 'max:30', 'regex:/^\+?[0-9 .()-]{8,30}$/'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        tenant()->update($data);
+
+        return back()->with('status', __('ui.restaurant.contact_saved'));
+    }
+
     /** Màu quán: chủ quán tự đổi ở Cài đặt chung, cạnh logo. */
     public function updateTheme(Request $request): RedirectResponse
     {

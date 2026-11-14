@@ -118,12 +118,9 @@ return [
         'walk_in' => 'Khách đến trực tiếp',
     ],
 
-    'mail' => [
-        'confirmed_subject' => ':restaurant đã xác nhận đặt bàn của bạn',
-        'confirmed_body' => 'Đặt bàn của bạn lúc :time cho :party khách đã được xác nhận.',
-        'rejected_subject' => ':restaurant chưa nhận được đặt bàn của bạn',
-        'rejected_body' => 'Rất tiếc, quán không nhận được đặt bàn lúc :time cho :party khách. Hãy gọi cho quán để chọn giờ khác.',
-    ],
+    'push_new' => 'Đặt bàn mới: :name, :party người, :time',
+    'push_guest_cancelled' => 'Khách huỷ đặt bàn: :name, :time',
+    'push_open' => 'Bấm để xem và xác nhận.',
 
     'customer_search' => 'Tìm mã, tên hoặc số điện thoại',
     'customers_empty' => 'Chưa có khách nào. Khách được thêm tự động khi có đặt bàn.',
@@ -176,8 +173,8 @@ return [
     'online_rules' => 'Quy định đặt bàn online',
     'min_notice_days' => 'Khách đặt trước tối thiểu',
     'min_notice_hint' => '0 là khách đặt được cho ngay hôm nay, 1 là từ ngày mai.',
-    'auto_confirm' => 'Không cần xác nhận đặt bàn online',
-    'auto_confirm_hint' => 'Bật thì đặt bàn online được nhận ngay. Tắt thì đặt bàn ở trạng thái Chờ xác nhận, chủ quán hoặc quản lý xác nhận sau.',
+    'require_confirmation' => 'Phải đợi xác nhận yêu cầu đặt bàn',
+    'require_confirmation_hint' => 'Bật: khách đặt xong nhận email "đã nhận yêu cầu, chờ xác nhận"; quán nhận email và thông báo; khi chủ quán hoặc người có quyền xác nhận, khách nhận email đã xác nhận. Tắt: đặt bàn được nhận ngay, khách nhận email đã xác nhận.',
     'online_seats' => 'Số chỗ cho đặt online',
     'online_seats_label' => 'Tối đa khách đặt online cùng lúc',
     'online_seats_hint' => 'Phần còn lại để dành cho khách gọi điện hoặc đến trực tiếp. Không vượt quá tổng chỗ ngồi của các khu vực.',

@@ -1652,3 +1652,62 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     .panel-split { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
     .panel-split > * + * { padding: 0 0 0 2rem; border-top: 0; border-left: 1px solid var(--line); }
 }
+
+/* Trang công khai: đặt bàn mẫu, khách xem đặt bàn của mình. */
+.public-page { background: var(--ground); }
+.booking-page { display: grid; gap: 1.25rem; width: 100%; max-width: 40rem; margin: 0 auto; padding: 1.5rem 16px 2.5rem; }
+.booking-head { display: grid; gap: .5rem; justify-items: center; text-align: center; }
+.booking-brand { display: grid; justify-items: center; gap: .5rem; color: var(--ink); font-size: 1.35rem; font-weight: 700; text-decoration: none; }
+.booking-contact { display: flex; flex-wrap: wrap; justify-content: center; gap: .25rem 1rem; margin: 0; padding: 0; color: var(--ink-soft); list-style: none; font-size: .925rem; }
+.booking-contact a { color: inherit; }
+.booking-card h1 { margin: 0; }
+.booking-card h2 { margin: .5rem 0 0; font-size: 1.05rem; }
+.booking-card .lead { margin: .25rem 0 1rem; color: var(--ink-soft); }
+.booking-card textarea { resize: vertical; }
+.booking-submit { display: grid; gap: .5rem; }
+.booking-submit .btn { width: 100%; min-height: 48px; font-size: 1.05rem; }
+.booking-submit small { color: var(--ink-soft); text-align: center; }
+.booking-status-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.booking-facts { display: grid; gap: .65rem; margin: 0; }
+.booking-facts div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: .75rem; }
+.booking-facts dt { color: var(--ink-soft); }
+.booking-facts dd { margin: 0; overflow-wrap: anywhere; }
+.public-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin-top: 1rem; }
+
+/* Website → Web đặt trước. */
+.choice small.row-note { color: var(--ink-soft); font-weight: 400; }
+.copy-row { display: flex; gap: .5rem; min-width: 0; }
+.copy-row input { flex: 1; min-width: 0; }
+.prompt-box { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8125rem; line-height: 1.5; background: var(--ground); }
+.steps { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; color: var(--ink-soft); }
+.checks { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; font-size: .925rem; }
+.checks li { display: flex; gap: .5rem; }
+.checks li > span { flex: none; display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; font-size: .75rem; font-weight: 700; border-radius: 50%; }
+.checks .is-ok > span { color: var(--ok-ink); background: var(--ok-bg); }
+.checks .is-warn > span { color: var(--warn-ink); background: var(--warn-bg); }
+.checks .is-error { color: var(--bad-ink); }
+.checks .is-error > span { color: var(--bad-ink); background: var(--bad-bg); }
+.actions-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.rows .row-main { display: grid; flex: 1; gap: .1rem; min-width: 0; }
+
+/* Email: trình soạn mẫu, biến kéo thả, xem trước. */
+.mail-edit { display: grid; gap: 1.25rem; }
+@media (min-width: 1024px) {
+    .mail-edit { grid-template-columns: minmax(0, 1fr) 18rem; align-items: start; }
+    .mail-edit .mail-preview { grid-column: 1 / -1; }
+}
+.mail-editor { overflow: hidden; border: 1px solid var(--field-line); border-radius: var(--radius); background: var(--surface); }
+.mail-toolbar { display: flex; gap: .35rem; padding: .4rem; border-bottom: 1px solid var(--line); background: var(--ground); }
+.mail-toolbar .row-btn svg { width: 1.1rem; height: 1.1rem; }
+.mail-body { min-height: 14rem; padding: .75rem 1rem; line-height: 1.6; outline: none; overflow-wrap: anywhere; }
+.mail-body:focus { box-shadow: inset 0 0 0 2px var(--primary-soft); }
+.mail-body p { margin: 0 0 .75rem; }
+.mail-body ul, .mail-body ol { margin: 0 0 .75rem; padding-left: 1.25rem; }
+.mail-chip, .mail-var { display: inline-block; padding: .05rem .5rem; color: var(--tone-1-ink); background: var(--tone-1-bg); border-radius: 999px; font-size: .875em; font-weight: 500; white-space: nowrap; }
+.mail-chip { cursor: default; user-select: all; }
+.mail-var-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mail-var { min-height: 36px; padding: .35rem .75rem; font: inherit; font-size: .875rem; border: 1px dashed color-mix(in srgb, var(--tone-1-ink) 35%, transparent); cursor: grab; }
+.mail-var:active { cursor: grabbing; }
+.mail-preview-subject { margin: 0; }
+.mail-frame { width: 100%; height: 30rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ground); }
+.mail-test { margin-top: 1.25rem; }

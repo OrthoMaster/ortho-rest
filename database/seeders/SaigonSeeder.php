@@ -138,7 +138,7 @@ class SaigonSeeder extends Seeder
     {
         $this->at($this->start->subDays(7)->setTime(9, 0));
 
-        $this->restaurant = Restaurant::create(['name' => 'Sài Gòn', 'slug' => self::SLUG, 'customer_retention_days' => 90]);
+        $this->restaurant = Restaurant::create(['name' => 'Sài Gòn', 'slug' => self::SLUG, 'customer_retention_days' => 90, 'phone' => '028 3822 1234', 'email' => 'lienhe@saigon.restaurant', 'address' => '45 Lê Thánh Tôn, Bến Nghé, Quận 1, TP.HCM']);
         app(TenantContext::class)->set($this->restaurant);
 
         $people = [

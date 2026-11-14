@@ -1,0 +1,44 @@
+/*
+ * Bộ đặt bàn của Liresto (số người, ngày, khu vực, giờ). Trang tự tạo chỉnh được bằng
+ * các biến --lb-*. Màu lấy từ màu của quán (trang mẫu dùng biến của app.css, trang tự tạo
+ * do Liresto gắn); mã màu ở đây chỉ là dự phòng vì trang tự tạo không tải app.css.
+ * Chữ phụ dùng màu chữ của trang (mờ đi), để hợp cả nền sáng lẫn nền tối.
+ */
+.lb-when, .lb-result, .lb-test, .lb-error {
+    --lb-accent: var(--lb-primary, var(--primary, #a8d0f0));
+    --lb-on-accent: var(--lb-on-primary, var(--on-primary, #1f3a52));
+    --lb-border: var(--lb-line, rgba(31, 58, 82, .18));
+    --lb-round: var(--lb-radius, 12px);
+}
+.lb-when { display: grid; gap: 1.1rem; margin: 0 0 1rem; min-width: 0; }
+.lb-field { display: grid; gap: .5rem; min-width: 0; }
+.lb-label { font-weight: 600; }
+.lb-party { display: flex; align-items: center; gap: .75rem; }
+.lb-party-value { min-width: 5.5rem; font-size: 1.1rem; font-weight: 600; text-align: center; }
+.lb-step, .lb-chip, .lb-time {
+    min-height: 44px; padding: .5rem .85rem; color: inherit; font: inherit; line-height: 1.2;
+    background: transparent; border: 1px solid var(--lb-border); border-radius: var(--lb-round); cursor: pointer;
+}
+.lb-step { width: 44px; padding: 0; font-size: 1.35rem; }
+.lb-chip[aria-pressed="true"], .lb-time[aria-pressed="true"] { color: var(--lb-on-accent); background: var(--lb-accent); border-color: var(--lb-accent); font-weight: 600; }
+.lb-step:disabled, .lb-chip:disabled, .lb-time:disabled { opacity: .4; cursor: not-allowed; }
+.lb-time:disabled { text-decoration: line-through; }
+.lb-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.lb-days { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .35rem; scroll-snap-type: x proximity; }
+.lb-day { display: grid; flex: none; gap: .1rem; min-width: 4.25rem; text-align: center; scroll-snap-align: start; }
+.lb-chip-top { font-size: .8rem; opacity: .8; }
+.lb-chip-sub { font-weight: 600; }
+.lb-times { display: grid; gap: .5rem; }
+.lb-period { font-size: .85rem; opacity: .7; }
+.lb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .5rem; }
+.lb-empty { margin: 0; opacity: .75; }
+.lb-error { margin: .35rem 0 0; color: #b42318; font-size: .9rem; }
+[aria-invalid="true"] { border-color: #b42318 !important; }
+.lb-result { margin: 1rem 0 0; padding: .85rem 1rem; border-radius: var(--lb-round); }
+.lb-result[hidden] { display: none; }
+.lb-result.is-ok { color: #1f6146; background: #d6f0e2; }
+.lb-result.is-error { color: #8a1c1c; background: #fbdfe0; }
+.lb-test { margin: 0 0 1rem; padding: .6rem .85rem; color: #75570a; background: #fdf0c8; border-radius: var(--lb-round); font-size: .9rem; }
+.lb-trap { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; opacity: 0; }
+.lb-footer { margin: 2rem auto 1rem; padding: 0 16px; max-width: 40rem; font: 14px/1.5 system-ui, sans-serif; color: inherit; opacity: .75; text-align: center; }
+.lb-footer a { color: inherit; }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CapacityController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeviceController;
+use App\Http\Controllers\Admin\MailController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RestaurantController;
@@ -38,8 +39,21 @@ Route::middleware('can:reports.view')->prefix('reports')->name('reports')->group
     Route::get('{tab}/export', [ReportController::class, 'export'])->where('tab', implode('|', ReportController::TABS))->name('.export');
 });
 
+// Email của quán (gửi khách khi đặt bàn): máy chủ gửi, mẫu email.
+Route::middleware(['can:settings.manage', 'module:reservation'])->prefix('email')->name('mail.')->group(function () {
+    Route::get('/', [MailController::class, 'server'])->name('server');
+    Route::put('/', [MailController::class, 'updateServer'])->name('server.update');
+    Route::post('test', [MailController::class, 'test'])->middleware('throttle:10,1')->name('test');
+    Route::get('mau', [MailController::class, 'templates'])->name('templates');
+    Route::get('mau/{key}', [MailController::class, 'edit'])->where('key', '[a-z_]+')->name('edit');
+    Route::put('mau/{key}', [MailController::class, 'update'])->where('key', '[a-z_]+')->name('update');
+    Route::delete('mau/{key}', [MailController::class, 'reset'])->where('key', '[a-z_]+')->name('reset');
+    Route::post('mau/{key}/test', [MailController::class, 'testTemplate'])->where('key', '[a-z_]+')->middleware('throttle:10,1')->name('template.test');
+});
+
 Route::middleware('can:settings.manage')->prefix('restaurant')->name('restaurant.')->group(function () {
     Route::get('/', [RestaurantController::class, 'edit'])->name('edit');
+    Route::put('contact', [RestaurantController::class, 'updateContact'])->name('contact');
     Route::get('activity', fn () => redirect()->route('tenant.admin.activity', status: 301));
 
     Route::prefix('capacity')->name('capacity.')->group(function () {

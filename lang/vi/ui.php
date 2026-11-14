@@ -181,6 +181,12 @@ return [
     ],
 
     'restaurant' => [
+        'contact_title' => 'Liên hệ',
+        'contact_lead' => 'Hiện trên trang đặt bàn và trong email gửi khách; khách trả lời email thì về email này.',
+        'phone' => 'Số điện thoại',
+        'email' => 'Email của quán',
+        'address' => 'Địa chỉ',
+        'contact_saved' => 'Đã lưu liên hệ của quán.',
         'title' => 'Cài đặt chung',
     ],
 

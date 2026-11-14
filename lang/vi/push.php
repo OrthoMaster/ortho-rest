@@ -20,7 +20,7 @@ return [
 
     // Bật thông báo trên máy.
     'enable_title' => 'Bật thông báo trên máy này',
-    'enable_body' => 'Nhận báo món mới, món đã xong ngay cả khi tắt màn hình.',
+    'enable_body' => 'Nhận báo món, đặt bàn mới ngay cả khi tắt màn hình.',
     'enable' => 'Bật thông báo',
     'install_title' => 'Cài ứng dụng để nhận thông báo',
     'install_body' => 'Trên iPhone, thêm quán vào màn hình chính thì mới nhận được thông báo.',

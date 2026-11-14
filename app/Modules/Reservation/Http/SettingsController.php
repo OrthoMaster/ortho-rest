@@ -52,7 +52,7 @@ class SettingsController extends Controller
             'online_enabled' => $online,
             'min_notice_days' => $online ? (int) $data['min_notice_days'] : $current['min_notice_days'],
             'max_advance_days' => $online ? (int) $data['max_advance_days'] : $current['max_advance_days'],
-            'auto_confirm' => $online ? $request->boolean('auto_confirm') : (bool) $current['auto_confirm'],
+            'auto_confirm' => $online ? ! $request->boolean('require_confirmation') : (bool) $current['auto_confirm'],
             'online_seats' => $online ? (int) $data['online_seats'] : $current['online_seats'],
             'online_seats_total' => $online ? $total : $current['online_seats_total'],
         ]);

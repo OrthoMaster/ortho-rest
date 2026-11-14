@@ -2,19 +2,23 @@
 
 namespace App\Modules\Reservation;
 
+use App\Mail\RestaurantMail;
 use App\Models\ActivityLog;
 use App\Models\Customer;
+use App\Models\PushSubscription;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Modules\ModuleManager;
 use App\Modules\Reservation\Models\Area;
 use App\Modules\Reservation\Models\Reservation;
 use App\Modules\Reservation\Models\ReservationStatusLog;
+use App\Push\WebPush;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+
+use function Illuminate\Support\defer;
 
 /**
  * Mọi thao tác ghi đặt bàn đi qua đây. Hàng của quán (rồi đến khu vực) bị
@@ -75,7 +79,7 @@ class ReservationBooking
             return $reservation;
         });
 
-        $this->notify($reservation);
+        $this->notifyCreated($reservation);
 
         return $reservation;
     }
@@ -143,7 +147,8 @@ class ReservationBooking
 
     public function changeStatus(Reservation $reservation, ReservationStatus $status, ?User $user = null, bool $overbook = false): Reservation
     {
-        $reservation = DB::transaction(function () use ($reservation, $status, $user, $overbook): Reservation {
+        $from = null;
+        $reservation = DB::transaction(function () use ($reservation, $status, $user, $overbook, &$from): Reservation {
             $this->lockRestaurant();
             $reservation = Reservation::whereKey($reservation->getKey())->lockForUpdate()->with('area')->firstOrFail();
             $from = $reservation->status;
@@ -163,7 +168,7 @@ class ReservationBooking
             return $reservation;
         });
 
-        $this->notify($reservation);
+        $this->notifyStatus($reservation, $from, $user);
 
         return $reservation;
     }
@@ -355,20 +360,103 @@ class ReservationBooking
         ]);
     }
 
-    /** Email gửi sau khi trả trang. Zalo thêm ở đây khi có tài khoản ZBS. */
-    private function notify(Reservation $reservation): void
+    /**
+     * Vừa đặt: khách nhận email "đã nhận, chờ xác nhận" hoặc "đã xác nhận"; đặt online
+     * thì quán nhận email và thông báo đẩy. Zalo thêm ở đây khi có tài khoản ZBS.
+     */
+    private function notifyCreated(Reservation $reservation): void
     {
-        $email = $reservation->customer->email;
+        $guest = match ($reservation->status) {
+            ReservationStatus::Pending => 'guest_received',
+            ReservationStatus::Confirmed => 'guest_confirmed',
+            default => null,
+        };
 
-        if (! $email || ! in_array($reservation->status, [ReservationStatus::Confirmed, ReservationStatus::Rejected], true)) {
+        if ($guest) {
+            RestaurantMail::reservation($guest, $reservation);
+        }
+
+        if ($reservation->source === ReservationSource::Online) {
+            RestaurantMail::reservation('staff_new', $reservation);
+            $this->pushStaff($reservation, __('reservation.push_new', ['name' => $reservation->customer->name, 'party' => $reservation->party_size, 'time' => $reservation->reserved_at->format('H:i d/m')]));
+        }
+    }
+
+    /** Đổi trạng thái: báo khách; khách tự huỷ (không có người của quán bấm) thì báo quán. */
+    private function notifyStatus(Reservation $reservation, ?ReservationStatus $from, ?User $user): void
+    {
+        $guest = match ($reservation->status) {
+            ReservationStatus::Confirmed => $from === ReservationStatus::Pending ? 'guest_confirmed' : null,
+            ReservationStatus::Rejected => 'guest_rejected',
+            ReservationStatus::Cancelled => 'guest_cancelled',
+            default => null,
+        };
+
+        if ($guest) {
+            RestaurantMail::reservation($guest, $reservation);
+        }
+
+        if ($reservation->status === ReservationStatus::Cancelled && $user === null) {
+            RestaurantMail::reservation('staff_guest_cancelled', $reservation);
+            $this->pushStaff($reservation, __('reservation.push_guest_cancelled', ['name' => $reservation->customer->name, 'time' => $reservation->reserved_at->format('H:i d/m')]));
+        }
+    }
+
+    /** Thông báo đẩy cho chủ quán và người được nhận, từ chối đặt bàn online. */
+    private function pushStaff(Reservation $reservation, string $title): void
+    {
+        if (! WebPush::enabled()) {
             return;
         }
 
-        $restaurantName = tenant()->name;
+        $ids = tenant()->users()->get()->filter(fn (User $user) => $user->can('reservation.manage'))->modelKeys();
+        $subscriptions = PushSubscription::whereIn('user_id', $ids ?: [0])->get();
+        $message = [
+            'title' => $title,
+            'body' => $reservation->notes ? (string) $reservation->notes : __('reservation.push_open'),
+            'url' => route('tenant.admin.reservation.show', $reservation),
+            'tag' => 'reservation-'.$reservation->getKey(),
+            'icon' => route('tenant.app-icon', ['size' => 192]),
+        ];
 
-        defer(fn () => Notification::route('mail', $email)->notify(
-            (new ReservationStatusNotification($reservation, $restaurantName))->locale($reservation->locale),
-        ));
+        defer(fn () => app(WebPush::class)->send($subscriptions, $message));
+    }
+
+    /**
+     * Giờ khách chọn được trên trang đặt bàn của một ngày: mỗi 15 phút trong giờ mở
+     * cửa (đủ một lượt bàn trước giờ đóng), còn chỗ online cho cả nhóm.
+     *
+     * @return list<array{time: string, period: string, available: bool}>
+     */
+    public function onlineSlots(CarbonImmutable $date, int $party, ?int $areaId = null): array
+    {
+        $area = $areaId ? Area::whereKey($areaId)->where('is_active', true)->first() : null;
+        $periods = tenant()->periodsOn($date) ?: (tenant()->hoursOn($date)['restricted'] ? [] : [['name' => '', 'start' => '10:00', 'end' => '22:00']]);
+        $slots = [];
+
+        foreach ($periods as $period) {
+            $opens = $date->setTimeFromTimeString($period['start']);
+            $closes = $date->setTimeFromTimeString($period['end']);
+
+            if ($closes->lte($opens)) {
+                $closes = $closes->addDay();
+            }
+
+            for ($start = $opens; $start->addMinutes($this->turn())->lte($closes); $start = $start->addMinutes(15)) {
+                try {
+                    $end = $this->endOf($start);
+                    $this->assertOnlineAllowed($start, $end, $party);
+                    $this->assertSeats($area, $start, $end, $party);
+                    $available = true;
+                } catch (ValidationException) {
+                    $available = false;
+                }
+
+                $slots[] = ['time' => $start->format('H:i'), 'period' => $period['name'], 'available' => $available];
+            }
+        }
+
+        return $slots;
     }
 
     /** @return array<string, mixed> */

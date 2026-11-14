@@ -3611,4 +3611,168 @@
         }
     })();
 
+
+    // Nút Sao chép: data-copy="#id" chép nội dung ô đó, đổi chữ nút một lúc.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-copy]');
+        var source = button ? document.querySelector(button.dataset.copy) : null;
+
+        if (!source) {
+            return;
+        }
+
+        var value = source.value !== undefined ? source.value : source.textContent;
+        var label = button.textContent;
+        var done = function () {
+            button.textContent = button.dataset.copied || label;
+            setTimeout(function () {
+                button.textContent = label;
+            }, 1500);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(value).then(done);
+        } else {
+            source.select();
+            document.execCommand('copy');
+            done();
+        }
+    });
+
+
+    // Trình soạn mẫu email: định dạng đơn giản, kéo (hoặc bấm) biến vào nội dung / tiêu đề.
+    document.querySelectorAll('[data-mail-form]').forEach(function (form) {
+        var body = form.querySelector('[data-mail-body]');
+        var source = form.querySelector('[data-mail-source]');
+        var subject = form.querySelector('[data-mail-subject]');
+        var lastFocus = body;
+        var range = null;
+
+        var chip = function (name, label) {
+            var span = document.createElement('span');
+            span.className = 'mail-chip';
+            span.contentEditable = 'false';
+            span.dataset.var = name;
+            span.textContent = label;
+
+            return span;
+        };
+
+        var saveRange = function () {
+            var selection = window.getSelection();
+
+            if (selection.rangeCount && body.contains(selection.anchorNode)) {
+                range = selection.getRangeAt(0).cloneRange();
+            }
+        };
+
+        var insertChip = function (name, label, at) {
+            var node = chip(name, label);
+            var target = at || range;
+
+            if (!target) {
+                body.appendChild(node);
+            } else {
+                target.deleteContents();
+                target.insertNode(node);
+                target.setStartAfter(node);
+                target.collapse(true);
+            }
+
+            node.insertAdjacentText('afterend', ' ');
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+            form.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        var insertInSubject = function (name) {
+            var token = '{{' + name + '}}';
+            var start = subject.selectionStart || subject.value.length;
+            var end = subject.selectionEnd || start;
+
+            subject.value = subject.value.slice(0, start) + token + subject.value.slice(end);
+            subject.setSelectionRange(start + token.length, start + token.length);
+            subject.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
+        body.addEventListener('keyup', saveRange);
+        body.addEventListener('mouseup', saveRange);
+        body.addEventListener('focus', function () {
+            lastFocus = body;
+        });
+        subject.addEventListener('focus', function () {
+            lastFocus = subject;
+        });
+        body.addEventListener('input', function () {
+            form.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        form.querySelectorAll('[data-cmd]').forEach(function (button) {
+            button.addEventListener('mousedown', function (event) {
+                event.preventDefault();
+            });
+            button.addEventListener('click', function () {
+                body.focus();
+
+                if (button.dataset.cmd === 'createLink') {
+                    var url = window.prompt(button.dataset.prompt, 'https://');
+
+                    if (url && /^(https?:\/\/|mailto:|tel:)/i.test(url)) {
+                        document.execCommand('createLink', false, url);
+                    }
+                } else {
+                    document.execCommand(button.dataset.cmd, false, null);
+                }
+
+                form.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+
+        // Không chặn mousedown của biến (để kéo được); chỗ chèn đã nhớ trong range / lastFocus.
+        document.querySelectorAll('[data-mail-var]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (lastFocus === subject) {
+                    insertInSubject(button.dataset.mailVar);
+                } else {
+                    insertChip(button.dataset.mailVar, button.textContent);
+                }
+            });
+            button.addEventListener('dragstart', function (event) {
+                event.dataTransfer.setData('text/plain', '{{' + button.dataset.mailVar + '}}');
+                event.dataTransfer.setData('application/x-mail-var', button.dataset.mailVar + '|' + button.textContent);
+            });
+        });
+
+        body.addEventListener('dragover', function (event) {
+            event.preventDefault();
+        });
+        body.addEventListener('drop', function (event) {
+            var data = event.dataTransfer.getData('application/x-mail-var');
+
+            if (!data) {
+                return;
+            }
+
+            event.preventDefault();
+            var parts = data.split('|');
+            var at = document.caretRangeFromPoint ? document.caretRangeFromPoint(event.clientX, event.clientY) : null;
+
+            if (!at && document.caretPositionFromPoint) {
+                var position = document.caretPositionFromPoint(event.clientX, event.clientY);
+                at = document.createRange();
+                at.setStart(position.offsetNode, position.offset);
+            }
+
+            insertChip(parts[0], parts.slice(1).join('|'), at && body.contains(at.startContainer) ? at : null);
+        });
+
+        form.addEventListener('submit', function () {
+            var copy = body.cloneNode(true);
+
+            copy.querySelectorAll('.mail-chip').forEach(function (node) {
+                node.replaceWith('{{' + node.dataset.var + '}}');
+            });
+            source.value = copy.innerHTML;
+        });
+    });
+
 })();

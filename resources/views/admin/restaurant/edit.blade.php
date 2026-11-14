@@ -48,6 +48,24 @@
         </div>
     </section>
 
+    {{-- Liên hệ: hiện trên trang đặt bàn và trong email gửi khách. --}}
+    <section class="panel">
+        <form method="post" action="{{ route('tenant.admin.restaurant.contact') }}" class="stack" data-guard>
+            @csrf
+            @method('put')
+            <div>
+                <h2>{{ __('ui.restaurant.contact_title') }}</h2>
+                <small class="row-note">{{ __('ui.restaurant.contact_lead') }}</small>
+            </div>
+            @include('partials.field', ['name' => 'phone', 'label' => __('ui.restaurant.phone'), 'type' => 'tel', 'value' => $restaurant->phone, 'required' => false, 'maxlength' => 30])
+            @include('partials.field', ['name' => 'email', 'label' => __('ui.restaurant.email'), 'type' => 'email', 'value' => $restaurant->email, 'required' => false])
+            @include('partials.field', ['name' => 'address', 'label' => __('ui.restaurant.address'), 'value' => $restaurant->address, 'required' => false, 'maxlength' => 255])
+            <div>
+                <button class="btn" type="submit">{{ __('ui.common.save') }}</button>
+            </div>
+        </form>
+    </section>
+
     <section class="panel">
         <form method="post" action="{{ route('tenant.admin.restaurant.customer-data') }}" class="stack" data-guard>
             @csrf

@@ -29,8 +29,8 @@
             @include('partials.number-stepper', ['name' => 'max_advance_days', 'label' => __('reservation.max_advance_label'), 'value' => $settings['max_advance_days'],
                 'min' => 1, 'max' => 365, 'suffix' => __('reservation.unit_days')])
             <div class="field">
-                <label class="check"><input type="checkbox" name="auto_confirm" value="1" @checked(old('auto_confirm', $settings['auto_confirm']))> {{ __('reservation.auto_confirm') }}</label>
-                <small>{{ __('reservation.auto_confirm_hint') }}</small>
+                <label class="check"><input type="checkbox" name="require_confirmation" value="1" @checked(old('require_confirmation', ! $settings['auto_confirm']))> {{ __('reservation.require_confirmation') }}</label>
+                <small>{{ __('reservation.require_confirmation_hint') }}</small>
             </div>
         </section>
 

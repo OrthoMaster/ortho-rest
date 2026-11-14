@@ -91,6 +91,8 @@ return [
     'fields' => [
         'permissions' => 'Quyền',
         'phone' => 'Số điện thoại',
+        'email' => 'Email',
+        'address' => 'Địa chỉ',
         'is_active' => 'Đang làm việc',
         'positions' => 'Chức vụ',
         'name' => 'Tên',

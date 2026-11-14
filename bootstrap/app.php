@@ -45,6 +45,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [SetLocale::class, TrackDevice::class]);
 
+        // Trang đặt bàn quán tự tạo chạy cô lập, gửi đặt bàn không kèm cookie: kiểm tra bằng mã trang thay CSRF.
+        $middleware->validateCsrfTokens(except: ['*/dat-ban/gui', 'dat-ban/gui']);
+
         // Phải biết nhà hàng trước khi nạp model từ URL, để Global Scope lọc đúng quán.
         $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantBySlug::class);
 
