@@ -3775,6 +3775,56 @@
         });
     });
 
+    // Menu 3 chấm, ô chọn (lọc nhiều, chọn một) mở ra: không bao giờ tràn ra ngoài mép trái / phải màn hình.
+    // Đo sau khi mở, lệch sang trái hoặc phải cho vừa (cách mép 8px). Áp cho mọi trang, kể cả phần tự tải lại.
+    var keepInView = function (panel) {
+        panel.style.translate = '';
+        var box = panel.getBoundingClientRect();
+
+        if (box.width === 0) {
+            return;
+        }
+
+        var edge = 8;
+        var width = document.documentElement.clientWidth;
+        var shift = 0;
+
+        if (box.right > width - edge) {
+            shift = width - edge - box.right;
+        }
+
+        if (box.left + shift < edge) {
+            shift = edge - box.left;
+        }
+
+        if (shift !== 0) {
+            panel.style.translate = Math.round(shift) + 'px 0';
+        }
+    };
+    var fitOpenPanels = function () {
+        document.querySelectorAll('.kebab[open] > .kebab-menu:not(.is-floating), .multi-panel:not([hidden])').forEach(function (panel) {
+            if (!panel.closest('[hidden]')) {
+                keepInView(panel);
+            }
+        });
+    };
+
+    // Mở xong trang có thể còn đổi bố cục (nút đổi chữ, thanh công cụ xuống dòng...), nên đo lại thêm vài lần.
+    var fitSoon = function () {
+        fitOpenPanels();
+        window.requestAnimationFrame(fitOpenPanels);
+        window.setTimeout(fitOpenPanels, 120);
+        window.setTimeout(fitOpenPanels, 400);
+    };
+
+    document.addEventListener('toggle', function (event) {
+        if (event.target.classList && event.target.classList.contains('kebab')) {
+            fitSoon();
+        }
+    }, true);
+    document.addEventListener('click', fitSoon);
+    window.addEventListener('resize', fitOpenPanels);
+
     // Lịch tuần, lịch nghỉ: bảng rộng hơn khung thì cuộn ngang tới cột hôm nay (ngay sau cột tên cố định bên trái).
     document.querySelectorAll('[data-scroll-today]').forEach(function (wrap) {
         var today = wrap.querySelector('thead th.is-today');
