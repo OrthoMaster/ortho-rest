@@ -68,7 +68,7 @@ Trên server, `.env`, `storage/` và `public/uploads/` không bao giờ bị ghi
 
 1. Panel IONOS: chọn PHP 8.4 cho domain; tạo database MySQL 8; trỏ domain vào thư mục `<DEPLOY_PATH>/public`; bật SSL.
 2. Tạo SSH key riêng cho GitHub (trên máy mình): `ssh-keygen -t ed25519 -f liresto_deploy -N ""`, rồi thêm nội dung `liresto_deploy.pub` vào `~/.ssh/authorized_keys` trên IONOS.
-3. GitHub → Settings → Environments → `production`:
+3. GitHub → Settings → Environments → `ellso-production`:
    - Secrets: `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY` (nội dung file `liresto_deploy`), `SSH_KNOWN_HOSTS` (kết quả `ssh-keyscan <SSH_HOST>`), `DEPLOY_PATH` (đường dẫn thư mục trên server, ví dụ `liresto`)
    - Variables: `APP_URL` (để kiểm tra `/up` sau khi deploy), `PHP_BIN` (không bắt buộc: `php8.4-cli` hay `php8.4`, để trống thì tự tìm)
 4. Tạo `<DEPLOY_PATH>/.env` trên server từ `.env.example`: `APP_KEY` (tạo ở máy mình bằng `php artisan key:generate --show`), `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, `MAIN_DOMAINS`, `DB_HOST`/`DB_DATABASE`/`DB_USERNAME`/`DB_PASSWORD` (lấy ở panel IONOS → Bases de données), `MAIL_*`, `SEED_PASSWORD`.

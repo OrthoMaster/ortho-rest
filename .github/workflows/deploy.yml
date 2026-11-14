@@ -55,7 +55,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    environment: production
+    environment: ellso-production
 
     steps:
       - uses: actions/checkout@v4
