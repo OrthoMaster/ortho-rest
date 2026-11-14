@@ -574,7 +574,13 @@ class DineInTest extends TestCase
         // Gắn khách theo số điện thoại; ghi sự cố.
         $this->post("$tables/guest", ['name' => 'Chị Mai', 'phone' => '12ab'])->assertSessionHasErrorsIn('guest-dialog', 'phone');
         $this->post("$tables/guest", ['name' => 'Chị Mai', 'phone' => '0987 654 321'])->assertSessionHas('status');
+        // Ghi sự cố: báo người xem sự cố (quản lý), người ghi thì không.
+        $sent = $this->recordPushes();
+        $this->pushDevice($manager = $this->member($this->restaurant, 'manager'));
         $this->post("$tables/incidents", ['kind' => 'slow', 'note' => 'Chờ trà 30 phút'])->assertSessionHas('status');
+        $this->assertSame([$manager->id], $sent[0]['users']);
+        $this->assertSame(__('dinein.push_incident', ['table' => 'A1', 'kind' => __('dinein.incident_kinds.slow')]), $sent[0]['title']);
+        $this->assertStringContainsString('Chờ trà 30 phút', $sent[0]['body']);
         $this->get("$this->base/tables/A1")->assertSee('Chị Mai')->assertSee('0987654321')
             ->assertSee(__('dinein.incident_kinds.slow'))->assertSee('Chờ trà 30 phút');
 

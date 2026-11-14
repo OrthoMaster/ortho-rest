@@ -11,6 +11,7 @@ use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Roster;
+use App\Modules\Schedule\ScheduleAlerts;
 use App\Push\Notify;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -167,6 +168,13 @@ class LeaveController extends Controller
             'name' => $person->name, 'from' => LeaveBook::format($adjustment->before), 'to' => LeaveBook::format($adjustment->after), 'reason' => $adjustment->reason,
         ]));
 
+        Notify::users([$person], [
+            'title' => __('leave.push_adjusted', ['days' => LeaveBook::format($adjustment->after)]),
+            'body' => __('leave.push_adjusted_body', ['from' => LeaveBook::format($adjustment->before), 'to' => LeaveBook::format($adjustment->after), 'reason' => $adjustment->reason]),
+            'url' => route('tenant.admin.schedule.leave.mine'),
+            'tag' => 'leave-balance-'.$person->id,
+        ]);
+
         return $back->with('status', __('leave.adjusted', ['name' => $person->name, 'days' => LeaveBook::format($adjustment->after)]));
     }
 
@@ -279,7 +287,8 @@ class LeaveController extends Controller
         // Người duyệt bấm Duyệt: tạo đơn đã duyệt luôn, bỏ người đó khỏi các ô lịch trùng ngày nghỉ.
         $approveNow = $approver && ($data['action'] ?? null) === 'approve';
 
-        $leave = DB::transaction(function () use ($userId, $from, $to, $shiftIds, $data, $viewer, $approveNow, $request): LeaveRequest {
+        $removed = collect();
+        $leave = DB::transaction(function () use ($userId, $from, $to, $shiftIds, $data, $viewer, $approveNow, $request, &$removed): LeaveRequest {
             $leave = LeaveRequest::create([
                 'user_id' => $userId,
                 'starts_on' => $from->toDateString(),
@@ -295,7 +304,8 @@ class LeaveController extends Controller
             ]);
 
             if ($approveNow) {
-                LeaveBook::scheduled($leave)->each->delete();
+                $removed = LeaveBook::scheduled($leave);
+                $removed->each->delete();
             }
 
             return $leave;
@@ -308,6 +318,7 @@ class LeaveController extends Controller
             ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_approved', ['name' => $name, 'period' => $leave->periodText(), 'paid' => mb_strtolower(__($leave->is_paid ? 'leave.paid' : 'leave.unpaid'))]));
 
             $this->notifyTaker($leave, 'approved');
+            ScheduleAlerts::shortAfterLeave($removed, $name);
 
             return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.approved', ['name' => $name]));
         }
@@ -335,7 +346,8 @@ class LeaveController extends Controller
         ]);
         $approve = $data['action'] === 'approve';
 
-        DB::transaction(function () use ($request, $leave, $data, $approve): void {
+        $removed = collect();
+        DB::transaction(function () use ($request, $leave, $data, $approve, &$removed): void {
             $leave->update([
                 'status' => $approve ? LeaveStatus::Approved : LeaveStatus::Rejected,
                 'is_paid' => $approve ? $request->boolean('is_paid') : null,
@@ -345,7 +357,8 @@ class LeaveController extends Controller
             ]);
 
             if ($approve) {
-                LeaveBook::scheduled($leave)->each->delete();
+                $removed = LeaveBook::scheduled($leave);
+                $removed->each->delete();
             }
         });
 
@@ -355,6 +368,7 @@ class LeaveController extends Controller
             : __('leave.log_rejected', ['name' => $name, 'period' => $leave->periodText()]));
 
         $this->notifyTaker($leave, $approve ? 'approved' : 'rejected');
+        ScheduleAlerts::shortAfterLeave($removed, $name);
 
         return back()->with('status', __($approve ? 'leave.approved' : 'leave.rejected', ['name' => $name]));
     }

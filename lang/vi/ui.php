@@ -132,6 +132,8 @@ return [
         'blocked' => 'Tài khoản này chỉ cho đăng nhập trên các thiết bị đã đăng ký.',
         'revoked' => 'Thiết bị này đã bị đăng xuất từ xa. Hãy đăng nhập lại.',
         'impersonating' => 'Bạn đang đăng nhập thay chủ quán, nên máy này không có trong danh sách.',
+        'push_new' => 'Tài khoản vừa đăng nhập trên :name',
+        'push_new_body' => 'Lúc :time, IP :ip. Không phải bạn thì vào Tài khoản → Thiết bị đăng nhập để đăng xuất máy đó và đổi mật khẩu.',
     ],
 
     'password' => [

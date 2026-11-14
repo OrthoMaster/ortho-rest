@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\ShiftType;
 use App\Models\ActivityLog;
 use App\Models\Department;
-use App\Models\PushSubscription;
 use App\Models\Restaurant;
 use App\Models\Shift;
 use App\Models\User;
@@ -14,11 +13,9 @@ use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\Assignment;
 use App\Modules\Schedule\Models\LeaveRequest;
-use App\Push\WebPush;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class LeaveTest extends TestCase
@@ -184,10 +181,14 @@ class LeaveTest extends TestCase
             ->assertSee(__('leave.adjust'))->assertSee(__('leave.history_monthly', ['month' => '02/2026']));
 
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => '', 'reason' => ''])->assertSessionHasErrorsIn('adjust', ['left', 'reason']);
+        $sent = $this->recordPushes();
+        $this->pushDevice($this->lan);
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'Vào làm giữa tháng 1'])
             ->assertRedirect("$this->base/mine?user={$this->lan->id}")
             ->assertSessionHas('status', __('leave.adjusted', ['name' => 'Lan', 'days' => '8,5']));
         $this->assertSame(8.5, LeaveBook::balance($this->lan->fresh())['left']);
+        $this->assertSame([$this->lan->id], $sent[0]['users']);
+        $this->assertSame(__('leave.push_adjusted', ['days' => '8,5']), $sent[0]['title']);
         $this->assertSame(__('leave.log_adjusted', ['name' => 'Lan', 'from' => '10', 'to' => '8,5', 'reason' => 'Vào làm giữa tháng 1']), ActivityLog::withoutGlobalScopes()->latest('id')->value('summary'));
         $this->post("$this->base/balance/{$this->lan->id}", ['left' => 8.5, 'reason' => 'x'])->assertSessionHas('status', __('leave.adjust_same'));
 
@@ -229,20 +230,9 @@ class LeaveTest extends TestCase
 
     public function test_leave_requests_and_decisions_are_pushed(): void
     {
-        config(['liresto.push.public_key' => 'public', 'liresto.push.private_key' => 'private']);
-        $sent = new \ArrayObject;
-        $this->app->instance(WebPush::class, new class($sent) extends WebPush
-        {
-            public function __construct(private \ArrayObject $log) {}
-
-            public function send(Collection $subscriptions, array $message): void
-            {
-                $this->log[] = ['users' => $subscriptions->pluck('user_id')->all(), ...$message];
-            }
-        });
-        foreach ([$this->owner, $this->lan] as $index => $user) {
-            PushSubscription::create(['user_id' => $user->id, 'endpoint' => "https://push.test/$index", 'endpoint_hash' => hash('sha256', (string) $index), 'public_key' => 'k', 'auth_token' => 'a']);
-        }
+        $sent = $this->recordPushes();
+        $this->pushDevice($this->owner);
+        $this->pushDevice($this->lan);
 
         // Nhân viên xin nghỉ: báo chủ quán (người duyệt), không báo chính mình.
         $this->actingAs($this->lan)->post($this->base, ['starts_on' => '2026-11-16', 'ends_on' => '2026-11-16', 'whole_day' => 1, 'reason' => 'Về quê']);

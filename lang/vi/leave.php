@@ -93,6 +93,8 @@ return [
     'push_withdrawn' => ':name đã huỷ đơn xin nghỉ',
     'push_approved' => 'Đơn xin nghỉ đã được duyệt',
     'push_rejected' => 'Đơn xin nghỉ bị từ chối',
+    'push_adjusted' => 'Ngày phép của bạn được chỉnh: còn :days ngày',
+    'push_adjusted_body' => ':from → :to ngày. Lý do: :reason',
     'push_cancelled' => 'Đơn nghỉ của bạn đã bị huỷ',
     'log_created' => 'Đơn xin nghỉ của :name: :period',
     'log_approved' => 'Duyệt nghỉ :paid cho :name: :period',

@@ -57,6 +57,21 @@ class DeviceTest extends TestCase
         $this->get("/{$this->slug}/admin/profile")->assertSee('Safari trên iPhone')->assertSee(__('ui.devices.current'));
     }
 
+    public function test_login_on_a_new_device_notifies_the_other_devices(): void
+    {
+        $sent = $this->recordPushes();
+        $this->pushDevice($this->owner);
+
+        // Máy đầu tiên: không báo.
+        $this->login(self::IPHONE);
+        $this->assertCount(0, $sent);
+        $this->logout();
+
+        $this->login('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36');
+        $this->assertSame([$this->owner->id], $sent[0]['users']);
+        $this->assertSame(__('ui.devices.push_new', ['name' => $this->owner->devices()->latest('id')->value('name')]), $sent[0]['title']);
+    }
+
     public function test_same_browser_logging_in_again_reuses_the_device(): void
     {
         $cookie = $this->login(self::IPHONE)->getCookie(DeviceGuard::COOKIE)->getValue();
