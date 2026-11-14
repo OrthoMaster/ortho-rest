@@ -17,7 +17,7 @@
             <span><i class="legend-dot is-pending" aria-hidden="true"></i>{{ __('leave.calendar_pending') }}</span>
             <span class="leave-cal-tip">{{ __('leave.calendar_tip') }}</span>
         </p>
-        <div class="table-wrap">
+        <div class="table-wrap" data-scroll-today>
             <table class="leave-cal">
                 <thead>
                     <tr>

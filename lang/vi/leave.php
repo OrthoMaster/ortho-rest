@@ -33,6 +33,7 @@ return [
     'history_adjust' => ':name chỉnh từ :from thành :to ngày',
     'history_after' => 'Còn :days',
     'calendar_title' => 'Số người nghỉ theo ca',
+    'calendar_no_department' => 'Chưa có',
     'calendar_empty' => 'Chưa có bộ phận hay nhân viên nào.',
     'calendar_cell' => ':approved đã duyệt nghỉ, :pending đang chờ duyệt, bộ phận có :people người',
     'calendar_approved' => 'Đã duyệt nghỉ',
@@ -86,6 +87,13 @@ return [
     'cancel' => 'Huỷ đơn',
     'cancel_confirm' => 'Huỷ đơn xin nghỉ :period?',
     'cancelled' => 'Đã huỷ đơn xin nghỉ.',
+
+    // Thông báo đẩy.
+    'push_new' => ':name xin nghỉ',
+    'push_withdrawn' => ':name đã huỷ đơn xin nghỉ',
+    'push_approved' => 'Đơn xin nghỉ đã được duyệt',
+    'push_rejected' => 'Đơn xin nghỉ bị từ chối',
+    'push_cancelled' => 'Đơn nghỉ của bạn đã bị huỷ',
     'log_created' => 'Đơn xin nghỉ của :name: :period',
     'log_approved' => 'Duyệt nghỉ :paid cho :name: :period',
     'log_rejected' => 'Từ chối đơn nghỉ của :name: :period',

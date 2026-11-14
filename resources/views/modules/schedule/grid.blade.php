@@ -10,8 +10,8 @@
 --}}
 @php($editable = $mode !== 'view')
 @php($slotRows = max(1, ...array_map(fn ($column) => count($column['slots']), $columns)))
-<div class="schedule-wrap planner-board">
-    <table class="schedule">
+<div class="schedule-wrap planner-board" data-scroll-today>
+    <table @class(['schedule', 'is-fit' => $mode === 'view'])>
         <thead>
             <tr>
                 <th scope="col" class="schedule-target">{{ __('schedule.target') }}</th>

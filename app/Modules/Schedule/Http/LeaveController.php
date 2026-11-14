@@ -11,6 +11,7 @@ use App\Modules\Schedule\LeaveBook;
 use App\Modules\Schedule\LeaveStatus;
 use App\Modules\Schedule\Models\LeaveRequest;
 use App\Modules\Schedule\Roster;
+use App\Push\Notify;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -209,7 +210,7 @@ class LeaveController extends Controller
         $groups = Department::orderBy('sort_order')->orderBy('id')->get()
             ->map(fn (Department $department) => ['id' => $department->id, 'name' => $department->name, 'tone' => $department->tone, 'people' => $users->where('department_id', $department->id)->count()]);
         if ($users->whereNull('department_id')->isNotEmpty() || $leaves->contains(fn ($leave) => $leave->user->department_id === null)) {
-            $groups->push(['id' => 0, 'name' => __('staff.no_department'), 'tone' => 0, 'people' => $users->whereNull('department_id')->count()]);
+            $groups->push(['id' => 0, 'name' => __('leave.calendar_no_department'), 'tone' => 0, 'people' => $users->whereNull('department_id')->count()]);
         }
 
         return ['date' => $days[0], 'days' => $days, 'calendarSlots' => $slots, 'counts' => $counts, 'groups' => $groups];
@@ -306,8 +307,18 @@ class LeaveController extends Controller
         if ($approveNow) {
             ActivityLog::record(tenant()->getKey(), 'schedule', __('leave.log_approved', ['name' => $name, 'period' => $leave->periodText(), 'paid' => mb_strtolower(__($leave->is_paid ? 'leave.paid' : 'leave.unpaid'))]));
 
+            $this->notifyTaker($leave, 'approved');
+
             return redirect()->route('tenant.admin.schedule.leave.index')->with('status', __('leave.approved', ['name' => $name]));
         }
+
+        // Đơn chờ duyệt: báo người duyệt (chủ quán và người có quyền duyệt nghỉ phép).
+        Notify::permitted('schedule.leave', [
+            'title' => __('leave.push_new', ['name' => $name]),
+            'body' => $leave->periodText().($leave->reason ? "\n".$leave->reason : ''),
+            'url' => route('tenant.admin.schedule.leave.index', ['filter' => 'pending']),
+            'tag' => 'leave-'.$leave->getKey(),
+        ]);
 
         return redirect()->route($approver ? 'tenant.admin.schedule.leave.index' : 'tenant.admin.schedule.leave.mine')->with('status', __('leave.sent'));
     }
@@ -343,6 +354,8 @@ class LeaveController extends Controller
             ? __('leave.log_approved', ['name' => $name, 'period' => $leave->periodText(), 'paid' => mb_strtolower(__($leave->is_paid ? 'leave.paid' : 'leave.unpaid'))])
             : __('leave.log_rejected', ['name' => $name, 'period' => $leave->periodText()]));
 
+        $this->notifyTaker($leave, $approve ? 'approved' : 'rejected');
+
         return back()->with('status', __($approve ? 'leave.approved' : 'leave.rejected', ['name' => $name]));
     }
 
@@ -355,8 +368,34 @@ class LeaveController extends Controller
             : $leave->user_id === $user->id && $leave->status === LeaveStatus::Pending;
         abort_unless($allowed, 403);
 
+        $wasPending = $leave->status === LeaveStatus::Pending;
         $leave->update(['status' => LeaveStatus::Cancelled]);
 
+        if ($leave->user_id === $user->id) {
+            // Tự huỷ đơn đang chờ: người duyệt khỏi phải duyệt nữa.
+            if ($wasPending) {
+                Notify::permitted('schedule.leave', [
+                    'title' => __('leave.push_withdrawn', ['name' => $leave->user->name]),
+                    'body' => $leave->periodText(),
+                    'url' => route('tenant.admin.schedule.leave.index'),
+                    'tag' => 'leave-'.$leave->getKey(),
+                ]);
+            }
+        } else {
+            $this->notifyTaker($leave, 'cancelled');
+        }
+
         return back()->with('status', __('leave.cancelled'));
+    }
+
+    /** Báo người nghỉ: đơn đã được duyệt, bị từ chối hoặc bị huỷ. */
+    private function notifyTaker(LeaveRequest $leave, string $result): void
+    {
+        Notify::users([$leave->user], [
+            'title' => __('leave.push_'.$result),
+            'body' => $leave->periodText().($leave->decision_note && $result !== 'cancelled' ? "\n".$leave->decision_note : ''),
+            'url' => route('tenant.admin.schedule.leave.mine'),
+            'tag' => 'leave-'.$leave->getKey(),
+        ]);
     }
 }

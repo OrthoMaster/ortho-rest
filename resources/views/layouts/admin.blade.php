@@ -67,11 +67,11 @@
     <a href="{{ route('tenant.admin.profile.edit') }}" @class(['active' => request()->routeIs('tenant.admin.profile.*')])>{{ __('ui.nav.profile') }}</a>
 @endsection
 
-{{-- Ứng dụng cài được của quán, và lời mời bật thông báo đẩy trên máy này (khi có Màn hình khu vực, hoặc người nhận đặt bàn online). --}}
+{{-- Ứng dụng cài được của quán, và lời mời bật thông báo đẩy trên máy này (mọi người trong quán: báo món, đặt bàn, đơn nghỉ...). --}}
 @push('head')
     @include('partials.app-head')
 @endpush
-@if ((has_module('kitchen') || (has_module('reservation') && Gate::allows('reservation.manage'))) && \App\Push\WebPush::enabled())
+@if (\App\Push\WebPush::enabled())
     @push('content_top')
         <section class="panel push-banner w-lg" data-push data-key="{{ config('liresto.push.public_key') }}" data-url="{{ route('tenant.admin.push.subscribe') }}" data-token="{{ substr(hash('sha256', session()->getId().auth()->id()), 0, 16) }}" hidden>
             <div class="push-banner-text" data-push-enable hidden>

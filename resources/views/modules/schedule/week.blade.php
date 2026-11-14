@@ -58,7 +58,7 @@
             @endforeach
         @endforeach
 
-        <div class="planner">
+        <div class="planner is-view">
             @include('modules.schedule.grid', [
                 'mode' => 'view',
                 'columns' => collect($days)->map(fn ($day) => [
@@ -71,41 +71,5 @@
             ])
         </div>
 
-        {{-- Điện thoại: mỗi ngày một thẻ, liệt kê hàng đã có người. --}}
-        <div class="schedule-cards">
-            @foreach ($days as $day)
-                @php($daySlots = $slots[$day->toDateString()])
-                <section @class(['panel', 'schedule-card', 'is-today' => $day->isToday()])>
-                    <span class="schedule-card-head">
-                        <strong>{{ __('ui.calendar.weekdays')[$day->dayOfWeekIso - 1] }} {{ $day->format('d/m') }}</strong>
-                        @if ($day->isToday())<small class="badge">{{ __('schedule.today') }}</small>@endif
-                    </span>
-                    @php($any = false)
-                    @foreach ($targets as $target)
-                        @foreach ($target['lanes'] as $lane)
-                            @php($filled = collect($daySlots)->filter(fn ($slot) => ! empty($rows[$day->toDateString()][$slot['key']][$lane['key']] ?? [])))
-                            @continue($filled->isEmpty())
-                            @php($any = true)
-                            <span class="schedule-card-row">
-                                <span class="schedule-card-target">
-                                    @if ($target['code'])<span class="area-code">{{ $target['code'] }}</span> @endif{{ $target['name'] }}@if ($lane['task_id']) · {{ $lane['name'] }}@endif
-                                </span>
-                                @foreach ($filled as $slot)
-                                    <span class="schedule-slot">
-                                        @if (count($daySlots) > 1)<small>{{ $slot['name'] }} {{ $slot['time'] }}</small>@endif
-                                        @foreach ($rows[$day->toDateString()][$slot['key']][$lane['key']] as $person)
-                                            <span class="person-pill tone-{{ $person['user']->department?->tone ?? 0 }}">{{ $person['user']->name }}</span>
-                                        @endforeach
-                                    </span>
-                                @endforeach
-                            </span>
-                        @endforeach
-                    @endforeach
-                    @unless ($any)
-                        <small class="row-note">{{ $daySlots === [] ? __('schedule.closed_day') : __('schedule.empty_cell') }}</small>
-                    @endunless
-                </section>
-            @endforeach
-        </div>
     @endif
 @endsection

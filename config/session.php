@@ -32,7 +32,8 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // 30 ngày: nhân viên mở ứng dụng trên điện thoại không phải đăng nhập lại liên tục.
+    'lifetime' => (int) env('SESSION_LIFETIME', 43200),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

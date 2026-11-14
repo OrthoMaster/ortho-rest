@@ -24,7 +24,7 @@
             @include('partials.field', ['name' => 'login', 'type' => 'email', 'label' => __('ui.login.email'), 'autocomplete' => 'username'])
         @endif
         @include('partials.field', ['name' => 'password', 'type' => 'password', 'label' => __('ui.login.password'), 'autocomplete' => 'current-password'])
-        <label class="check"><input type="checkbox" name="remember" value="1"> {{ __('ui.login.remember') }}</label>
+        <label class="check"><input type="checkbox" name="remember" value="1" checked> {{ __('ui.login.remember') }}</label>
         <button class="btn" type="submit">{{ __('ui.login.submit') }}</button>
     </form>
     <p class="aside-link"><a href="{{ route($prefix.'password.request') }}">{{ __('ui.login.forgot') }}</a></p>
